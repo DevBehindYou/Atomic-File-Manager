@@ -4,9 +4,13 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.repository.OutputTarget
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -26,7 +30,13 @@ internal object ArchiveOperationsHelper {
         onBytesCopied: (Long) -> Unit,
         emitProgress: suspend (String) -> Unit,
     ): FileOperationsEngine.ItemResult {
-        val outRes = destBackend.openOutput(destParentId, zipName, "application/zip")
+        if (destBackend.exists(destParentId, zipName)) {
+            return FileOperationsEngine.ItemResult.Failure(FileError.FileAlreadyExists(zipName))
+        }
+        if (!destBackend.capabilities.canRename) {
+            return FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination(zipName))
+        }
+        val outRes = destBackend.openOutput(destParentId, InterruptedTransferCleanup.stagingName(), "application/zip")
         val outputTarget =
             when (outRes) {
                 is FileResult.Success -> outRes.value
@@ -44,8 +54,7 @@ internal object ArchiveOperationsHelper {
                         if (!coroutineContext.isActive) throw CancellationException()
                         val sourceBackend = backendSelector(sourceId)
                         val nodeRes = sourceBackend.getNode(sourceId)
-                        if (nodeRes !is FileResult.Success) continue
-                        val node = nodeRes.value
+                        val node = nodeRes.requireSuccess()
                         emitProgress(node.name)
 
                         if (node.isDirectory) {
@@ -72,11 +81,15 @@ internal object ArchiveOperationsHelper {
                 }
             }
             outputTarget.sync()
+            val staged = outputTarget.toNode().requireSuccess()
+            coroutineContext.ensureActive()
+            if (destBackend.exists(destParentId, zipName)) throw ArchiveFailure(FileError.FileAlreadyExists(zipName))
+            destBackend.rename(staged.id, zipName).requireSuccess()
             return FileOperationsEngine.ItemResult.Success
         } catch (e: Exception) {
-            outputTarget.discard()
+            discardAfterFailure(outputTarget, e)
             if (e is CancellationException) throw e
-            return FileOperationsEngine.ItemResult.Failure(FileError.IoFailure(zipName))
+            return FileOperationsEngine.ItemResult.Failure((e as? ArchiveFailure)?.error ?: FileError.IoFailure(zipName))
         }
     }
 
@@ -87,21 +100,25 @@ internal object ArchiveOperationsHelper {
         zipOut: ZipOutputStream,
         onBytesCopied: (Long) -> Unit,
     ) {
-        val inRes = sourceBackend.openInput(fileNode.id)
-        if (inRes !is FileResult.Success) return
+        val input = sourceBackend.openInput(fileNode.id).requireSuccess()
 
         val entry = ZipEntry(entryPath)
         entry.time = fileNode.modifiedAt
         zipOut.putNextEntry(entry)
 
-        inRes.value.stream().use { inStream ->
+        var copied = 0L
+        input.stream().use { inStream ->
             val buffer = ByteArray(BUFFER_SIZE)
             var bytesRead: Int
             while (inStream.read(buffer).also { bytesRead = it } != -1) {
                 if (!coroutineContext.isActive) throw CancellationException()
                 zipOut.write(buffer, 0, bytesRead)
+                copied += bytesRead
                 onBytesCopied(bytesRead.toLong())
             }
+        }
+        if (fileNode.size >= 0 && copied != fileNode.size) {
+            throw ArchiveFailure(FileError.IncompleteWrite(fileNode.name, copied, fileNode.size))
         }
         zipOut.closeEntry()
     }
@@ -120,29 +137,27 @@ internal object ArchiveOperationsHelper {
         zipOut.closeEntry()
 
         sourceBackend.listChildren(dirNode.id).collect { chunkResult ->
-            if (chunkResult is FileResult.Success) {
-                for (child in chunkResult.value) {
-                    if (!coroutineContext.isActive) throw CancellationException()
-                    emitProgress(child.name)
-                    val childPath = "$relativePrefix/${child.name}"
-                    if (child.isDirectory) {
-                        compressDirectoryRecursive(
-                            dirNode = child,
-                            relativePrefix = childPath,
-                            sourceBackend = sourceBackend,
-                            zipOut = zipOut,
-                            onBytesCopied = onBytesCopied,
-                            emitProgress = emitProgress,
-                        )
-                    } else {
-                        compressSingleFile(
-                            fileNode = child,
-                            entryPath = childPath,
-                            sourceBackend = sourceBackend,
-                            zipOut = zipOut,
-                            onBytesCopied = onBytesCopied,
-                        )
-                    }
+            for (child in chunkResult.requireSuccess()) {
+                if (!coroutineContext.isActive) throw CancellationException()
+                emitProgress(child.name)
+                val childPath = "$relativePrefix/${child.name}"
+                if (child.isDirectory) {
+                    compressDirectoryRecursive(
+                        dirNode = child,
+                        relativePrefix = childPath,
+                        sourceBackend = sourceBackend,
+                        zipOut = zipOut,
+                        onBytesCopied = onBytesCopied,
+                        emitProgress = emitProgress,
+                    )
+                } else {
+                    compressSingleFile(
+                        fileNode = child,
+                        entryPath = childPath,
+                        sourceBackend = sourceBackend,
+                        zipOut = zipOut,
+                        onBytesCopied = onBytesCopied,
+                    )
                 }
             }
         }
@@ -164,8 +179,12 @@ internal object ArchiveOperationsHelper {
                 is FileResult.Failure -> return FileOperationsEngine.ItemResult.Failure(inRes.error)
             }
 
-        val node = (sourceBackend.getNode(sourceId) as? FileResult.Success)?.value
-        val archiveName = node?.name ?: sourceId.raw.substringAfterLast('/')
+        val node =
+            when (val result = sourceBackend.getNode(sourceId)) {
+                is FileResult.Success -> result.value
+                is FileResult.Failure -> return FileOperationsEngine.ItemResult.Failure(result.error)
+            }
+        val archiveName = node.name
         // Anything not recognised by name is read as ZIP, as before.
         val kind = ArchiveFormats.kindOf(archiveName) ?: ArchiveFormats.Kind.ZIP
         // Given once from the preview, never stored; gone after this extract whatever happens.
@@ -179,7 +198,7 @@ internal object ArchiveOperationsHelper {
                     kind,
                     archiveName,
                     rawIn,
-                    node?.size ?: -1,
+                    node.size,
                     password = password,
                     spool = spool,
                 ).use {
@@ -220,39 +239,16 @@ internal object ArchiveOperationsHelper {
                                     destParentId
                                 }
                             val fileName = segments.last()
+                            val entryPath = entry.path
 
-                            val outRes = destBackend.openOutput(parentDirId, fileName, null)
-                            if (outRes is FileResult.Success) {
-                                val outTarget = outRes.value
-                                try {
-                                    outTarget.stream().use { outStream ->
-                                        val buffer = ByteArray(BUFFER_SIZE)
-                                        var read: Int
-                                        while (archive.read(buffer, 0, buffer.size).also { read = it } != -1) {
-                                            if (!coroutineContext.isActive) {
-                                                outTarget.discard()
-                                                throw CancellationException()
-                                            }
-                                            outStream.write(buffer, 0, read)
-                                            totalExtractedBytes += read
-                                            if (totalExtractedBytes > MAX_EXTRACT_BYTES) {
-                                                outTarget.discard()
-                                                return FileOperationsEngine.ItemResult.Failure(
-                                                    FileError.SuspiciousArchive(
-                                                        entry.path,
-                                                        "Archive bomb detected: exceeded max size limit",
-                                                    ),
-                                                )
-                                            }
-                                            onBytesCopied(read.toLong())
-                                        }
-                                        outStream.flush()
-                                    }
-                                    outTarget.sync()
-                                } catch (e: Exception) {
-                                    outTarget.discard()
-                                    throw e
+                            extractFile(archive, entry, destBackend, parentDirId, fileName) { read ->
+                                totalExtractedBytes += read
+                                if (totalExtractedBytes > MAX_EXTRACT_BYTES) {
+                                    throw ArchiveFailure(
+                                        FileError.SuspiciousArchive(entryPath, "Archive bomb detected: exceeded max size limit"),
+                                    )
                                 }
+                                onBytesCopied(read)
                             }
                         }
 
@@ -263,6 +259,7 @@ internal object ArchiveOperationsHelper {
             return FileOperationsEngine.ItemResult.Success
         } catch (e: Exception) {
             if (e is CancellationException) throw e
+            if (e is ArchiveFailure) return FileOperationsEngine.ItemResult.Failure(e.error)
             if (e is ArchiveWrongPassword) {
                 return FileOperationsEngine.ItemResult.Failure(FileError.UnsupportedFormat(WRONG_PASSWORD))
             }
@@ -273,29 +270,85 @@ internal object ArchiveOperationsHelper {
         }
     }
 
+    /** Publication relies on backend rename semantics; the interface has no atomic no-replace contract. */
+    private suspend fun extractFile(
+        archive: ArchiveStream,
+        entry: ArchiveHeader,
+        backend: StorageBackend,
+        parent: FileNodeId,
+        name: String,
+        onBytes: (Long) -> Unit,
+    ) {
+        if (backend.exists(parent, name)) throw ArchiveFailure(FileError.FileAlreadyExists(name))
+        if (!backend.capabilities.canRename) throw ArchiveFailure(FileError.InvalidDestination(name))
+        val output = backend.openOutput(parent, InterruptedTransferCleanup.stagingName(), null).requireSuccess()
+        try {
+            var written = 0L
+            output.stream().use { stream ->
+                val buffer = ByteArray(BUFFER_SIZE)
+                while (true) {
+                    if (!coroutineContext.isActive) throw CancellationException()
+                    val count = archive.read(buffer, 0, buffer.size)
+                    if (count < 0) break
+                    if (count == 0) continue
+                    onBytes(count.toLong())
+                    stream.write(buffer, 0, count)
+                    written += count
+                }
+                stream.flush()
+            }
+            if (entry.size >= 0 && written != entry.size) {
+                throw ArchiveFailure(FileError.IncompleteWrite(name, written, entry.size))
+            }
+            output.sync()
+            val staged = output.toNode().requireSuccess()
+            coroutineContext.ensureActive()
+            if (backend.exists(parent, name)) throw ArchiveFailure(FileError.FileAlreadyExists(name))
+            backend.rename(staged.id, name).requireSuccess()
+        } catch (error: Exception) {
+            discardAfterFailure(output, error)
+            throw error
+        }
+    }
+
     private suspend fun ensureDirectoryPath(
         backend: StorageBackend,
         rootParentId: FileNodeId,
         segments: List<String>,
     ): FileNodeId {
         var currentParent = rootParentId
-        for (seg in segments) {
-            if (seg.isEmpty()) continue
-            if (!backend.exists(currentParent, seg)) {
-                when (val created = backend.createDirectory(currentParent, seg)) {
-                    is FileResult.Success -> currentParent = created.value.id
-                    is FileResult.Failure -> {
-                        val prefix = currentParent.prefix?.scheme ?: ""
-                        val pathPart = currentParent.raw.removePrefix(prefix).trimEnd('/')
-                        currentParent = FileNodeId("$prefix$pathPart/$seg")
-                    }
+        for (segment in segments) {
+            coroutineContext.ensureActive()
+            var existing: FileNode? = null
+            backend.listChildren(currentParent).collect { chunk ->
+                chunk.requireSuccess().filter { it.name == segment }.forEach { child ->
+                    if (existing != null) throw ArchiveFailure(FileError.InvalidDestination(segment))
+                    existing = child
                 }
-            } else {
-                val prefix = currentParent.prefix?.scheme ?: ""
-                val pathPart = currentParent.raw.removePrefix(prefix).trimEnd('/')
-                currentParent = FileNodeId("$prefix$pathPart/$seg")
             }
+            coroutineContext.ensureActive()
+            val child = existing ?: backend.createDirectory(currentParent, segment).requireSuccess()
+            if (!child.isDirectory) throw ArchiveFailure(FileError.InvalidDestination(segment))
+            currentParent = child.id
         }
         return currentParent
     }
+
+    private class ArchiveFailure(val error: FileError) : Exception()
+
+    private suspend fun discardAfterFailure(output: OutputTarget, failure: Exception) {
+        withContext(NonCancellable) {
+            try {
+                output.discard()
+            } catch (cleanupFailure: Exception) {
+                failure.addSuppressed(cleanupFailure)
+            }
+        }
+    }
+
+    private fun <T> FileResult<T>.requireSuccess(): T =
+        when (this) {
+            is FileResult.Success -> value
+            is FileResult.Failure -> throw ArchiveFailure(error)
+        }
 }
