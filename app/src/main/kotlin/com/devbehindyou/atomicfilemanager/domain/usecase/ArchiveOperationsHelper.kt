@@ -19,6 +19,7 @@ import kotlin.coroutines.coroutineContext
 internal object ArchiveOperationsHelper {
     private const val BUFFER_SIZE = 64 * 1024
     private const val MAX_EXTRACT_BYTES = 10L * 1024 * 1024 * 1024 // 10 GB safe ceiling
+    private const val MAX_COMPRESS_DEPTH = 256
 
     suspend fun compressItems(
         sources: List<FileNodeId>,
@@ -36,7 +37,26 @@ internal object ArchiveOperationsHelper {
         if (!destBackend.capabilities.canRename) {
             return FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination(zipName))
         }
-        val outRes = destBackend.openOutput(destParentId, InterruptedTransferCleanup.stagingName(), "application/zip")
+        // Resolve every source and reject self-inclusion before the staging file exists.
+        val preparedSources =
+            try {
+                sources.map { sourceId ->
+                    coroutineContext.ensureActive()
+                    val sourceBackend = backendSelector(sourceId)
+                    val node = sourceBackend.getNode(sourceId).requireSuccess()
+                    if (node.isDirectory && sourceBackend === destBackend) {
+                        checkCompressionDestination(node, destParentId, destBackend)
+                    }
+                    node to sourceBackend
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                return FileOperationsEngine.ItemResult.Failure(
+                    (error as? ArchiveFailure)?.error ?: FileError.IoFailure(zipName),
+                )
+            }
+        val stagingName = InterruptedTransferCleanup.stagingName()
+        val outRes = destBackend.openOutput(destParentId, stagingName, "application/zip")
         val outputTarget =
             when (outRes) {
                 is FileResult.Success -> outRes.value
@@ -50,11 +70,8 @@ internal object ArchiveOperationsHelper {
                         zipOut.setLevel(compressionLevel)
                     }
 
-                    for (sourceId in sources) {
+                    for ((node, sourceBackend) in preparedSources) {
                         if (!coroutineContext.isActive) throw CancellationException()
-                        val sourceBackend = backendSelector(sourceId)
-                        val nodeRes = sourceBackend.getNode(sourceId)
-                        val node = nodeRes.requireSuccess()
                         emitProgress(node.name)
 
                         if (node.isDirectory) {
@@ -65,6 +82,9 @@ internal object ArchiveOperationsHelper {
                                 zipOut = zipOut,
                                 onBytesCopied = onBytesCopied,
                                 emitProgress = emitProgress,
+                                visited = mutableSetOf(),
+                                depth = 0,
+                                stagingName = stagingName,
                             )
                         } else {
                             compressSingleFile(
@@ -92,6 +112,25 @@ internal object ArchiveOperationsHelper {
             return FileOperationsEngine.ItemResult.Failure(
                 (e as? ArchiveFailure)?.error ?: FileError.IoFailure(zipName),
             )
+        }
+    }
+
+    private suspend fun checkCompressionDestination(
+        source: FileNode,
+        destination: FileNodeId,
+        backend: StorageBackend,
+    ) {
+        if (backend.isSameOrDescendant(source.id, destination).requireSuccess()) {
+            throw ArchiveFailure(FileError.InvalidDestination(source.name))
+        }
+        var ancestor: FileNodeId? = destination
+        val ancestors = mutableSetOf<FileNodeId>()
+        while (ancestor != null) {
+            coroutineContext.ensureActive()
+            if (ancestor == source.id || !ancestors.add(ancestor)) {
+                throw ArchiveFailure(FileError.InvalidDestination(source.name))
+            }
+            ancestor = backend.getNode(ancestor).requireSuccess().parentId
         }
     }
 
@@ -132,7 +171,15 @@ internal object ArchiveOperationsHelper {
         zipOut: ZipOutputStream,
         onBytesCopied: (Long) -> Unit,
         emitProgress: suspend (String) -> Unit,
+        visited: MutableSet<FileNodeId>,
+        depth: Int,
+        stagingName: String,
     ) {
+        coroutineContext.ensureActive()
+        // Providers may return cycles; a depth bound also catches aliases with changing IDs.
+        if (depth >= MAX_COMPRESS_DEPTH || !visited.add(dirNode.id)) {
+            throw ArchiveFailure(FileError.InvalidDestination(dirNode.name))
+        }
         val dirEntry = ZipEntry("$relativePrefix/")
         dirEntry.time = dirNode.modifiedAt
         zipOut.putNextEntry(dirEntry)
@@ -141,6 +188,8 @@ internal object ArchiveOperationsHelper {
         sourceBackend.listChildren(dirNode.id).collect { chunkResult ->
             for (child in chunkResult.requireSuccess()) {
                 if (!coroutineContext.isActive) throw CancellationException()
+                // A directory alias can expose the output even when the root ancestry differs.
+                if (child.name == stagingName) throw ArchiveFailure(FileError.InvalidDestination(child.name))
                 emitProgress(child.name)
                 val childPath = "$relativePrefix/${child.name}"
                 if (child.isDirectory) {
@@ -151,6 +200,9 @@ internal object ArchiveOperationsHelper {
                         zipOut = zipOut,
                         onBytesCopied = onBytesCopied,
                         emitProgress = emitProgress,
+                        visited = visited,
+                        depth = depth + 1,
+                        stagingName = stagingName,
                     )
                 } else {
                     compressSingleFile(

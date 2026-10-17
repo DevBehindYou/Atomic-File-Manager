@@ -186,6 +186,135 @@ class ArchiveIntegrityTest {
             assertNoStaging()
         }
 
+    @Test
+    fun `compression into source root is rejected before opening output`() =
+        runTest {
+            val tracked = TrackedOutputBackend(backend)
+
+            val result = compress(backend.rootId, tracked, backend.rootId, tracked)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination("root")), result)
+            assertEquals(0, tracked.outputOpens)
+        }
+
+    @Test
+    fun `compression into source descendant is rejected before opening output`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            val nested = (backend.createDirectory(source.id, "nested") as FileResult.Success).value
+            val tracked = TrackedOutputBackend(backend)
+
+            val result = compress(source.id, tracked, nested.id, tracked)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination("source")), result)
+            assertEquals(0, tracked.outputOpens)
+        }
+
+    @Test
+    fun `compression honors provider ancestry before opening output`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            val provider = object : StorageBackend by backend {
+                override suspend fun isSameOrDescendant(ancestor: FileNodeId, candidate: FileNodeId): FileResult<Boolean> =
+                    FileResult.Success(true)
+            }
+            val tracked = TrackedOutputBackend(provider)
+
+            val result = compress(source.id, tracked, backend.rootId, tracked)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination("source")), result)
+            assertEquals(0, tracked.outputOpens)
+        }
+
+    @Test
+    fun `compression propagates ancestry failures before opening output`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            val denied = FileError.AccessDenied("ancestry")
+            val provider = object : StorageBackend by backend {
+                override suspend fun isSameOrDescendant(ancestor: FileNodeId, candidate: FileNodeId): FileResult<Boolean> =
+                    FileResult.Failure(denied)
+            }
+            val tracked = TrackedOutputBackend(provider)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(source.id, tracked, backend.rootId, tracked))
+            assertEquals(0, tracked.outputOpens)
+        }
+
+    @Test
+    fun `compression propagates parent lookup failure before opening output`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            val denied = FileError.AccessDenied("parent")
+            val provider = object : StorageBackend by backend {
+                override suspend fun getNode(id: FileNodeId): FileResult<FileNode> =
+                    if (id == backend.rootId) FileResult.Failure(denied) else backend.getNode(id)
+            }
+            val tracked = TrackedOutputBackend(provider)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(source.id, tracked, backend.rootId, tracked))
+            assertEquals(0, tracked.outputOpens)
+        }
+
+    @Test
+    fun `compression rejects cyclic directory listing and discards staging`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "cycle") as FileResult.Success).value
+            var listings = 0
+            val provider = object : StorageBackend by backend {
+                override fun listChildren(id: FileNodeId) = flowOf(FileResult.Success(listOf(source))).also { listings++ }
+            }
+
+            assertEquals(
+                FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination("cycle")),
+                compress(source.id, provider),
+            )
+            assertEquals(1, listings)
+            assertFalse(backend.exists(backend.rootId, "result.zip"))
+            assertNoStaging()
+        }
+
+    @Test
+    fun `compression into source parent remains supported`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            backend.putFile(source.id, "file.txt", "payload".toByteArray())
+
+            assertEquals(FileOperationsEngine.ItemResult.Success, compress(source.id))
+            assertTrue(backend.exists(backend.rootId, "result.zip"))
+            assertNoStaging()
+        }
+
+    @Test
+    fun `compression rejects own staging exposed through a directory alias`() =
+        runTest {
+            val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
+            var stagingName = ""
+            var inputOpened = false
+            val destination = object : StorageBackend by backend {
+                override suspend fun openOutput(parent: FileNodeId, name: String, mime: String?): FileResult<OutputTarget> {
+                    stagingName = name
+                    return backend.openOutput(parent, name, mime)
+                }
+            }
+            val provider = object : StorageBackend by backend {
+                override fun listChildren(id: FileNodeId) =
+                    flowOf(FileResult.Success(listOf(source.copy(name = stagingName, isDirectory = false))))
+
+                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                    inputOpened = true
+                    return backend.openInput(id)
+                }
+            }
+
+            val result = compress(source.id, provider, backend.rootId, destination)
+
+            assertEquals(FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination(stagingName)), result)
+            assertFalse(inputOpened)
+            assertFalse(backend.exists(backend.rootId, "result.zip"))
+            assertNoStaging()
+        }
+
     private suspend fun extract(
         source: FileNodeId,
         destination: StorageBackend = backend,
@@ -195,9 +324,11 @@ class ArchiveIntegrityTest {
     private suspend fun compress(
         source: FileNodeId,
         sourceBackend: StorageBackend = backend,
-    ) = ArchiveOperationsHelper.compressItems(listOf(source), backend.rootId, "result.zip", null, backend, {
-        sourceBackend
-    }, {}, {})
+        destination: FileNodeId = backend.rootId,
+        destBackend: StorageBackend = backend,
+    ) = ArchiveOperationsHelper.compressItems(
+        listOf(source), destination, "result.zip", null, destBackend, { sourceBackend }, {}, {},
+    )
 
     private suspend fun archive(path: String) = backend.putFile(backend.rootId, "source.zip", zip(path))
 
@@ -227,5 +358,15 @@ class ArchiveIntegrityTest {
 
     private suspend fun assertNoStaging() {
         assertFalse(children(backend.rootId).any { InterruptedTransferCleanup.isStaging(it.name) })
+    }
+
+    private class TrackedOutputBackend(private val delegate: StorageBackend) : StorageBackend by delegate {
+        var outputOpens = 0
+            private set
+
+        override suspend fun openOutput(parent: FileNodeId, name: String, mime: String?): FileResult<OutputTarget> {
+            outputOpens++
+            return delegate.openOutput(parent, name, mime)
+        }
     }
 }
