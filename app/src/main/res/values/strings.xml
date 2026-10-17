@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="operation_history_unavailable">Operation history could not be saved.</string>
+    <string name="operation_history_unavailable_detail">Check your files before retrying. Some operations may not have started, and recent history may be incomplete.</string>
     <string name="app_name">Atomic File Manager</string>
     <string name="widget_storage_title">Internal storage</string>
     <string name="widget_storage_description">Free space on this phone. Tap to open Storage.</string>
