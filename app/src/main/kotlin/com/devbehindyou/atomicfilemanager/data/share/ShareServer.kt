@@ -54,7 +54,7 @@ class ShareServer(
     private val clock: () -> Long = System::currentTimeMillis,
     private val onStop: (ShareStopReason) -> Unit = {},
 ) {
-    private val rootCanonical: File = root.canonicalFile
+    private val rootCanonical: File = root.toPath().toRealPath().toFile()
     private val socket = ServerSocket(0, BACKLOG, address)
     private val workers =
         ThreadPoolExecutor(WORKERS, WORKERS, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(QUEUED_CLIENTS))
@@ -263,8 +263,10 @@ class ShareServer(
     }
 
     private fun inside(file: File): Boolean {
-        val canonical = runCatching { file.canonicalFile }.getOrNull() ?: return false
-        return canonical == rootCanonical || canonical.path.startsWith(rootCanonical.path + File.separator)
+        // Resolve actual links on every supported host; File.canonicalFile does not follow
+        // Windows symbolic links. Path.startsWith also compares complete path components.
+        val real = runCatching { file.toPath().toRealPath() }.getOrNull() ?: return false
+        return real.startsWith(rootCanonical.toPath())
     }
 
     // --- HTTP plumbing -----------------------------------------------------------------------

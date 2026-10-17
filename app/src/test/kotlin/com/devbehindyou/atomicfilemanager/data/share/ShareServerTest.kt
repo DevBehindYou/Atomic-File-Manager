@@ -141,6 +141,7 @@ class ShareServerTest {
             val r = s.call("POST", "/login", body = "pin=000000")
             assertTrue("That PIN is wrong" in r.body)
         }
+        awaitCondition { stops.isNotEmpty() }
         assertFalse(s.isRunning)
         assertEquals(listOf(ShareStopReason.WRONG_PIN), stops)
     }
@@ -175,6 +176,7 @@ class ShareServerTest {
         val s = start(idleMs = 100)
         val deadline = System.currentTimeMillis() + 5_000
         while (s.isRunning && System.currentTimeMillis() < deadline) Thread.sleep(20)
+        awaitCondition { stops.isNotEmpty() }
         assertFalse(s.isRunning)
         assertEquals(listOf(ShareStopReason.IDLE), stops)
     }
