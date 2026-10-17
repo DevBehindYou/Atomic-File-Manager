@@ -1,5 +1,7 @@
 # Performance Strategy
 
+> **Evidence, 17 October 2026:** this is a target strategy. Current measured/unmeasured results are recorded in [PERFORMANCE_BASELINE](../testing/PERFORMANCE_BASELINE.md). CI assembles benchmarks but does not run the described per-merge device regression gate. No startup, frame-time, memory or throughput improvement is claimed without a measurement.
+
 Budgets are in `../NON_FUNCTIONAL_REQUIREMENTS.md` §1. This document is *how they are met and
 measured*.
 

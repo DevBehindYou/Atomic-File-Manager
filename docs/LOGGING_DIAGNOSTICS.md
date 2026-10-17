@@ -1,5 +1,7 @@
 # Logging and Diagnostics
 
+> **Status, 17 October 2026:** design specification. The structured Logger, redaction layer, ring buffer and export flow described below were not found in the current implementation. Debug StrictMode and JankStats exist; the benchmark module is enabled but measured device results are pending. Network permissions are present for user-directed storage/sharing, so the offline-flavour statement below is historical. Do not claim the listed diagnostics or privacy guarantees as implemented.
+
 Goal: diagnose a user's problem from a bug report **without** learning anything about their
 files.
 
