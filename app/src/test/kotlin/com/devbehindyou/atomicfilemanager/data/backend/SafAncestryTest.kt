@@ -167,7 +167,8 @@ class SafAncestryTest {
             }
         }
 
-    private fun directory(documentId: String): Pair<String, String> = documentId to DocumentsContract.Document.MIME_TYPE_DIR
+    private fun directory(documentId: String): Pair<String, String> =
+        documentId to DocumentsContract.Document.MIME_TYPE_DIR
 
     private fun id(
         documentId: String,

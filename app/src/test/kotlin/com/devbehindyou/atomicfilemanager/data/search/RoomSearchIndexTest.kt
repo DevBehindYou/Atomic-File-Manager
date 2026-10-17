@@ -289,10 +289,11 @@ class RoomSearchIndexTest {
             dao.onSearch = { currentCoroutineContext().cancel() }
             val index = index()
             var returned = false
-            val search = launch {
-                index.search("report", 10, SearchFilter.DOCUMENTS)
-                returned = true
-            }
+            val search =
+                launch {
+                    index.search("report", 10, SearchFilter.DOCUMENTS)
+                    returned = true
+                }
             runCurrent()
 
             assertTrue(search.isCancelled)
@@ -314,16 +315,15 @@ class RoomSearchIndexTest {
         id: String,
         name: String = "report.pdf",
         directory: Boolean = false,
-    ) =
-        SearchIndexEntity(
-            id = "file:/items/$id",
-            name = name,
-            nameLower = name.lowercase(),
-            parentId = "file:/items",
-            isDirectory = directory,
-            size = if (directory) -1 else 1,
-            modifiedAt = 0,
-            mimeType = null,
-            generation = 1,
-        )
+    ) = SearchIndexEntity(
+        id = "file:/items/$id",
+        name = name,
+        nameLower = name.lowercase(),
+        parentId = "file:/items",
+        isDirectory = directory,
+        size = if (directory) -1 else 1,
+        modifiedAt = 0,
+        mimeType = null,
+        generation = 1,
+    )
 }

@@ -89,7 +89,9 @@ internal object ArchiveOperationsHelper {
         } catch (e: Exception) {
             discardAfterFailure(outputTarget, e)
             if (e is CancellationException) throw e
-            return FileOperationsEngine.ItemResult.Failure((e as? ArchiveFailure)?.error ?: FileError.IoFailure(zipName))
+            return FileOperationsEngine.ItemResult.Failure(
+                (e as? ArchiveFailure)?.error ?: FileError.IoFailure(zipName),
+            )
         }
     }
 
@@ -245,7 +247,10 @@ internal object ArchiveOperationsHelper {
                                 totalExtractedBytes += read
                                 if (totalExtractedBytes > MAX_EXTRACT_BYTES) {
                                     throw ArchiveFailure(
-                                        FileError.SuspiciousArchive(entryPath, "Archive bomb detected: exceeded max size limit"),
+                                        FileError.SuspiciousArchive(
+                                            entryPath,
+                                            "Archive bomb detected: exceeded max size limit",
+                                        ),
                                     )
                                 }
                                 onBytesCopied(read)
@@ -336,7 +341,10 @@ internal object ArchiveOperationsHelper {
 
     private class ArchiveFailure(val error: FileError) : Exception()
 
-    private suspend fun discardAfterFailure(output: OutputTarget, failure: Exception) {
+    private suspend fun discardAfterFailure(
+        output: OutputTarget,
+        failure: Exception,
+    ) {
         withContext(NonCancellable) {
             try {
                 output.discard()

@@ -86,16 +86,21 @@ class ArchiveIntegrityTest {
         runTest {
             val source = archive("new.txt")
             val denied = FileError.AccessDenied("destination")
-            val outputDenied = object : StorageBackend by backend {
-                override suspend fun openOutput(parent: FileNodeId, name: String, mime: String?): FileResult<OutputTarget> =
-                    FileResult.Failure(denied)
-            }
+            val outputDenied =
+                object : StorageBackend by backend {
+                    override suspend fun openOutput(
+                        parent: FileNodeId,
+                        name: String,
+                        mime: String?,
+                    ): FileResult<OutputTarget> = FileResult.Failure(denied)
+                }
             assertEquals(FileOperationsEngine.ItemResult.Failure(denied), extract(source, outputDenied))
 
             val nested = archive("folder/new.txt")
-            val listingDenied = object : StorageBackend by backend {
-                override fun listChildren(id: FileNodeId) = flowOf(FileResult.Failure(denied))
-            }
+            val listingDenied =
+                object : StorageBackend by backend {
+                    override fun listChildren(id: FileNodeId) = flowOf(FileResult.Failure(denied))
+                }
             assertEquals(FileOperationsEngine.ItemResult.Failure(denied), extract(nested, listingDenied))
             assertFalse(backend.exists(backend.rootId, "folder"))
         }
@@ -105,9 +110,11 @@ class ArchiveIntegrityTest {
         runTest {
             val source = backend.putFile(backend.rootId, "private.txt", "payload".toByteArray())
             val denied = FileError.AccessDenied("private.txt")
-            val sourceBackend = object : StorageBackend by backend {
-                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> = FileResult.Failure(denied)
-            }
+            val sourceBackend =
+                object : StorageBackend by backend {
+                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
+                        FileResult.Failure(denied)
+                }
 
             assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(source, sourceBackend))
             assertFalse(backend.exists(backend.rootId, "result.zip"))
@@ -119,9 +126,10 @@ class ArchiveIntegrityTest {
         runTest {
             val folder = (backend.createDirectory(backend.rootId, "private") as FileResult.Success).value
             val denied = FileError.AccessDenied("private")
-            val sourceBackend = object : StorageBackend by backend {
-                override fun listChildren(id: FileNodeId) = flowOf(FileResult.Failure(denied))
-            }
+            val sourceBackend =
+                object : StorageBackend by backend {
+                    override fun listChildren(id: FileNodeId) = flowOf(FileResult.Failure(denied))
+                }
 
             assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(folder.id, sourceBackend))
             assertFalse(backend.exists(backend.rootId, "result.zip"))
@@ -134,7 +142,10 @@ class ArchiveIntegrityTest {
             val original = backend.putFile(backend.rootId, "result.zip", "original".toByteArray())
             val source = backend.putFile(backend.rootId, "source.txt", "payload".toByteArray())
 
-            assertEquals(FileOperationsEngine.ItemResult.Failure(FileError.FileAlreadyExists("result.zip")), compress(source))
+            assertEquals(
+                FileOperationsEngine.ItemResult.Failure(FileError.FileAlreadyExists("result.zip")),
+                compress(source),
+            )
             assertEquals("original", contents(original))
             assertNoStaging()
         }
@@ -144,10 +155,13 @@ class ArchiveIntegrityTest {
         runTest {
             val source = archive("new.txt")
             val denied = FileError.AccessDenied("new.txt")
-            val destination = object : StorageBackend by backend {
-                override suspend fun rename(id: FileNodeId, newName: String): FileResult<FileNode> =
-                    FileResult.Failure(denied)
-            }
+            val destination =
+                object : StorageBackend by backend {
+                    override suspend fun rename(
+                        id: FileNodeId,
+                        newName: String,
+                    ): FileResult<FileNode> = FileResult.Failure(denied)
+                }
 
             assertEquals(FileOperationsEngine.ItemResult.Failure(denied), extract(source, destination))
             assertFalse(backend.exists(backend.rootId, "new.txt"))
@@ -158,10 +172,11 @@ class ArchiveIntegrityTest {
     fun `compression rejects truncated source and removes staging`() =
         runTest {
             val source = backend.putFile(backend.rootId, "source.txt", "payload".toByteArray())
-            val sourceBackend = object : StorageBackend by backend {
-                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
-                    FileResult.Success(InputStreamProvider { "cut".byteInputStream() })
-            }
+            val sourceBackend =
+                object : StorageBackend by backend {
+                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
+                        FileResult.Success(InputStreamProvider { "cut".byteInputStream() })
+                }
 
             assertEquals(
                 FileOperationsEngine.ItemResult.Failure(FileError.IncompleteWrite("source.txt", 3L, 7L)),
@@ -177,8 +192,12 @@ class ArchiveIntegrityTest {
         onBytes: (Long) -> Unit = {},
     ) = ArchiveOperationsHelper.extractArchive(source, backend.rootId, backend, destination, onBytes, {})
 
-    private suspend fun compress(source: FileNodeId, sourceBackend: StorageBackend = backend) =
-        ArchiveOperationsHelper.compressItems(listOf(source), backend.rootId, "result.zip", null, backend, { sourceBackend }, {}, {})
+    private suspend fun compress(
+        source: FileNodeId,
+        sourceBackend: StorageBackend = backend,
+    ) = ArchiveOperationsHelper.compressItems(listOf(source), backend.rootId, "result.zip", null, backend, {
+        sourceBackend
+    }, {}, {})
 
     private suspend fun archive(path: String) = backend.putFile(backend.rootId, "source.zip", zip(path))
 
