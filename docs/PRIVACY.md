@@ -1,5 +1,7 @@
 # Privacy
 
+> **Implementation clarification, 17 October 2026:** the sections below describe the original offline MVP policy/design, not a verified description of the current binary. The manifest now requests INTERNET and ACCESS_NETWORK_STATE for user-directed remote storage, discovery and Wi-Fi sharing. Files and metadata can leave the device when the user requests those features or shares with another app. Settings use SharedPreferences; operation history is stored in Room. The promised crash-reporting flavour, universal log redaction and exact retention guarantees below were not verified in the implementation. No telemetry SDK was identified in the declared dependencies, but this is not a traffic audit. A publishable privacy/Data Safety declaration requires the owner's review against these current features; this audit does not submit or change a store declaration. See [current inventory](architecture/CURRENT_ARCHITECTURE.md) and [audit](architecture/PROJECT_AUDIT.md).
+
 ## 1. Position
 
 Atomic File Manager is **local-first**. Browsing, indexing, thumbnailing, hashing, and analysis all
