@@ -8,8 +8,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.io.IOException
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -57,6 +60,7 @@ class ShareServerTest {
         type: String = "application/x-www-form-urlencoded",
     ): Response {
         Socket(loopback, port).use { socket ->
+            socket.soTimeout = 5_000
             val bytes = body.toByteArray()
             val head =
                 "$method $target HTTP/1.1\r\nHost: $host\r\n" +
@@ -181,6 +185,69 @@ class ShareServerTest {
         s.stop()
         s.stop()
         assertEquals(listOf(ShareStopReason.USER), stops)
+    }
+
+    @Test
+    fun `stop closes active and queued clients and excess admissions are rejected`() {
+        val s = start()
+        // None sends a request: four occupy workers, eight wait, and the rest must be closed.
+        val clients =
+            (1..20).map {
+                Socket().apply {
+                    connect(InetSocketAddress(loopback, s.port), 2_000)
+                    soTimeout = 100
+                }
+            }
+        try {
+            val rejected = clients.count { it.isClosedByPeer() }
+            assertTrue(rejected >= 8, "Accepted connections must be bounded to twelve")
+            s.stop()
+            clients.forEach {
+                it.soTimeout = 2_000
+                assertTrue(it.isClosedByPeer(), "Stop must close active and queued sockets")
+            }
+        } finally {
+            clients.forEach(Socket::close)
+        }
+    }
+
+    @Test
+    fun `stop during an incomplete upload closes its socket and removes staging`() {
+        val s = start(allowUpload = true)
+        val cookie = s.signIn()
+        Socket(loopback, s.port).use { client ->
+            client.soTimeout = 2_000
+            client.getOutputStream().apply {
+                write(
+                    (
+                        "PUT /up?p=&n=unfinished.txt HTTP/1.1\r\nHost: 127.0.0.1:${s.port}\r\n" +
+                            "Cookie: $cookie\r\nContent-Length: 1000000\r\n\r\nx"
+                    ).toByteArray(),
+                )
+                flush()
+            }
+            val shared = File(tmp, "shared")
+            awaitCondition { shared.list()!!.any { it.startsWith(".atomic-upload-") } }
+            s.stop()
+            assertTrue(client.isClosedByPeer())
+            awaitCondition { shared.list()!!.none { it.startsWith(".atomic-upload-") } }
+            assertFalse(File(shared, "unfinished.txt").exists())
+        }
+    }
+
+    private fun Socket.isClosedByPeer(): Boolean =
+        try {
+            getInputStream().read() == -1
+        } catch (_: SocketTimeoutException) {
+            false
+        } catch (_: IOException) {
+            true // A reset is also a closed connection.
+        }
+
+    private fun awaitCondition(condition: () -> Boolean) {
+        val deadline = System.nanoTime() + 5_000_000_000L
+        while (!condition() && System.nanoTime() < deadline) Thread.sleep(10)
+        assertTrue(condition())
     }
 
     @Test

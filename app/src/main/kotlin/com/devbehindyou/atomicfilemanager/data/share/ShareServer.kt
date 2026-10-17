@@ -12,9 +12,12 @@ import java.net.Socket
 import java.net.SocketException
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.nio.file.FileAlreadyExistsException
 import java.security.SecureRandom
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -38,8 +41,8 @@ enum class ShareStopReason(val message: String) {
  *   server through DNS rebinding.
  * - Only files under [root] are served; `..`, absolute paths, links out of the folder and hidden
  *   files are refused.
- * - Read-only unless [allowUpload]. Uploads go to a hidden part file and take their name only
- *   when complete, and never replace an existing file.
+ * - Read-only unless [allowUpload]. Uploads use unique staging and exclusive final creation;
+ *   in-progress final files are hidden from share clients (see [ShareUploads]).
  * - Stops after [idleMs] without a request.
  */
 class ShareServer(
@@ -53,11 +56,15 @@ class ShareServer(
 ) {
     private val rootCanonical: File = root.canonicalFile
     private val socket = ServerSocket(0, BACKLOG, address)
-    private val workers: ExecutorService = Executors.newFixedThreadPool(WORKERS)
+    private val workers =
+        ThreadPoolExecutor(WORKERS, WORKERS, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(QUEUED_CLIENTS))
+    private val clients = ConcurrentHashMap.newKeySet<Socket>()
     private val running = AtomicBoolean(true)
     private val lastActivity = AtomicLong(clock())
     private val wrongPins = AtomicInteger(0)
     private val sessions = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val uploadFiles = ShareUploads { if (!running.get()) throw IOException("Share stopped") }
+    private val idleThread = Thread(::idleWatch, "wifi-share-idle").apply { isDaemon = true }
 
     val port: Int get() = socket.localPort
     val url: String get() = "http://${hostOf(address)}:$port/"
@@ -68,7 +75,7 @@ class ShareServer(
 
     init {
         Thread(::acceptLoop, "wifi-share-accept").apply { isDaemon = true }.start()
-        Thread(::idleWatch, "wifi-share-idle").apply { isDaemon = true }.start()
+        idleThread.start()
     }
 
     val isRunning: Boolean get() = running.get()
@@ -76,7 +83,13 @@ class ShareServer(
     fun stop(reason: ShareStopReason = ShareStopReason.USER) {
         if (!running.compareAndSet(true, false)) return
         runCatching { socket.close() }
+        // Interrupting a worker does not unblock a socket read. Include queued clients too.
+        synchronized(clients) {
+            clients.forEach { runCatching { it.close() } }
+            clients.clear()
+        }
         workers.shutdownNow()
+        idleThread.interrupt()
         sessions.clear()
         onStop(reason)
     }
@@ -84,7 +97,24 @@ class ShareServer(
     private fun acceptLoop() {
         while (running.get()) {
             val client = accept() ?: break
-            runCatching { workers.execute { client.use(::serve) } }.onFailure { runCatching { client.close() } }
+            synchronized(clients) {
+                if (running.get()) clients.add(client) else runCatching { client.close() }
+            }
+            if (client.isClosed) continue
+            runCatching {
+                workers.execute {
+                    try {
+                        client.use(::serve)
+                    } catch (_: IOException) {
+                        // Disconnected, timed out, or closed by stop(); use closes the socket.
+                    } finally {
+                        clients.remove(client)
+                    }
+                }
+            }.onFailure {
+                clients.remove(client)
+                runCatching { client.close() }
+            }
         }
     }
 
@@ -178,7 +208,7 @@ class ShareServer(
         val dir = resolve(rel)?.takeIf { it.isDirectory } ?: return respond(out, 404, "Not found")
         val entries =
             dir.listFiles().orEmpty()
-                .filter { !it.name.startsWith(".") && inside(it) }
+                .filter { !it.name.startsWith(".") && inside(it) && !uploadFiles.isPublishing(it) }
                 .sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
                 .map { ShareHtml.Entry(it.name, ShareHtml.join(rel, it.name), it.isDirectory, it.length()) }
         page(out, ShareHtml.listing(root.name, rel, entries, allowUpload))
@@ -189,6 +219,7 @@ class ShareServer(
         out: OutputStream,
     ) {
         val file = resolve(request.query["p"].orEmpty())?.takeIf { it.isFile } ?: return respond(out, 404, "Not found")
+        if (uploadFiles.isPublishing(file)) return respond(out, 404, "Not found")
         val headers =
             header(200, "application/octet-stream", file.length()) +
                 "Content-Disposition: attachment; filename*=UTF-8''${encode(file.name)}\r\n\r\n"
@@ -210,14 +241,11 @@ class ShareServer(
         if (!ShareHtml.isSafeName(name)) return respond(out, 400, "Bad name")
         val length = request.contentLength()
         if (length < 0) return respond(out, 411, "Length required")
-        val target = File(dir, name)
-        if (target.exists()) return respond(out, 409, "A file with that name is already there")
-        val part = File(dir, ".$name.atomic-part")
         try {
-            part.outputStream().use { sink -> copyExactly(request.body, sink, length) }
-            if (!part.renameTo(target)) throw IOException("rename failed")
+            uploadFiles.receive(request.body, dir, name, length) { lastActivity.set(clock()) }
+        } catch (_: FileAlreadyExistsException) {
+            return respond(out, 409, "A file with that name is already there")
         } catch (e: IOException) {
-            part.delete()
             return respond(out, 500, "Upload failed")
         }
         uploads.incrementAndGet()
@@ -317,22 +345,6 @@ class ShareServer(
             "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; " +
             "script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'\r\n"
 
-    private fun copyExactly(
-        input: InputStream,
-        sink: OutputStream,
-        length: Long,
-    ) {
-        val buffer = ByteArray(BUFFER)
-        var left = length
-        while (left > 0) {
-            val read = input.read(buffer, 0, minOf(buffer.size.toLong(), left).toInt())
-            if (read < 0) throw IOException("upload cut short")
-            sink.write(buffer, 0, read)
-            left -= read
-            lastActivity.set(clock())
-        }
-    }
-
     private fun readAtMost(
         input: InputStream,
         length: Long,
@@ -358,6 +370,7 @@ class ShareServer(
         private const val SOCKET_TIMEOUT_MS = 30_000
         private const val BACKLOG = 8
         private const val WORKERS = 4
+        private const val QUEUED_CLIENTS = 8
         private const val BUFFER = 64 * 1024
         private const val MAX_HEAD = 16 * 1024
         private const val MAX_FORM = 1024
