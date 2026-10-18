@@ -56,9 +56,10 @@ class FtpProtocolIntegrationTest {
     fun `FTPS protects listing download and upload after preliminary replies`() {
         transferSession(tls = true) { client ->
             assertEquals(listOf("fixture.txt"), client.list("/"))
-            val downloaded = client.openDataTransfer("RETR /fixture.txt", binary = true).use {
-                it.getInputStream().readBytes()
-            }
+            val downloaded =
+                client.openDataTransfer("RETR /fixture.txt", binary = true).use {
+                    it.getInputStream().readBytes()
+                }
             client.completeTransfer()
             assertArrayEquals(PAYLOAD, downloaded)
             FtpUploadStream(client, client.openDataTransfer("STOR /upload.txt", binary = true)).use {
@@ -71,9 +72,10 @@ class FtpProtocolIntegrationTest {
     fun `plain FTP still transfers listing download and upload`() {
         transferSession(tls = false) { client ->
             assertEquals(listOf("fixture.txt"), client.list("/"))
-            val downloaded = client.openDataTransfer("RETR /fixture.txt", binary = true).use {
-                it.getInputStream().readBytes()
-            }
+            val downloaded =
+                client.openDataTransfer("RETR /fixture.txt", binary = true).use {
+                    it.getInputStream().readBytes()
+                }
             client.completeTransfer()
             assertArrayEquals(PAYLOAD, downloaded)
             FtpUploadStream(client, client.openDataTransfer("STOR /upload.txt", binary = true)).use {
@@ -113,7 +115,10 @@ class FtpProtocolIntegrationTest {
         rejectedTls("127.0.0.1", tlsContext().socketFactory)
     }
 
-    private fun rejectedTls(host: String, factory: SSLSocketFactory) {
+    private fun rejectedTls(
+        host: String,
+        factory: SSLSocketFactory,
+    ) {
         val context = tlsContext()
         serverSession { server, execute ->
             execute {
@@ -157,12 +162,13 @@ class FtpProtocolIntegrationTest {
                 server.accept().use { plain ->
                     var wire = Wire(plain)
                     wire.reply("220 Ready")
-                    val control = if (tls) {
-                        wire.expect("AUTH TLS", "234 Secure")
-                        secureServer(plain, context)
-                    } else {
-                        plain
-                    }
+                    val control =
+                        if (tls) {
+                            wire.expect("AUTH TLS", "234 Secure")
+                            secureServer(plain, context)
+                        } else {
+                            plain
+                        }
                     control.use {
                         wire = Wire(control)
                         wire.expect("USER test", "331 Password")
@@ -178,7 +184,14 @@ class FtpProtocolIntegrationTest {
                             dataTransfer(wire, tls, context, "RETR /fixture.txt", true) { data ->
                                 data.getOutputStream().write(PAYLOAD)
                             }
-                            dataTransfer(wire, tls, context, "STOR /upload.txt", true, failedFinal = failedUpload) { data ->
+                            dataTransfer(
+                                wire,
+                                tls,
+                                context,
+                                "STOR /upload.txt",
+                                true,
+                                failedFinal = failedUpload,
+                            ) { data ->
                                 assertArrayEquals(PAYLOAD, data.getInputStream().readBytes())
                             }
                         }
@@ -222,7 +235,10 @@ class FtpProtocolIntegrationTest {
         }
     }
 
-    private fun secureServer(socket: Socket, context: SSLContext): SSLSocket {
+    private fun secureServer(
+        socket: Socket,
+        context: SSLContext,
+    ): SSLSocket {
         val secured = context.socketFactory.createSocket(socket, "localhost", socket.port, true) as SSLSocket
         secured.useClientMode = false
         secured.soTimeout = 5000
@@ -271,7 +287,10 @@ class FtpProtocolIntegrationTest {
             writer.flush()
         }
 
-        fun expect(command: String, response: String) {
+        fun expect(
+            command: String,
+            response: String,
+        ) {
             assertEquals(command, reader.readLine())
             reply(response)
         }

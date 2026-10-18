@@ -44,7 +44,10 @@ internal class FtpProtocolClient(
         }
     }
 
-    fun login(user: String, pass: String) {
+    fun login(
+        user: String,
+        pass: String,
+    ) {
         try {
             val userResponse = sendCommand("USER $user")
             if (userResponse.startsWith("331")) {
@@ -63,7 +66,10 @@ internal class FtpProtocolClient(
     }
 
     /** TCP first, command/preliminary reply second, TLS handshake last (RFC 4217 section 12.7). */
-    fun openDataTransfer(command: String, binary: Boolean): Socket {
+    fun openDataTransfer(
+        command: String,
+        binary: Boolean,
+    ): Socket {
         requireResponse(sendCommand(if (binary) "TYPE I" else "TYPE A"), "TYPE", 200)
         val data = openPassiveDataSocket()
         try {
@@ -80,9 +86,10 @@ internal class FtpProtocolClient(
     }
 
     fun list(path: String): List<String> {
-        val lines = openDataTransfer("LIST $path", binary = false).use { data ->
-            data.getInputStream().bufferedReader(StandardCharsets.UTF_8).use { it.readLines() }
-        }
+        val lines =
+            openDataTransfer("LIST $path", binary = false).use { data ->
+                data.getInputStream().bufferedReader(StandardCharsets.UTF_8).use { it.readLines() }
+            }
         completeTransfer()
         return lines
     }
@@ -116,8 +123,9 @@ internal class FtpProtocolClient(
     private fun openPassiveDataSocket(): Socket {
         val response = sendCommand("PASV")
         requireResponse(response, "PASV", 227)
-        val fields = PASV.find(response)?.groupValues?.drop(1)?.map { it.toIntOrNull() }
-            ?: throw IOException("Invalid FTP passive endpoint")
+        val fields =
+            PASV.find(response)?.groupValues?.drop(1)?.map { it.toIntOrNull() }
+                ?: throw IOException("Invalid FTP passive endpoint")
         if (fields.any { it == null || it !in 0..255 }) throw IOException("Invalid FTP passive endpoint")
         val dataPort = fields[4]!! * 256 + fields[5]!!
         if (dataPort == 0) throw IOException("Invalid FTP passive port")
@@ -163,7 +171,11 @@ internal class FtpProtocolClient(
         writer = null
     }
 
-    private fun requireResponse(response: String, operation: String, vararg expected: Int) {
+    private fun requireResponse(
+        response: String,
+        operation: String,
+        vararg expected: Int,
+    ) {
         val code = response.take(3).toIntOrNull()
         if (code == null || code !in expected) throw FtpProtocolException(code, operation)
     }
@@ -183,7 +195,11 @@ internal class FtpUploadStream(private val client: FtpProtocolClient, private va
 
     override fun write(value: Int) = output.write(value)
 
-    override fun write(bytes: ByteArray, offset: Int, length: Int) = output.write(bytes, offset, length)
+    override fun write(
+        bytes: ByteArray,
+        offset: Int,
+        length: Int,
+    ) = output.write(bytes, offset, length)
 
     override fun flush() {
         failure?.let { throw it }

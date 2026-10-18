@@ -33,17 +33,21 @@ internal suspend fun resolveBrowseBreadcrumbs(
     // Cyclic or arbitrarily deep provider responses must not keep navigation loading forever.
     while (parentId != null && crumbs.size < 128 && visited.add(parentId)) {
         currentCoroutineContext().ensureActive()
-        val parent = when (val result = getNode(parentId)) {
-            is FileResult.Success -> result.value
-            is FileResult.Failure -> break
-        }
+        val parent =
+            when (val result = getNode(parentId)) {
+                is FileResult.Success -> result.value
+                is FileResult.Failure -> break
+            }
         crumbs.add(BreadcrumbItem(parent.displayName, parent.id.raw))
         parentId = parent.parentId
     }
     return crumbs.asReversed().toList()
 }
 
-private fun pathBreadcrumbs(folderId: FileNodeId, folderName: String): List<BreadcrumbItem> {
+private fun pathBreadcrumbs(
+    folderId: FileNodeId,
+    folderName: String,
+): List<BreadcrumbItem> {
     val prefix = requireNotNull(folderId.prefix).scheme
     val segments = folderId.raw.removePrefix(prefix).split('/').filter { it.isNotEmpty() }
     var runningPath = ""

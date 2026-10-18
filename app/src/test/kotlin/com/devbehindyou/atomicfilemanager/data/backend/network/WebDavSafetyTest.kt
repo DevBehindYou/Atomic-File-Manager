@@ -26,94 +26,101 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Config(sdk = [27])
 class WebDavSafetyTest {
     @Test
-    fun `collision PUT is conditional and discard never deletes existing bytes`() = runBlocking {
-        withServer(existing = "original") { fixture ->
-            val target = fixture.target()
-            target.stream().write("replacement".toByteArray())
-            val result = target.toNode()
-            assertTrue(result is FileResult.Failure && result.error is FileError.FileAlreadyExists)
-            target.discard()
-            assertEquals("original", fixture.content)
-            assertEquals(listOf("PUT"), fixture.requests)
-            assertEquals("*", fixture.putCondition)
+    fun `collision PUT is conditional and discard never deletes existing bytes`() =
+        runBlocking {
+            withServer(existing = "original") { fixture ->
+                val target = fixture.target()
+                target.stream().write("replacement".toByteArray())
+                val result = target.toNode()
+                assertTrue(result is FileResult.Failure && result.error is FileError.FileAlreadyExists)
+                target.discard()
+                assertEquals("original", fixture.content)
+                assertEquals(listOf("PUT"), fixture.requests)
+                assertEquals("*", fixture.putCondition)
+            }
         }
-    }
 
     @Test
-    fun `discard cleans only created resource matching strong ETag`() = runBlocking {
-        withServer { fixture ->
-            val target = fixture.target()
-            target.stream().write("staged".toByteArray())
-            target.discard()
-            target.discard()
-            assertEquals(null, fixture.content)
-            assertEquals(listOf("PUT", "DELETE"), fixture.requests)
-            assertEquals("\"created\"", fixture.deleteCondition)
-        }
-    }
-
-    @Test
-    fun `concurrent replacement survives conditional discard`() = runBlocking {
-        withServer { fixture ->
-            val target = fixture.target()
-            target.stream().write("staged".toByteArray())
-            assertTrue(target.toNode() is FileResult.Success)
-            fixture.content = "concurrent replacement"
-            fixture.etag = "\"replacement\""
-            target.discard()
-            assertEquals("concurrent replacement", fixture.content)
-            assertEquals("\"created\"", fixture.deleteCondition)
-        }
-    }
-
-    @Test
-    fun `missing and weak ETags preserve staged bytes instead of unsafe cleanup`() = runBlocking {
-        for (tag in listOf(null, "W/\"weak\"")) {
-            withServer(tag = tag) { fixture ->
+    fun `discard cleans only created resource matching strong ETag`() =
+        runBlocking {
+            withServer { fixture ->
                 val target = fixture.target()
                 target.stream().write("staged".toByteArray())
                 target.discard()
-                assertEquals("staged", fixture.content)
-                assertEquals(listOf("PUT"), fixture.requests)
+                target.discard()
+                assertEquals(null, fixture.content)
+                assertEquals(listOf("PUT", "DELETE"), fixture.requests)
+                assertEquals("\"created\"", fixture.deleteCondition)
             }
         }
-    }
 
     @Test
-    fun `rename and move forbid replacing destination and map precondition failure`() = runBlocking {
-        val connections = mutableListOf<MoveConnection>()
-        val backend = WebDavBackend(store(80)) { url -> MoveConnection(url).also(connections::add) }
-        val source = FileNodeId.webdav("fixture", "/original")
-        val renamed = backend.rename(source, "existing")
-        val moved = backend.moveWithin(source, FileNodeId.webdav("fixture", "/destination"))
-        for (result in listOf(renamed, moved)) {
-            assertTrue(result is FileResult.Failure && result.error is FileError.FileAlreadyExists)
+    fun `concurrent replacement survives conditional discard`() =
+        runBlocking {
+            withServer { fixture ->
+                val target = fixture.target()
+                target.stream().write("staged".toByteArray())
+                assertTrue(target.toNode() is FileResult.Success)
+                fixture.content = "concurrent replacement"
+                fixture.etag = "\"replacement\""
+                target.discard()
+                assertEquals("concurrent replacement", fixture.content)
+                assertEquals("\"created\"", fixture.deleteCondition)
+            }
         }
-        assertEquals(2, connections.size)
-        connections.forEach {
-            assertEquals("MOVE", it.requestMethod)
-            assertEquals("F", it.getRequestProperty("Overwrite"))
-            assertTrue(it.disconnected)
+
+    @Test
+    fun `missing and weak ETags preserve staged bytes instead of unsafe cleanup`() =
+        runBlocking {
+            for (tag in listOf(null, "W/\"weak\"")) {
+                withServer(tag = tag) { fixture ->
+                    val target = fixture.target()
+                    target.stream().write("staged".toByteArray())
+                    target.discard()
+                    assertEquals("staged", fixture.content)
+                    assertEquals(listOf("PUT"), fixture.requests)
+                }
+            }
         }
-    }
 
     @Test
-    fun `malformed listing propagates failure instead of an empty directory`() = runBlocking {
-        val connection = MoveConnection(URL("http://127.0.0.1/"), 207, "<multistatus xmlns='DAV:'><response>")
-        val backend = WebDavBackend(store(80)) { connection }
-        val result = backend.listChildren(FileNodeId.webdav("fixture", "/folder")).first()
-        assertTrue(result is FileResult.Failure)
-        assertEquals("PROPFIND", connection.requestMethod)
-        assertEquals("1", connection.getRequestProperty("Depth"))
-        assertTrue(connection.disconnected)
-    }
+    fun `rename and move forbid replacing destination and map precondition failure`() =
+        runBlocking {
+            val connections = mutableListOf<MoveConnection>()
+            val backend = WebDavBackend(store(80)) { url -> MoveConnection(url).also(connections::add) }
+            val source = FileNodeId.webdav("fixture", "/original")
+            val renamed = backend.rename(source, "existing")
+            val moved = backend.moveWithin(source, FileNodeId.webdav("fixture", "/destination"))
+            for (result in listOf(renamed, moved)) {
+                assertTrue(result is FileResult.Failure && result.error is FileError.FileAlreadyExists)
+            }
+            assertEquals(2, connections.size)
+            connections.forEach {
+                assertEquals("MOVE", it.requestMethod)
+                assertEquals("F", it.getRequestProperty("Overwrite"))
+                assertTrue(it.disconnected)
+            }
+        }
 
     @Test
-    fun `cross server move is rejected before connecting`() = runBlocking {
-        val backend = WebDavBackend(store(80)) { error("Must not connect") }
-        val result = backend.moveWithin(FileNodeId.webdav("fixture", "/file"), FileNodeId.webdav("other", "/"))
-        assertTrue(result is FileResult.Failure && result.error is FileError.InvalidDestination)
-    }
+    fun `malformed listing propagates failure instead of an empty directory`() =
+        runBlocking {
+            val connection = MoveConnection(URL("http://127.0.0.1/"), 207, "<multistatus xmlns='DAV:'><response>")
+            val backend = WebDavBackend(store(80)) { connection }
+            val result = backend.listChildren(FileNodeId.webdav("fixture", "/folder")).first()
+            assertTrue(result is FileResult.Failure)
+            assertEquals("PROPFIND", connection.requestMethod)
+            assertEquals("1", connection.getRequestProperty("Depth"))
+            assertTrue(connection.disconnected)
+        }
+
+    @Test
+    fun `cross server move is rejected before connecting`() =
+        runBlocking {
+            val backend = WebDavBackend(store(80)) { error("Must not connect") }
+            val result = backend.moveWithin(FileNodeId.webdav("fixture", "/file"), FileNodeId.webdav("other", "/"))
+            assertTrue(result is FileResult.Failure && result.error is FileError.InvalidDestination)
+        }
 
     private suspend fun withServer(
         existing: String? = null,
@@ -124,29 +131,30 @@ class WebDavSafetyTest {
         val fixture = Fixture(server, existing, tag)
         server.createContext("/") { request ->
             fixture.requests += request.requestMethod
-            val code = when (request.requestMethod) {
-                "PUT" -> {
-                    fixture.putCondition = request.requestHeaders.getFirst("If-None-Match")
-                    val bytes = request.requestBody.use { it.readBytes() }
-                    if (fixture.content != null && fixture.putCondition == "*") {
-                        412
-                    } else {
-                        fixture.content = bytes.toString(Charsets.UTF_8)
-                        fixture.etag?.let { request.responseHeaders.set("ETag", it) }
-                        201
+            val code =
+                when (request.requestMethod) {
+                    "PUT" -> {
+                        fixture.putCondition = request.requestHeaders.getFirst("If-None-Match")
+                        val bytes = request.requestBody.use { it.readBytes() }
+                        if (fixture.content != null && fixture.putCondition == "*") {
+                            412
+                        } else {
+                            fixture.content = bytes.toString(Charsets.UTF_8)
+                            fixture.etag?.let { request.responseHeaders.set("ETag", it) }
+                            201
+                        }
                     }
-                }
-                "DELETE" -> {
-                    fixture.deleteCondition = request.requestHeaders.getFirst("If-Match")
-                    if (fixture.deleteCondition == fixture.etag) {
-                        fixture.content = null
-                        204
-                    } else {
-                        412
+                    "DELETE" -> {
+                        fixture.deleteCondition = request.requestHeaders.getFirst("If-Match")
+                        if (fixture.deleteCondition == fixture.etag) {
+                            fixture.content = null
+                            204
+                        } else {
+                            412
+                        }
                     }
+                    else -> 405
                 }
-                else -> 405
-            }
             request.sendResponseHeaders(code, -1)
             request.close()
         }
@@ -164,7 +172,9 @@ class WebDavSafetyTest {
         @Volatile var etag: String?,
     ) {
         val requests = CopyOnWriteArrayList<String>()
+
         @Volatile var putCondition: String? = null
+
         @Volatile var deleteCondition: String? = null
 
         suspend fun target(): OutputTarget {

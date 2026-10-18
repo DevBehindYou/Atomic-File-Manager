@@ -13,17 +13,18 @@ import org.robolectric.annotation.Config
 class WebDavXmlTest {
     @Test
     fun `parses namespaces and successful properties on minimum supported API`() {
-        val result = parse(
-            """
-            <d:multistatus xmlns:d="DAV:"><d:response><d:href>/files/a%20b/</d:href>
-            <d:propstat><d:prop><d:getcontentlength>9</d:getcontentlength>
-            <d:resourcetype><d:collection/></d:resourcetype></d:prop>
-            <d:status>HTTP/1.1 200 OK</d:status></d:propstat>
-            <d:propstat><d:prop><d:getcontentlength>999</d:getcontentlength></d:prop>
-            <d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>
-            </d:response></d:multistatus>
-            """.trimIndent(),
-        ).single()
+        val result =
+            parse(
+                """
+                <d:multistatus xmlns:d="DAV:"><d:response><d:href>/files/a%20b/</d:href>
+                <d:propstat><d:prop><d:getcontentlength>9</d:getcontentlength>
+                <d:resourcetype><d:collection/></d:resourcetype></d:prop>
+                <d:status>HTTP/1.1 200 OK</d:status></d:propstat>
+                <d:propstat><d:prop><d:getcontentlength>999</d:getcontentlength></d:prop>
+                <d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>
+                </d:response></d:multistatus>
+                """.trimIndent(),
+            ).single()
         assertEquals("/files/a%20b/", result.href)
         assertEquals("9", result.properties["getcontentlength"])
         assertTrue(result.directory)
@@ -59,7 +60,8 @@ class WebDavXmlTest {
     fun `rejects malformed metadata and failed resource responses`() {
         for (xml in listOf(
             "<html/>",
-            "<multistatus xmlns='DAV:'><response><href>/lost</href><status>HTTP/1.1 403 Forbidden</status></response></multistatus>",
+            "<multistatus xmlns='DAV:'><response><href>/lost</href>" +
+                "<status>HTTP/1.1 403 Forbidden</status></response></multistatus>",
             "<multistatus xmlns='DAV:'><response>",
         )) {
             assertThrows(Exception::class.java) { parse(xml) }

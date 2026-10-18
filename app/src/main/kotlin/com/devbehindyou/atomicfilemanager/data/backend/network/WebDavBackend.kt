@@ -124,14 +124,18 @@ class WebDavBackend(
             emit(
                 when (result) {
                     is FileResult.Failure -> result
-                    is FileResult.Success -> FileResult.Success(
-                        result.value.filter { parseId(it.id).path.trimEnd('/') != parsed.path.trimEnd('/') },
-                    )
+                    is FileResult.Success ->
+                        FileResult.Success(
+                            result.value.filter { parseId(it.id).path.trimEnd('/') != parsed.path.trimEnd('/') },
+                        )
                 },
             )
         }.flowOn(Dispatchers.IO)
 
-    private fun queryProperties(parsed: ParsedWebDavId, depth: String): FileResult<List<FileNode>> {
+    private fun queryProperties(
+        parsed: ParsedWebDavId,
+        depth: String,
+    ): FileResult<List<FileNode>> {
         var connection: HttpURLConnection? = null
         return try {
             val conn = openConnection(buildUrl(parsed.serverId, parsed.path), parsed.serverId, "PROPFIND")
@@ -431,14 +435,20 @@ class WebDavBackend(
     ): List<FileNode> {
         val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
         return WebDavXml.parse(input).map { response ->
-            val hrefPath = URL(if (response.href.startsWith("http")) response.href else "http://dummy${response.href}").path
+            val hrefPath =
+                URL(
+                    if (response.href.startsWith("http")) response.href else "http://dummy${response.href}",
+                ).path
             val cleanPath = hrefPath.trimEnd('/')
             NetworkNodeHelper.createNode(
                 id = makeNodeId(serverId, hrefPath),
                 parentId = makeNodeId(serverId, getParentPath(cleanPath)),
                 name = getFileName(cleanPath),
                 size = response.properties["getcontentlength"]?.toLongOrNull() ?: 0L,
-                modifiedAt = response.properties["getlastmodified"]?.let { runCatching { dateFormat.parse(it)?.time }.getOrNull() } ?: 0L,
+                modifiedAt =
+                    response.properties["getlastmodified"]?.let {
+                        runCatching { dateFormat.parse(it)?.time }.getOrNull()
+                    } ?: 0L,
                 isDirectory = response.directory,
                 mimeType = response.properties["getcontenttype"],
             )

@@ -100,20 +100,21 @@ class ShareServer(
             synchronized(clients) {
                 if (running.get()) clients.add(client) else runCatching { client.close() }
             }
-            if (client.isClosed) continue
-            runCatching {
-                workers.execute {
-                    try {
-                        client.use(::serve)
-                    } catch (_: IOException) {
-                        // Disconnected, timed out, or closed by stop(); use closes the socket.
-                    } finally {
-                        clients.remove(client)
+            if (!client.isClosed) {
+                runCatching {
+                    workers.execute {
+                        try {
+                            client.use(::serve)
+                        } catch (_: IOException) {
+                            // Disconnected, timed out, or closed by stop(); use closes the socket.
+                        } finally {
+                            clients.remove(client)
+                        }
                     }
+                }.onFailure {
+                    clients.remove(client)
+                    runCatching { client.close() }
                 }
-            }.onFailure {
-                clients.remove(client)
-                runCatching { client.close() }
             }
         }
     }

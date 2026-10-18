@@ -347,10 +347,11 @@ internal object ArchiveOperationsHelper {
                     if (!coroutineContext.isActive) throw CancellationException()
                     val count = archive.read(buffer, 0, buffer.size)
                     if (count < 0) break
-                    if (count == 0) continue
-                    onBytes(count.toLong())
-                    stream.write(buffer, 0, count)
-                    written += count
+                    if (count > 0) {
+                        onBytes(count.toLong())
+                        stream.write(buffer, 0, count)
+                        written += count
+                    }
                 }
                 stream.flush()
             }

@@ -260,7 +260,10 @@ class BrowseViewModel(
         if (!folder.isDirectory) return
         val current = _uiState.value
         folderHistory.add(BrowseLocation(current.currentFolderId, current.breadcrumbs))
-        loadDirectory(folder.id, knownBreadcrumbs = current.breadcrumbs + BreadcrumbItem(folder.displayName, folder.id.raw))
+        loadDirectory(
+            folder.id,
+            knownBreadcrumbs = current.breadcrumbs + BreadcrumbItem(folder.displayName, folder.id.raw),
+        )
     }
 
     fun navigateBack(): Boolean {

@@ -251,10 +251,11 @@ class FtpBackend(
         withContext(Dispatchers.IO) {
             val parsed = parseId(id)
             try {
-                val resp = connectAndLogin(parsed).use { client ->
-                    val deleted = client.sendCommand("DELE ${parsed.path}")
-                    if (deleted.startsWith("250")) deleted else client.sendCommand("RMD ${parsed.path}")
-                }
+                val resp =
+                    connectAndLogin(parsed).use { client ->
+                        val deleted = client.sendCommand("DELE ${parsed.path}")
+                        if (deleted.startsWith("250")) deleted else client.sendCommand("RMD ${parsed.path}")
+                    }
                 if (resp.startsWith("250")) {
                     FileResult.Success(Unit)
                 } else {
@@ -276,10 +277,11 @@ class FtpBackend(
             val newNodeId = makeNodeId(parsed, newPath)
 
             try {
-                val resp = connectAndLogin(parsed).use { client ->
-                    val from = client.sendCommand("RNFR ${parsed.path}")
-                    if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
-                }
+                val resp =
+                    connectAndLogin(parsed).use { client ->
+                        val from = client.sendCommand("RNFR ${parsed.path}")
+                        if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
+                    }
                 if (resp.startsWith("250")) {
                     FileResult.Success(
                         NetworkNodeHelper.createNode(
@@ -317,10 +319,11 @@ class FtpBackend(
             val newNodeId = makeNodeId(parsed, newPath)
 
             try {
-                val resp = connectAndLogin(parsed).use { client ->
-                    val from = client.sendCommand("RNFR ${parsed.path}")
-                    if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
-                }
+                val resp =
+                    connectAndLogin(parsed).use { client ->
+                        val from = client.sendCommand("RNFR ${parsed.path}")
+                        if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
+                    }
                 if (resp.startsWith("250")) {
                     FileResult.Success(
                         NetworkNodeHelper.createNode(

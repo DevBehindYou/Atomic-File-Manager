@@ -214,10 +214,13 @@ class ArchiveIntegrityTest {
     fun `compression honors provider ancestry before opening output`() =
         runTest {
             val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
-            val provider = object : StorageBackend by backend {
-                override suspend fun isSameOrDescendant(ancestor: FileNodeId, candidate: FileNodeId): FileResult<Boolean> =
-                    FileResult.Success(true)
-            }
+            val provider =
+                object : StorageBackend by backend {
+                    override suspend fun isSameOrDescendant(
+                        ancestor: FileNodeId,
+                        candidate: FileNodeId,
+                    ): FileResult<Boolean> = FileResult.Success(true)
+                }
             val tracked = TrackedOutputBackend(provider)
 
             val result = compress(source.id, tracked, backend.rootId, tracked)
@@ -231,13 +234,19 @@ class ArchiveIntegrityTest {
         runTest {
             val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
             val denied = FileError.AccessDenied("ancestry")
-            val provider = object : StorageBackend by backend {
-                override suspend fun isSameOrDescendant(ancestor: FileNodeId, candidate: FileNodeId): FileResult<Boolean> =
-                    FileResult.Failure(denied)
-            }
+            val provider =
+                object : StorageBackend by backend {
+                    override suspend fun isSameOrDescendant(
+                        ancestor: FileNodeId,
+                        candidate: FileNodeId,
+                    ): FileResult<Boolean> = FileResult.Failure(denied)
+                }
             val tracked = TrackedOutputBackend(provider)
 
-            assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(source.id, tracked, backend.rootId, tracked))
+            assertEquals(
+                FileOperationsEngine.ItemResult.Failure(denied),
+                compress(source.id, tracked, backend.rootId, tracked),
+            )
             assertEquals(0, tracked.outputOpens)
         }
 
@@ -246,13 +255,17 @@ class ArchiveIntegrityTest {
         runTest {
             val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
             val denied = FileError.AccessDenied("parent")
-            val provider = object : StorageBackend by backend {
-                override suspend fun getNode(id: FileNodeId): FileResult<FileNode> =
-                    if (id == backend.rootId) FileResult.Failure(denied) else backend.getNode(id)
-            }
+            val provider =
+                object : StorageBackend by backend {
+                    override suspend fun getNode(id: FileNodeId): FileResult<FileNode> =
+                        if (id == backend.rootId) FileResult.Failure(denied) else backend.getNode(id)
+                }
             val tracked = TrackedOutputBackend(provider)
 
-            assertEquals(FileOperationsEngine.ItemResult.Failure(denied), compress(source.id, tracked, backend.rootId, tracked))
+            assertEquals(
+                FileOperationsEngine.ItemResult.Failure(denied),
+                compress(source.id, tracked, backend.rootId, tracked),
+            )
             assertEquals(0, tracked.outputOpens)
         }
 
@@ -261,9 +274,11 @@ class ArchiveIntegrityTest {
         runTest {
             val source = (backend.createDirectory(backend.rootId, "cycle") as FileResult.Success).value
             var listings = 0
-            val provider = object : StorageBackend by backend {
-                override fun listChildren(id: FileNodeId) = flowOf(FileResult.Success(listOf(source))).also { listings++ }
-            }
+            val provider =
+                object : StorageBackend by backend {
+                    override fun listChildren(id: FileNodeId) =
+                        flowOf(FileResult.Success(listOf(source))).also { listings++ }
+                }
 
             assertEquals(
                 FileOperationsEngine.ItemResult.Failure(FileError.InvalidDestination("cycle")),
@@ -291,21 +306,27 @@ class ArchiveIntegrityTest {
             val source = (backend.createDirectory(backend.rootId, "source") as FileResult.Success).value
             var stagingName = ""
             var inputOpened = false
-            val destination = object : StorageBackend by backend {
-                override suspend fun openOutput(parent: FileNodeId, name: String, mime: String?): FileResult<OutputTarget> {
-                    stagingName = name
-                    return backend.openOutput(parent, name, mime)
+            val destination =
+                object : StorageBackend by backend {
+                    override suspend fun openOutput(
+                        parent: FileNodeId,
+                        name: String,
+                        mime: String?,
+                    ): FileResult<OutputTarget> {
+                        stagingName = name
+                        return backend.openOutput(parent, name, mime)
+                    }
                 }
-            }
-            val provider = object : StorageBackend by backend {
-                override fun listChildren(id: FileNodeId) =
-                    flowOf(FileResult.Success(listOf(source.copy(name = stagingName, isDirectory = false))))
+            val provider =
+                object : StorageBackend by backend {
+                    override fun listChildren(id: FileNodeId) =
+                        flowOf(FileResult.Success(listOf(source.copy(name = stagingName, isDirectory = false))))
 
-                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
-                    inputOpened = true
-                    return backend.openInput(id)
+                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                        inputOpened = true
+                        return backend.openInput(id)
+                    }
                 }
-            }
 
             val result = compress(source.id, provider, backend.rootId, destination)
 
@@ -327,7 +348,14 @@ class ArchiveIntegrityTest {
         destination: FileNodeId = backend.rootId,
         destBackend: StorageBackend = backend,
     ) = ArchiveOperationsHelper.compressItems(
-        listOf(source), destination, "result.zip", null, destBackend, { sourceBackend }, {}, {},
+        listOf(source),
+        destination,
+        "result.zip",
+        null,
+        destBackend,
+        { sourceBackend },
+        {},
+        {},
     )
 
     private suspend fun archive(path: String) = backend.putFile(backend.rootId, "source.zip", zip(path))
@@ -364,7 +392,11 @@ class ArchiveIntegrityTest {
         var outputOpens = 0
             private set
 
-        override suspend fun openOutput(parent: FileNodeId, name: String, mime: String?): FileResult<OutputTarget> {
+        override suspend fun openOutput(
+            parent: FileNodeId,
+            name: String,
+            mime: String?,
+        ): FileResult<OutputTarget> {
             outputOpens++
             return delegate.openOutput(parent, name, mime)
         }

@@ -29,7 +29,11 @@ internal class WebDavOutputTarget(
                 bytes++
             }
 
-            override fun write(buffer: ByteArray, offset: Int, length: Int) {
+            override fun write(
+                buffer: ByteArray,
+                offset: Int,
+                length: Int,
+            ) {
                 check(!closed)
                 raw.write(buffer, offset, length)
                 bytes += length
@@ -67,7 +71,10 @@ internal class WebDavOutputTarget(
                     createdTag = connection.getHeaderField("ETag")?.takeIf { it.startsWith('"') && it.endsWith('"') }
                 }
                 when {
-                    code == HttpURLConnection.HTTP_PRECON_FAILED -> FileResult.Failure(FileError.FileAlreadyExists(name))
+                    code == HttpURLConnection.HTTP_PRECON_FAILED ->
+                        FileResult.Failure(
+                            FileError.FileAlreadyExists(name),
+                        )
                     code in 200..299 -> FileResult.Success(node(bytes))
                     else -> FileResult.Failure(FileError.AccessDenied("PUT rejected ($code)"))
                 }

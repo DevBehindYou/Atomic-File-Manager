@@ -85,7 +85,10 @@ internal object WebDavXml {
         return responses
     }
 
-    private fun isField(name: String, depth: Int): Boolean =
+    private fun isField(
+        name: String,
+        depth: Int,
+    ): Boolean =
         (name == "href" && depth == 3) ||
             (name == "status" && depth in 3..4) ||
             (depth == 5 && name in setOf("getcontentlength", "getlastmodified", "getcontenttype"))
@@ -106,7 +109,11 @@ internal object WebDavXml {
             status = null
         }
 
-        fun field(name: String, value: String, depth: Int) {
+        fun field(
+            name: String,
+            value: String,
+            depth: Int,
+        ) {
             when (name) {
                 "href" -> href = value
                 "status" -> if (depth == 3) responseStatus = value else status = value
@@ -126,7 +133,11 @@ internal object WebDavXml {
             if (!hasProperties || responseStatus?.split(' ')?.getOrNull(1)?.let { it != "200" } == true) {
                 throw IOException("DAV resource metadata unavailable")
             }
-            return Response(href?.takeIf { it.isNotEmpty() } ?: throw IOException("Missing DAV href"), properties, directory)
+            return Response(
+                href?.takeIf { it.isNotEmpty() } ?: throw IOException("Missing DAV href"),
+                properties,
+                directory,
+            )
         }
     }
 
@@ -135,7 +146,11 @@ internal object WebDavXml {
 
         override fun read(): Int = super.read().also { if (it >= 0) consumed(1) }
 
-        override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+        override fun read(
+            bytes: ByteArray,
+            offset: Int,
+            length: Int,
+        ): Int {
             val read = `in`.read(bytes, offset, minOf(length, MAX_BYTES - count + 1))
             if (read > 0) consumed(read)
             return read
