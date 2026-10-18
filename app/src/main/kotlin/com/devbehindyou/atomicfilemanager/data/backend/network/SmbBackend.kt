@@ -301,7 +301,7 @@ class SmbBackend(
     ): FileNode =
         NetworkNodeHelper.createNode(
             id = p.id(),
-            parentId = p.parent().id(),
+            parentId = p.parentId,
             name = p.name,
             size = size,
             modifiedAt = modifiedAt.coerceAtLeast(0),
@@ -439,6 +439,9 @@ object SmbPaths {
     /** `/<share>/<inner…>`; [inner] uses backslashes as SMB expects and is empty at the share root. */
     data class Path(val serverId: String, val share: String?, val inner: String) {
         val name: String get() = inner.substringAfterLast('\\').ifEmpty { share.orEmpty() }
+
+        /** A share is the navigable storage root; it must not point to itself as its parent. */
+        val parentId: FileNodeId? get() = if (inner.isEmpty() || share == null) null else parent().id()
 
         fun child(name: String): Path = copy(inner = if (inner.isEmpty()) name else "$inner\\$name")
 

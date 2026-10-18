@@ -263,7 +263,7 @@ class SftpBackend(
         val isDir = attrs.type == FileMode.Type.DIRECTORY
         return NetworkNodeHelper.createNode(
             id = idOf(p.serverId, p.path),
-            parentId = idOf(p.serverId, p.parent),
+            parentId = if (p.path.trimEnd('/').isEmpty()) null else idOf(p.serverId, p.parent),
             name = p.name,
             size = if (isDir) -1L else attrs.size,
             modifiedAt = attrs.mtime * MILLIS,
