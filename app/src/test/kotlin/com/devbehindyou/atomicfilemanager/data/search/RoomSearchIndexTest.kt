@@ -4,8 +4,12 @@ import com.devbehindyou.atomicfilemanager.data.database.room.SearchIndexDao
 import com.devbehindyou.atomicfilemanager.data.database.room.SearchIndexEntity
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.SearchFilter
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -19,17 +23,26 @@ class RoomSearchIndexTest {
     /** Keeps rows in memory and evaluates LIKE with `\` as the escape character, like SQLite. */
     private class FakeDao : SearchIndexDao {
         val rows = linkedMapOf<String, SearchIndexEntity>()
+        val searchPages = mutableListOf<Pair<Int, Int>>()
+        var onSearch: suspend () -> Unit = {}
 
         override suspend fun upsert(rows: List<SearchIndexEntity>) = rows.forEach { this.rows[it.id] = it }
 
         override suspend fun search(
             pattern: String,
             limit: Int,
+            offset: Int,
+            directory: Boolean?,
         ): List<SearchIndexEntity> {
+            searchPages += offset to limit
+            onSearch()
             val regex = like(pattern)
             return rows.values
-                .filter { regex.matches(it.nameLower) }
-                .sortedWith(compareByDescending<SearchIndexEntity> { it.isDirectory }.thenBy { it.nameLower })
+                .filter { regex.matches(it.nameLower) && (directory == null || it.isDirectory == directory) }
+                .sortedWith(
+                    compareByDescending<SearchIndexEntity> { it.isDirectory }.thenBy { it.nameLower }.thenBy { it.id },
+                )
+                .drop(offset)
                 .take(limit)
         }
 
@@ -219,4 +232,98 @@ class RoomSearchIndexTest {
             assertEquals(setOf("a.pdf", "b.txt"), index.files(listOf(volume)).map { it.name }.toSet())
             assertTrue(index.files(listOf(FileNodeId.file("/elsewhere"))).isEmpty())
         }
+
+    @Test
+    fun `document search finds a PDF beyond two thousand matching folders`() =
+        runTest {
+            dao.upsert((0 until 2_000).map { searchRow("folder-$it", "report-$it", directory = true) })
+            dao.upsert(listOf(searchRow("pdf", "report.pdf")))
+
+            val hits = index().search("report", 200, SearchFilter.DOCUMENTS)
+
+            assertEquals(listOf("report.pdf"), hits.map { it.name })
+            assertEquals(listOf(0), dao.searchPages.map { it.first })
+            assertTrue(dao.searchPages.all { it.second <= RoomSearchIndex.SEARCH_PAGE_SIZE })
+        }
+
+    @Test
+    fun `document search pages past two thousand matching names of other file types`() =
+        runTest {
+            dao.upsert((0 until 2_000).map { searchRow("image-$it", "report-image-$it.jpg") })
+            dao.upsert(listOf(searchRow("pdf", "report-z.pdf")))
+
+            assertEquals(listOf("report-z.pdf"), index().search("report", 200, SearchFilter.DOCUMENTS).map { it.name })
+            assertEquals(listOf(0, 500, 1_000, 1_500, 2_000), dao.searchPages.map { it.first })
+        }
+
+    @Test
+    fun `result cap counts matching category only and stops fetching once satisfied`() =
+        runTest {
+            dao.upsert((0 until 501).map { searchRow("folder-$it", "report-$it", directory = true) })
+            dao.upsert((0 until 80).map { searchRow("image-$it", "report-image-$it.jpg") })
+            dao.upsert((0 until 7).map { searchRow("pdf-$it", "report-$it.pdf") })
+
+            val hits = index().search("report", 3, SearchFilter.DOCUMENTS)
+
+            assertEquals(listOf("report-0.pdf", "report-1.pdf", "report-2.pdf"), hits.map { it.name })
+            assertEquals(1, dao.searchPages.size)
+        }
+
+    @Test
+    fun `equal names across a page boundary use identity order without duplicates`() =
+        runTest {
+            val rows = (0 until 1_001).map { searchRow(it.toString().padStart(4, '0')) }
+            dao.upsert(rows.reversed())
+
+            val hits = index().search("report", 501, SearchFilter.DOCUMENTS)
+
+            assertEquals(rows.take(501).map { it.id }, hits.map { it.id.raw })
+            assertEquals(501, hits.map { it.id }.toSet().size)
+            assertEquals(2, dao.searchPages.size)
+        }
+
+    @Test
+    fun `cancellation stops filtering and does not request another page`() =
+        runTest {
+            dao.upsert((0 until 600).map { searchRow("image-$it", "report-$it.jpg") })
+            dao.onSearch = { currentCoroutineContext().cancel() }
+            val index = index()
+            var returned = false
+            val search =
+                launch {
+                    index.search("report", 10, SearchFilter.DOCUMENTS)
+                    returned = true
+                }
+            runCurrent()
+
+            assertTrue(search.isCancelled)
+            assertFalse(returned)
+            assertEquals(1, dao.searchPages.size)
+        }
+
+    @Test
+    fun `blank queries and nonpositive limits never read a page`() =
+        runTest {
+            val index = index()
+            assertTrue(index.search(" ", 10, SearchFilter.DOCUMENTS).isEmpty())
+            assertTrue(index.search("report", 0).isEmpty())
+            assertTrue(index.search("report", -1).isEmpty())
+            assertTrue(dao.searchPages.isEmpty())
+        }
+
+    private fun searchRow(
+        id: String,
+        name: String = "report.pdf",
+        directory: Boolean = false,
+    ) = SearchIndexEntity(
+        id = "file:/items/$id",
+        name = name,
+        nameLower = name.lowercase(),
+        parentId = "file:/items",
+        isDirectory = directory,
+        size = if (directory) -1 else 1,
+        modifiedAt = 0,
+        mimeType = null,
+        generation = 1,
+    )
 }

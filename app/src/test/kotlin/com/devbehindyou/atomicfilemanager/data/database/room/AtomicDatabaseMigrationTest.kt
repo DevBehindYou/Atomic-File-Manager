@@ -134,6 +134,12 @@ class AtomicDatabaseMigrationTest {
                 assertEquals(listOf("My_Report.pdf"), search.search("%y\\_r%", 10).map { it.name })
                 assertEquals(2, search.search("%report%", 10).size)
                 assertEquals(2, search.deleteOlderThan(8))
+                search.upsert(listOf("c", "a", "b").map { row("report.pdf").copy(id = "file:/$it") })
+                assertEquals(listOf("file:/a", "file:/b"), search.search("%report%", 2).map { it.id })
+                assertEquals(listOf("file:/b", "file:/c"), search.search("%report%", 2, offset = 1).map { it.id })
+                search.upsert(listOf(row("report-folder").copy(isDirectory = true, size = -1)))
+                assertEquals(3, search.search("%report%", 10, directory = false).size)
+                assertEquals(listOf("report-folder"), search.search("%report%", 10, directory = true).map { it.name })
             } finally {
                 database.close()
             }
