@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.domain.usecase
 
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
@@ -9,12 +10,17 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationOptions
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
 import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.TrashEntry
+import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import com.devbehindyou.atomicfilemanager.domain.repository.TrashStore
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -26,20 +32,27 @@ class TrashManagerTest {
     private class FakeTrashStore : TrashStore {
         val entries = linkedMapOf<String, TrashEntry>()
         var failInsert = false
+        var failLookup = false
+        var beforeInsert: suspend () -> Unit = {}
+        var afterInsert: suspend () -> Unit = {}
 
         override fun observeAll(): Flow<List<TrashEntry>> = MutableStateFlow(entries.values.toList())
 
         override suspend fun insert(entry: TrashEntry) {
+            beforeInsert()
             check(!failInsert) { "disk full" }
             entries[entry.id] = entry
+            afterInsert()
         }
 
         override suspend fun delete(id: String) {
             entries.remove(id)
         }
 
-        override suspend fun byTrashedId(trashedId: FileNodeId) =
-            entries.values.firstOrNull { it.trashedId == trashedId }
+        override suspend fun byTrashedId(trashedId: FileNodeId): TrashEntry? {
+            check(!failLookup) { "lookup unavailable" }
+            return entries.values.firstOrNull { it.trashedId == trashedId }
+        }
 
         override suspend fun byOperation(operationId: String) = entries.values.filter { it.operationId == operationId }
 
@@ -150,6 +163,175 @@ class TrashManagerTest {
 
             assertTrue(trash.trash(node(file), "op") is FileResult.Failure)
             assertEquals(listOf("notes.txt"), children(docs).map { it.name })
+        }
+
+    @Test
+    fun `cancellation after the move finishes recording the hidden item`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "safe".toByteArray()))
+            lateinit var operation: Job
+            store.beforeInsert = {
+                operation.cancel()
+                yield()
+            }
+
+            operation = launch { trash.trash(file, "cancelled") }
+            operation.join()
+
+            assertTrue(operation.isCancelled)
+            assertTrue(children(docs).isEmpty())
+            val recorded = store.byOperation("cancelled").single()
+            assertEquals("safe", text(recorded.trashedId))
+        }
+
+    @Test
+    fun `insert cancellation before commit rolls the file back and propagates`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "safe".toByteArray()))
+            store.beforeInsert = { throw CancellationException("insert cancelled") }
+
+            val operation = launch { trash.trash(file, "cancelled") }
+            operation.join()
+
+            assertTrue(operation.isCancelled)
+            assertTrue(store.entries.isEmpty())
+            assertEquals("safe", text(child(docs, "notes.txt").id))
+        }
+
+    @Test
+    fun `insert cancellation after commit retains the valid record and propagates`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "safe".toByteArray()))
+            store.afterInsert = { throw CancellationException("committed then cancelled") }
+
+            val operation = launch { trash.trash(file, "cancelled") }
+            operation.join()
+
+            assertTrue(operation.isCancelled)
+            val recorded = store.byOperation("cancelled").single()
+            assertEquals("safe", text(recorded.trashedId))
+            assertTrue(children(docs).isEmpty())
+        }
+
+    @Test
+    fun `failed lookup after committed trash insertion does not invalidate the record`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "safe".toByteArray()))
+            store.failLookup = true
+            store.afterInsert = { error("committed then failed") }
+
+            assertTrue(trash.trash(file, "op") is FileResult.Failure)
+
+            val recorded = store.byOperation("op").single()
+            assertEquals("safe", text(recorded.trashedId))
+            assertTrue(children(docs).isEmpty())
+        }
+
+    /** Model a path-based backend whose rename returns a different identity. */
+    private fun changingIdentityBackend(denyMoveTo: () -> FileNodeId?): StorageBackend =
+        object : StorageBackend by backend {
+            override suspend fun rename(
+                id: FileNodeId,
+                newName: String,
+            ): FileResult<FileNode> {
+                val original = node(id)
+                val renamed = backend.rename(id, newName)
+                if (renamed is FileResult.Failure) return renamed
+                val bytes = text(id).toByteArray()
+                backend.delete(id)
+                return backend.getNode(backend.putFile(requireNotNull(original.parentId), newName, bytes))
+            }
+
+            override suspend fun moveWithin(
+                id: FileNodeId,
+                newParent: FileNodeId,
+            ): FileResult<FileNode> =
+                if (newParent == denyMoveTo()) {
+                    FileResult.Failure(FileError.AccessDenied("restore destination"))
+                } else {
+                    backend.moveWithin(id, newParent)
+                }
+        }
+
+    @Test
+    fun `failed restore after collision rename persists the new identity for retry`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "old".toByteArray()))
+            var denied: FileNodeId? = null
+            val changingBackend = changingIdentityBackend { denied }
+            val manager = TrashManager({ changingBackend }, store, { backend.rootId })
+            val entry = (manager.trash(file, "op") as FileResult.Success).value
+            backend.putFile(docs, "notes.txt", "new".toByteArray())
+            denied = docs
+
+            assertTrue(manager.restore(entry) is FileResult.Failure)
+
+            val retry = store.entries.getValue(entry.id)
+            assertTrue(retry.trashedId != entry.trashedId)
+            assertEquals("notes (1).txt", retry.name)
+            assertEquals("old", text(retry.trashedId))
+            denied = null
+            val restarted = TrashManager({ changingBackend }, store, { backend.rootId })
+            assertTrue(restarted.restore(retry) is FileResult.Success)
+            assertEquals("old", text(child(docs, "notes (1).txt").id))
+            assertEquals("new", text(child(docs, "notes.txt").id))
+            assertTrue(store.entries.isEmpty())
+        }
+
+    @Test
+    fun `rename record failure rolls back and persists a changed rollback identity`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "old".toByteArray()))
+            val changingBackend = changingIdentityBackend { null }
+            val manager = TrashManager({ changingBackend }, store, { backend.rootId })
+            val entry = (manager.trash(file, "op") as FileResult.Success).value
+            backend.putFile(docs, "notes.txt", "new".toByteArray())
+            var failNext = true
+            store.beforeInsert = {
+                if (failNext) {
+                    failNext = false
+                    error("one failed update")
+                }
+            }
+
+            assertTrue(manager.restore(entry) is FileResult.Failure)
+
+            val retry = store.entries.getValue(entry.id)
+            assertEquals("notes.txt", retry.name)
+            assertEquals("old", text(retry.trashedId))
+            assertTrue(manager.restore(retry) is FileResult.Success)
+            assertEquals("old", text(child(docs, "notes (1).txt").id))
+            assertEquals("new", text(child(docs, "notes.txt").id))
+        }
+
+    @Test
+    fun `failed lookup after committed rename update keeps its identity retryable`() =
+        runTest {
+            val docs = folder("Docs")
+            val file = node(backend.putFile(docs, "notes.txt", "old".toByteArray()))
+            val changingBackend = changingIdentityBackend { null }
+            val manager = TrashManager({ changingBackend }, store, { backend.rootId })
+            val entry = (manager.trash(file, "op") as FileResult.Success).value
+            backend.putFile(docs, "notes.txt", "new".toByteArray())
+            store.failLookup = true
+            store.afterInsert = { error("committed then failed") }
+
+            assertTrue(manager.restore(entry) is FileResult.Failure)
+
+            val retry = store.entries.getValue(entry.id)
+            assertEquals("notes (1).txt", retry.name)
+            assertEquals("old", text(retry.trashedId))
+            store.failLookup = false
+            store.afterInsert = {}
+            assertTrue(manager.restore(retry) is FileResult.Success)
+            assertEquals("old", text(child(docs, "notes (1).txt").id))
+            assertEquals("new", text(child(docs, "notes.txt").id))
         }
 
     @Test

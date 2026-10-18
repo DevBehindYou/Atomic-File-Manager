@@ -9,6 +9,8 @@ import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import com.devbehindyou.atomicfilemanager.domain.repository.TrashStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -59,6 +61,23 @@ class TrashManager(
                 is FileResult.Success -> created.value
                 is FileResult.Failure -> return created
             }
+        // Same-volume metadata changes and their record form one in-process critical section.
+        // Cancellation resumes after it; this is not a process-death transaction.
+        currentCoroutineContext().ensureActive()
+        return withContext(NonCancellable) {
+            moveToTrash(backend, node, parent, root, holder, id, operationId)
+        }
+    }
+
+    private suspend fun moveToTrash(
+        backend: StorageBackend,
+        node: FileNode,
+        parent: FileNodeId,
+        root: FileNodeId,
+        holder: FileNode,
+        id: String,
+        operationId: String,
+    ): FileResult<TrashEntry> {
         val moved =
             when (val result = backend.moveWithin(node.id, holder.id)) {
                 is FileResult.Success -> result.value
@@ -83,14 +102,33 @@ class TrashManager(
         return try {
             store.insert(entry)
             FileResult.Success(entry)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // Without a record the item would be lost in the trash folder; put it back.
-            withContext(NonCancellable) {
-                if (backend.moveWithin(moved.id, parent) is FileResult.Success) backend.delete(holder.id)
-            }
+        } catch (error: Exception) {
+            // A store may commit before reporting failure/cancellation. Keep that valid record.
+            runCatching { reconcileFailedInsert(backend, entry) }
+            if (error is CancellationException) throw error
             FileResult.Failure(FileError.IoFailure(node.name))
+        }
+    }
+
+    private suspend fun reconcileFailedInsert(
+        backend: StorageBackend,
+        entry: TrashEntry,
+    ) {
+        val recorded = runCatching { store.byTrashedId(entry.trashedId) }
+        if (recorded.isFailure) {
+            // An unavailable lookup cannot establish that insertion did not commit. Keep the
+            // current location and retry its record rather than invalidate a committed record.
+            runCatching { store.insert(entry) }
+            return
+        }
+        if (recorded.getOrNull() != null) return
+        if (backend.moveWithin(entry.trashedId, entry.originalParent) is FileResult.Success) {
+            backend.delete(entry.holderId)
+        } else {
+            // A newly occupied original name can prevent rollback. Retry the record, never
+            // delete the holder containing the only copy. Persistent failure of both storage
+            // and the database still requires reconciliation; no crash-atomic claim is made.
+            runCatching { store.insert(entry) }
         }
     }
 
@@ -105,17 +143,36 @@ class TrashManager(
                 is FileResult.Success -> folder.value
                 is FileResult.Failure -> return folder
             }
-        var item = entry.trashedId
+        currentCoroutineContext().ensureActive()
+        return withContext(NonCancellable) { restoreInto(backend, entry, parent) }
+    }
+
+    private suspend fun restoreInto(
+        backend: StorageBackend,
+        entry: TrashEntry,
+        parent: FileNodeId,
+    ): FileResult<FileNode> {
+        var current = entry
         if (backend.exists(parent, entry.name)) {
             val free = freeName(backend, parent, entry.name)
-            item =
-                when (val renamed = backend.rename(item, free)) {
-                    is FileResult.Success -> renamed.value.id
+            val renamed =
+                when (val renamed = backend.rename(current.trashedId, free)) {
+                    is FileResult.Success -> renamed.value
                     is FileResult.Failure -> return renamed
                 }
+            current = entry.copy(name = free, trashedId = renamed.id)
+            try {
+                // Rename can change opaque IDs. Persist that identity before attempting the
+                // move so a denied destination leaves a retryable entry, including after restart.
+                store.insert(current)
+            } catch (error: Exception) {
+                runCatching { reconcileFailedRename(backend, entry, current) }
+                if (error is CancellationException) throw error
+                return FileResult.Failure(FileError.IoFailure(entry.name))
+            }
         }
         val restored =
-            when (val moved = backend.moveWithin(item, parent)) {
+            when (val moved = backend.moveWithin(current.trashedId, parent)) {
                 is FileResult.Success -> moved.value
                 is FileResult.Failure -> return moved
             }
@@ -124,6 +181,28 @@ class TrashManager(
             store.delete(entry.id)
         }
         return FileResult.Success(restored)
+    }
+
+    private suspend fun reconcileFailedRename(
+        backend: StorageBackend,
+        original: TrashEntry,
+        renamed: TrashEntry,
+    ) {
+        // A committed update is already safe to retry; don't undo its path behind the store.
+        val recorded = runCatching { store.byTrashedId(renamed.trashedId) }
+        if (recorded.isFailure) {
+            runCatching { store.insert(renamed) }
+            return
+        }
+        if (recorded.getOrNull() == renamed) return
+        when (val rollback = backend.rename(renamed.trashedId, original.name)) {
+            is FileResult.Success -> {
+                if (rollback.value.id != original.trashedId) {
+                    runCatching { store.insert(original.copy(trashedId = rollback.value.id)) }
+                }
+            }
+            is FileResult.Failure -> runCatching { store.insert(renamed) }
+        }
     }
 
     /** The entry for an item currently in the Trash. */
