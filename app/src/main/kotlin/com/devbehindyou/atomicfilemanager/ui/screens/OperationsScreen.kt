@@ -17,6 +17,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicActivityRow
@@ -55,6 +57,7 @@ fun OperationsScreen(
     BackHandler(onBack = onBack)
     val active by queue.active.collectAsState()
     val waiting by queue.queued.collectAsState()
+    val journalError by queue.journalError.collectAsState()
     val historyFlow = remember(journal) { journal.observeRecent(HISTORY_LIMIT) }
     val history by historyFlow.collectAsState(initial = emptyList())
     val busyIds = setOfNotNull(active?.operation?.id?.raw) + waiting.map { it.id.raw }
@@ -74,6 +77,15 @@ fun OperationsScreen(
             contentPadding = PaddingValues(AtomicSpacing.s16),
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
         ) {
+            if (journalError != null) {
+                item {
+                    AtomicEmptyState(
+                        message = stringResource(R.string.operation_history_unavailable),
+                        detail = stringResource(R.string.operation_history_unavailable_detail),
+                        modifier = Modifier.testTag("operation_journal_error"),
+                    )
+                }
+            }
             item { AtomicSectionLabel("Running", trailingText = "Keeps going if you leave") }
             val running = active
             val awaiting = running?.status as? OperationStatus.AwaitingInput
