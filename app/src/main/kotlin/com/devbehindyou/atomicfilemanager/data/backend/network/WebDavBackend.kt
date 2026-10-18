@@ -67,7 +67,7 @@ class WebDavBackend(
                 ":${server.port}"
             }
         val cleanPath = if (path.startsWith("/")) path else "/$path"
-        return URL("$protocol://$cleanHost$portPart$cleanPath")
+        return URL("$protocol://$cleanHost$portPart${WebDavPaths.encode(cleanPath)}")
     }
 
     private fun openConnection(
@@ -111,7 +111,7 @@ class WebDavBackend(
             when (val result = queryProperties(parsed, "0")) {
                 is FileResult.Failure -> result
                 is FileResult.Success -> {
-                    val node = result.value.firstOrNull { parseId(it.id).path.trimEnd('/') == parsed.path.trimEnd('/') }
+                    val node = result.value.firstOrNull { WebDavPaths.sameResource(parseId(it.id).path, parsed.path) }
                     node?.let { FileResult.Success(it) } ?: FileResult.Failure(FileError.FileNotFound(parsed.path))
                 }
             }
@@ -126,7 +126,7 @@ class WebDavBackend(
                     is FileResult.Failure -> result
                     is FileResult.Success ->
                         FileResult.Success(
-                            result.value.filter { parseId(it.id).path.trimEnd('/') != parsed.path.trimEnd('/') },
+                            result.value.filterNot { WebDavPaths.sameResource(parseId(it.id).path, parsed.path) },
                         )
                 },
             )

@@ -12,6 +12,7 @@ import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -121,6 +122,53 @@ class WebDavSafetyTest {
             val result = backend.moveWithin(FileNodeId.webdav("fixture", "/file"), FileNodeId.webdav("other", "/"))
             assertTrue(result is FileResult.Failure && result.error is FileError.InvalidDestination)
         }
+
+    @Test
+    fun `metadata lookup matches raw spaces and Unicode against encoded DAV href`() =
+        runBlocking {
+            for ((requested, href) in listOf("/a b" to "/a%20b", "/café/文件" to "/caf%C3%A9/%E6%96%87%E4%BB%B6")) {
+                var requestUrl: URL? = null
+                val backend =
+                    WebDavBackend(store(80)) { url ->
+                        requestUrl = url
+                        MoveConnection(url, 207, properties(href))
+                    }
+                val result = backend.getNode(FileNodeId.webdav("fixture", requested))
+                assertTrue("Expected metadata for $requested, got $result", result is FileResult.Success)
+                assertEquals(FileNodeId.webdav("fixture", href), (result as FileResult.Success).value.id)
+                assertEquals(href, requestUrl?.path)
+            }
+        }
+
+    @Test
+    fun `directory listing excludes encoded version of requested directory`() =
+        runBlocking {
+            val backend = WebDavBackend(store(80)) { url -> MoveConnection(url, 207, properties("/a%20b/")) }
+            val result = backend.listChildren(FileNodeId.webdav("fixture", "/a b")).first()
+            assertTrue(result is FileResult.Success)
+            assertTrue((result as FileResult.Success).value.isEmpty())
+        }
+
+    @Test
+    fun `canonical paths preserve encoded slash and percent identity`() =
+        runBlocking {
+            assertTrue(WebDavPaths.sameResource("/a%2fb", "/a%2Fb"))
+            assertTrue(WebDavPaths.sameResource("/a%25b", "/a%25b"))
+            assertTrue(WebDavPaths.sameResource("/%61%20b", "/a b"))
+            assertFalse(WebDavPaths.sameResource("/a%2Fb", "/a/b"))
+            assertFalse(WebDavPaths.sameResource("/a%252Fb", "/a%2Fb"))
+            assertEquals("/a%252Fb", WebDavPaths.encode("/a%252Fb"))
+            val backend = WebDavBackend(store(80)) { url -> MoveConnection(url, 207, properties("/a/b")) }
+            val result = backend.getNode(FileNodeId.webdav("fixture", "/a%2Fb"))
+            assertTrue(result is FileResult.Failure && result.error is FileError.FileNotFound)
+        }
+
+    private fun properties(href: String): String =
+        """
+        <multistatus xmlns="DAV:"><response><href>$href</href>
+        <propstat><prop><getcontentlength>3</getcontentlength></prop>
+        <status>HTTP/1.1 200 OK</status></propstat></response></multistatus>
+        """.trimIndent()
 
     private suspend fun withServer(
         existing: String? = null,
