@@ -125,8 +125,8 @@ fun BrowseScreen(
     val quickPeekController = remember { QuickPeekController() }
 
     val secondaryViewModel =
-        remember(initialFolderId.raw) {
-            BrowseViewModel(
+        rememberSecondaryBrowseViewModel(isDualPane, tabKey, initialFolderId) {
+            BrowseViewModel.provideFactory(
                 initialFolderId = initialFolderId,
                 getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
                 getNodeUseCase = app.container.getNodeUseCase,
@@ -137,8 +137,8 @@ fun BrowseScreen(
                 transferBubbleRepository = app.container.transferBubbleRepository,
                 folderSorts = app.container.folderSortMemory,
             )
-        }
-    val secondaryUiState by secondaryViewModel.uiState.collectAsState()
+        } ?: viewModel
+    val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
 
     val bubbles by viewModel.bubbles.collectAsState()
     var bubbleForDetails by remember { mutableStateOf<TransferBubble?>(null) }
@@ -182,9 +182,9 @@ fun BrowseScreen(
         if (node != null && mode != null) hideNode(node, mode)
     }
 
-    LaunchedEffect(settings.showHiddenFiles) {
+    LaunchedEffect(viewModel, secondaryViewModel, settings.showHiddenFiles) {
         viewModel.setShowHiddenFiles(settings.showHiddenFiles)
-        secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
+        if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
     LaunchedEffect(viewModel, openRequest) {
