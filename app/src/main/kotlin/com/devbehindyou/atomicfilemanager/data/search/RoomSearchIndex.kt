@@ -5,6 +5,7 @@ import com.devbehindyou.atomicfilemanager.data.database.room.SearchIndexEntity
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.SearchFilter
 import com.devbehindyou.atomicfilemanager.domain.model.SearchHit
 import com.devbehindyou.atomicfilemanager.domain.model.SearchIndexState
 import com.devbehindyou.atomicfilemanager.domain.model.likePatternFor
@@ -57,9 +58,41 @@ class RoomSearchIndex(
     override suspend fun search(
         query: String,
         limit: Int,
+    ): List<SearchHit> = search(query, limit, SearchFilter.ALL)
+
+    override suspend fun search(
+        query: String,
+        limit: Int,
+        filter: SearchFilter,
     ): List<SearchHit> {
         val pattern = likePatternFor(query) ?: return emptyList()
-        return dao.search(pattern, limit).map { it.toHit() }
+        if (limit <= 0) return emptyList()
+        val matches = ArrayList<SearchHit>()
+        var offset = 0
+        val directory =
+            when (filter) {
+                SearchFilter.ALL -> null
+                SearchFilter.FOLDERS -> true
+                else -> false
+            }
+        // Bounded pages preserve the domain's MIME/extension rules without loading the entire
+        // index or duplicating classification in SQL. Concurrent index writers can still shift
+        // offsets; a coherent revision/snapshot belongs to the separate index-consistency work.
+        while (matches.size < limit) {
+            currentCoroutineContext().ensureActive()
+            val page = dao.search(pattern, SEARCH_PAGE_SIZE, offset, directory)
+            for (row in page) {
+                currentCoroutineContext().ensureActive()
+                val hit = row.toHit()
+                if (filter.matches(hit)) {
+                    matches += hit
+                    if (matches.size == limit) return matches
+                }
+            }
+            if (page.size < SEARCH_PAGE_SIZE) break
+            offset += page.size
+        }
+        return matches
     }
 
     override suspend fun files(roots: List<FileNodeId>): List<SearchHit> {
@@ -203,6 +236,7 @@ class RoomSearchIndex(
 
     companion object {
         const val BATCH_SIZE = 500
+        const val SEARCH_PAGE_SIZE = 500
         const val DEFAULT_FRESH_MILLIS = 6L * 60 * 60 * 1000
     }
 }

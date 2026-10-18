@@ -33,11 +33,14 @@ interface SearchIndexDao {
 
     @Query(
         "SELECT * FROM search_index WHERE nameLower LIKE :pattern ESCAPE '\\' " +
-            "ORDER BY isDirectory DESC, nameLower LIMIT :limit",
+            "AND (:directory IS NULL OR isDirectory = :directory) " +
+            "ORDER BY isDirectory DESC, nameLower, id LIMIT :limit OFFSET :offset",
     )
     suspend fun search(
         pattern: String,
         limit: Int,
+        offset: Int = 0,
+        directory: Boolean? = null,
     ): List<SearchIndexEntity>
 
     @Query("DELETE FROM search_index WHERE generation < :generation")
