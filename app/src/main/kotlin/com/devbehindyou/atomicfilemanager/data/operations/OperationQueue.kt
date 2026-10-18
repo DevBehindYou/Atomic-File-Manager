@@ -16,9 +16,11 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationSummary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +30,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.coroutineContext
 
 /** A name clash the running operation is waiting on; answer it with [OperationQueue.resolveConflict]. */
 class PendingConflict(val operation: FileOperation, val conflict: Conflict)
@@ -52,7 +56,9 @@ class OperationQueue(
 ) {
     private val ready = CompletableDeferred<Unit>()
 
-    private val pending = Channel<FileOperation>(Channel.UNLIMITED)
+    private class PendingOperation(val operation: FileOperation, val persisted: CompletableDeferred<Unit>)
+
+    private val pending = Channel<PendingOperation>(Channel.UNLIMITED)
 
     // Journal writes run strictly in the order they were requested.
     private val journalWrites = Channel<suspend (OperationJournalDao) -> Unit>(Channel.UNLIMITED)
@@ -73,6 +79,11 @@ class OperationQueue(
 
     /** The last snapshot of each operation as it ends (completed, partial, failed or cancelled). */
     val finished: SharedFlow<OperationSnapshot> = _finished.asSharedFlow()
+
+    private val _journalError = MutableStateFlow<FileError?>(null)
+
+    /** Persistence failed; recovery may see an older state even when the file operation completed. */
+    val journalError: StateFlow<FileError?> = _journalError.asStateFlow()
 
     private val _pendingConflict = MutableStateFlow<PendingConflict?>(null)
 
@@ -130,7 +141,7 @@ class OperationQueue(
         }
         scope.launch {
             ready.await()
-            for (operation in pending) runOne(operation)
+            for (entry in pending) runOne(entry)
         }
     }
 
@@ -138,8 +149,8 @@ class OperationQueue(
     fun enqueue(operation: FileOperation): OperationId {
         _queued.update { it + operation }
         val now = clock()
-        writeJournal { it.upsert(operation.toJournalEntry(OperationJournalState.QUEUED, now)) }
-        pending.trySend(operation)
+        val persisted = scheduleJournalWrite { it.upsert(operation.toJournalEntry(OperationJournalState.QUEUED, now)) }
+        pending.trySend(PendingOperation(operation, persisted))
         return operation.id
     }
 
@@ -166,7 +177,18 @@ class OperationQueue(
         if (activeId == id.raw) activeJob?.cancel()
     }
 
-    private suspend fun runOne(operation: FileOperation) {
+    private suspend fun runOne(entry: PendingOperation) {
+        val operation = entry.operation
+        try {
+            // Admission is asynchronous to the caller, but mutation cannot outrun durable intent.
+            entry.persisted.await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _queued.update { list -> list.filterNot { it.id == operation.id } }
+            finish(OperationSnapshot(operation, failedStatus(e)))
+            return
+        }
         _queued.update { list -> list.filterNot { it.id == operation.id } }
         if (operation.id.raw in cancelled) {
             finish(OperationSnapshot(operation, OperationStatus.Cancelled))
@@ -175,12 +197,12 @@ class OperationQueue(
         var last = OperationSnapshot(operation, OperationStatus.Queued)
         coroutineScope {
             val job =
-                launch {
+                launch(start = CoroutineStart.LAZY) {
                     try {
                         engine(operation, conflictResolver).collect { snapshot ->
                             last = snapshot
                             _active.value = snapshot
-                            record(snapshot)
+                            if (!snapshot.status.isTerminal()) record(snapshot)
                         }
                     } catch (e: CancellationException) {
                         throw e
@@ -190,8 +212,11 @@ class OperationQueue(
                 }
             activeId = operation.id.raw
             activeJob = job
+            if (operation.id.raw in cancelled) job.cancel() else job.start()
             job.join()
-            if (job.isCancelled) last = OperationSnapshot(operation, OperationStatus.Cancelled)
+            if (job.isCancelled && !last.status.isTerminal()) {
+                last = OperationSnapshot(operation, OperationStatus.Cancelled)
+            }
         }
         activeJob = null
         activeId = null
@@ -199,33 +224,66 @@ class OperationQueue(
         finish(last)
     }
 
-    private fun finish(snapshot: OperationSnapshot) {
+    private suspend fun finish(snapshot: OperationSnapshot) {
         cancelled -= snapshot.operation.id.raw
         record(snapshot)
         _finished.tryEmit(snapshot)
         waiters.remove(snapshot.operation.id.raw)?.complete(snapshot)
     }
 
-    private fun record(snapshot: OperationSnapshot) {
+    private suspend fun record(snapshot: OperationSnapshot) {
         val (state, progress, error) = journalStateOf(snapshot.status)
         val id = snapshot.operation.id.raw
         val now = clock()
-        writeJournal {
-            it.updateProgress(
-                id = id,
-                state = state,
-                itemsDone = progress?.itemsDone ?: 0,
-                itemsTotal = progress?.itemsTotal ?: 0,
-                bytesDone = progress?.bytesDone ?: 0L,
-                bytesTotal = progress?.bytesTotal ?: 0L,
-                errorMessage = error,
-                updatedAt = now,
-            )
+        try {
+            // Await each write: a fast copy cannot accumulate a closure per buffer in the journal.
+            scheduleJournalWrite {
+                it.updateProgress(
+                    id = id,
+                    state = state,
+                    itemsDone = progress?.itemsDone ?: 0,
+                    itemsTotal = progress?.itemsTotal ?: 0,
+                    bytesDone = progress?.bytesDone ?: 0L,
+                    bytesTotal = progress?.bytesTotal ?: 0L,
+                    errorMessage = error,
+                    updatedAt = now,
+                )
+            }.await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Intent is already durable. Keep the actual operation outcome; recovery remains conservative.
+            _journalError.value = FileError.Unknown(e.javaClass.simpleName)
         }
     }
 
-    private fun writeJournal(write: suspend (OperationJournalDao) -> Unit) {
-        if (journal != null) journalWrites.trySend(write)
+    private fun scheduleJournalWrite(write: suspend (OperationJournalDao) -> Unit): CompletableDeferred<Unit> {
+        val result = CompletableDeferred<Unit>()
+        if (journal == null) {
+            result.complete(Unit)
+        } else {
+            val sent =
+                journalWrites.trySend { dao ->
+                    try {
+                        write(dao)
+                        result.complete(Unit)
+                    } catch (e: Exception) {
+                        // A DAO-local timeout must fail this write, not kill both queue consumers.
+                        // Whole-scope cancellation still propagates through ensureActive().
+                        val failure =
+                            if (e is CancellationException) {
+                                coroutineContext.ensureActive()
+                                IOException("Journal write cancelled", e)
+                            } else {
+                                e
+                            }
+                        result.completeExceptionally(failure)
+                        _journalError.value = FileError.Unknown(failure.javaClass.simpleName)
+                    }
+                }
+            if (sent.isFailure) result.completeExceptionally(IllegalStateException("Journal unavailable"))
+        }
+        return result
     }
 
     private companion object {
@@ -238,6 +296,10 @@ class OperationQueue(
             OperationStatus.Failed(FileError.Unknown(e.javaClass.simpleName), EMPTY_SUMMARY)
     }
 }
+
+private fun OperationStatus.isTerminal(): Boolean =
+    this is OperationStatus.Completed || this is OperationStatus.PartiallyCompleted ||
+        this is OperationStatus.Failed || this is OperationStatus.Cancelled
 
 /** Journal state, progress and error text for an [OperationStatus]. */
 internal fun journalStateOf(status: OperationStatus): Triple<OperationJournalState, OperationProgress?, String?> =
