@@ -7,6 +7,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.OperationId
 import com.devbehindyou.atomicfilemanager.domain.model.OperationOptions
+import com.devbehindyou.atomicfilemanager.domain.model.OperationProgress
 import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
 import com.devbehindyou.atomicfilemanager.domain.model.OperationSummary
@@ -38,6 +39,65 @@ class JournalAdmissionTest {
         )
 
     private val summary = OperationSummary(emptyList(), emptyList(), emptyList(), null)
+
+    @Test
+    fun `failed running or terminal persistence preserves actual outcome and queue availability`() =
+        runTest {
+            for (failedState in listOf(OperationJournalState.RUNNING, OperationJournalState.COMPLETED)) {
+                val delegate = FakeOperationJournal()
+                val journal =
+                    object : OperationJournalDao by delegate {
+                        override suspend fun updateProgress(
+                            id: String,
+                            state: OperationJournalState,
+                            itemsDone: Int,
+                            itemsTotal: Int,
+                            bytesDone: Long,
+                            bytesTotal: Long,
+                            errorMessage: String?,
+                            updatedAt: Long,
+                        ) {
+                            if (id == "first" && state == failedState) throw IOException("fixture update failure")
+                            delegate.updateProgress(
+                                id,
+                                state,
+                                itemsDone,
+                                itemsTotal,
+                                bytesDone,
+                                bytesTotal,
+                                errorMessage,
+                                updatedAt,
+                            )
+                        }
+                    }
+                val mutations = mutableListOf<String>()
+                val queue =
+                    OperationQueue(
+                        engine = { op, _ ->
+                            flow {
+                                emit(
+                                    OperationSnapshot(
+                                        op,
+                                        OperationStatus.Running(OperationProgress(0, 1, 0, 1, null, 0, null)),
+                                    ),
+                                )
+                                mutations += op.id.raw
+                                emit(OperationSnapshot(op, OperationStatus.Completed(summary)))
+                            }
+                        },
+                        journal = journal,
+                        scope = backgroundScope,
+                    )
+                assertTrue(queue.runAndAwait(operation("first")).status is OperationStatus.Completed)
+                assertNotNull(queue.journalError.value)
+                assertTrue(queue.runAndAwait(operation("next")).status is OperationStatus.Completed)
+                assertEquals(listOf("first", "next"), mutations)
+                assertEquals(OperationJournalState.COMPLETED, delegate.rows.getValue("next").state)
+                if (failedState == OperationJournalState.COMPLETED) {
+                    assertEquals(OperationJournalState.RUNNING, delegate.rows.getValue("first").state)
+                }
+            }
+        }
 
     @Test
     fun `journal-local cancellation fails admission without killing queue`() =
