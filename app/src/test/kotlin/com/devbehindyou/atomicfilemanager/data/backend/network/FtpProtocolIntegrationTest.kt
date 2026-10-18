@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -80,6 +81,87 @@ class FtpProtocolIntegrationTest {
             assertArrayEquals(PAYLOAD, downloaded)
             FtpUploadStream(client, client.openDataTransfer("STOR /upload.txt", binary = true)).use {
                 it.write(PAYLOAD)
+            }
+        }
+    }
+
+    @Test
+    fun `multiline passive reply uses endpoint from terminal line`() {
+        transferSession(tls = false, multilinePassiveReply = true) { client ->
+            assertEquals(listOf("fixture.txt"), client.list("/"))
+            val downloaded =
+                client.openDataTransfer("RETR /fixture.txt", binary = true).use {
+                    it.getInputStream().readBytes()
+                }
+            client.completeTransfer()
+            assertArrayEquals(PAYLOAD, downloaded)
+            FtpUploadStream(client, client.openDataTransfer("STOR /upload.txt", binary = true)).use {
+                it.write(PAYLOAD)
+            }
+        }
+    }
+
+    @Test
+    fun `oversized reply line is rejected`() {
+        conversation(false, listOf("USER test" to "230 ${"x".repeat(9000)}"), allowReplyDisconnect = true) { client ->
+            client.connect()
+            val failure = assertThrows(IOException::class.java) { client.login("test", "fixture") }
+            assertEquals("FTP reply line exceeds limit", failure.message)
+        }
+    }
+
+    @Test
+    fun `multiline reply has a total size bound`() {
+        val reply = "230-Starting\r\n" + ("x".repeat(7000) + "\r\n").repeat(10) + "230 Complete"
+        conversation(false, listOf("USER test" to reply), allowReplyDisconnect = true) { client ->
+            client.connect()
+            val failure = assertThrows(IOException::class.java) { client.login("test", "fixture") }
+            assertEquals("FTP multiline reply exceeds limit", failure.message)
+        }
+    }
+
+    @Test
+    fun `oversized listing line fails instead of returning partial success`() {
+        rejectedListing(9000, 1, "FTP listing line exceeds limit")
+    }
+
+    @Test
+    fun `too many listing entries fail instead of truncating`() {
+        rejectedListing(1, 10_001, "FTP listing exceeds limit")
+    }
+
+    @Test
+    fun `listing total character count is bounded`() {
+        rejectedListing(7000, 600, "FTP listing exceeds limit")
+    }
+
+    private fun rejectedListing(
+        lineLength: Int,
+        count: Int,
+        expected: String,
+    ) {
+        serverSession { server, execute ->
+            execute {
+                server.accept().use { socket ->
+                    socket.soTimeout = 5000
+                    val wire = Wire(socket)
+                    wire.reply("220 Ready")
+                    wire.expect("USER test", "230 Logged in")
+                    try {
+                        dataTransfer(wire, false, tlsContext(), "LIST /", false) { data ->
+                            val line = ("x".repeat(lineLength) + "\r\n").toByteArray()
+                            repeat(count) { data.getOutputStream().write(line) }
+                        }
+                    } catch (_: IOException) {
+                        // The client closes the overflowing stream before the server finishes.
+                    }
+                }
+            }
+            FtpProtocolClient("localhost", server.localPort, false).use { client ->
+                client.connect()
+                client.login("test", "fixture")
+                val failure = assertThrows(IOException::class.java) { client.list("/") }
+                assertEquals(expected, failure.message)
             }
         }
     }
@@ -154,6 +236,7 @@ class FtpProtocolIntegrationTest {
         tls: Boolean,
         deniedList: Boolean = false,
         failedUpload: Boolean = false,
+        multilinePassiveReply: Boolean = false,
         action: (FtpProtocolClient) -> Unit,
     ) {
         val context = tlsContext()
@@ -177,11 +260,26 @@ class FtpProtocolIntegrationTest {
                             wire.expect("PBSZ 0", "200 OK")
                             wire.expect("PROT P", "200 OK")
                         }
-                        dataTransfer(wire, tls, context, "LIST /", false, deniedList) { data ->
+                        dataTransfer(
+                            wire,
+                            tls,
+                            context,
+                            "LIST /",
+                            false,
+                            deniedList,
+                            multilinePassiveReply = multilinePassiveReply,
+                        ) { data ->
                             data.getOutputStream().write("fixture.txt\r\n".toByteArray())
                         }
                         if (!deniedList) {
-                            dataTransfer(wire, tls, context, "RETR /fixture.txt", true) { data ->
+                            dataTransfer(
+                                wire,
+                                tls,
+                                context,
+                                "RETR /fixture.txt",
+                                true,
+                                multilinePassiveReply = multilinePassiveReply,
+                            ) { data ->
                                 data.getOutputStream().write(PAYLOAD)
                             }
                             dataTransfer(
@@ -191,6 +289,7 @@ class FtpProtocolIntegrationTest {
                                 "STOR /upload.txt",
                                 true,
                                 failedFinal = failedUpload,
+                                multilinePassiveReply = multilinePassiveReply,
                             ) { data ->
                                 assertArrayEquals(PAYLOAD, data.getInputStream().readBytes())
                             }
@@ -214,6 +313,7 @@ class FtpProtocolIntegrationTest {
         binary: Boolean,
         denied: Boolean = false,
         failedFinal: Boolean = false,
+        multilinePassiveReply: Boolean = false,
         exchange: (Socket) -> Unit,
     ) {
         wire.expect(if (binary) "TYPE I" else "TYPE A", "200 OK")
@@ -221,7 +321,8 @@ class FtpProtocolIntegrationTest {
             passive.soTimeout = 5000
             val port = passive.localPort
             // A hostile PASV host must not redirect away from the control connection peer.
-            wire.expect("PASV", "227 Passive (203,0,113,1,${port / 256},${port % 256})")
+            val prefix = if (multilinePassiveReply) "227-Preparing endpoint\r\n" else ""
+            wire.expect("PASV", "${prefix}227 Passive (203,0,113,1,${port / 256},${port % 256})")
             passive.accept().use { plain ->
                 plain.soTimeout = 5000
                 wire.expect(command, if (denied) "550 Denied" else "150 Opening")
@@ -303,6 +404,7 @@ class FtpProtocolIntegrationTest {
     private fun conversation(
         tls: Boolean,
         replies: List<Pair<String, String>>,
+        allowReplyDisconnect: Boolean = false,
         action: (FtpProtocolClient) -> Unit,
     ) {
         val executor = Executors.newSingleThreadExecutor()
@@ -318,8 +420,12 @@ class FtpProtocolIntegrationTest {
                         writer.flush()
                         for ((expected, response) in replies) {
                             assertEquals(expected, reader.readLine())
-                            writer.write("$response\r\n")
-                            writer.flush()
+                            try {
+                                writer.write("$response\r\n")
+                                writer.flush()
+                            } catch (e: IOException) {
+                                if (!allowReplyDisconnect) throw e
+                            }
                         }
                     }
                 }

@@ -88,7 +88,19 @@ internal class FtpProtocolClient(
     fun list(path: String): List<String> {
         val lines =
             openDataTransfer("LIST $path", binary = false).use { data ->
-                data.getInputStream().bufferedReader(StandardCharsets.UTF_8).use { it.readLines() }
+                data.getInputStream().bufferedReader(StandardCharsets.UTF_8).use { input ->
+                    val entries = mutableListOf<String>()
+                    var characters = 0
+                    while (true) {
+                        val line = readBoundedLine(input, "listing") ?: break
+                        characters += line.length
+                        if (entries.size >= MAX_LIST_ENTRIES || characters > MAX_LIST_CHARACTERS) {
+                            throw IOException("FTP listing exceeds limit")
+                        }
+                        entries.add(line)
+                    }
+                    entries
+                }
             }
         completeTransfer()
         return lines
@@ -104,20 +116,40 @@ internal class FtpProtocolClient(
 
     fun readResponse(): String {
         val input = reader ?: throw IOException("FTP is not connected")
-        val first = input.readLine() ?: throw IOException("FTP connection closed before reply")
+        val first = readBoundedLine(input, "reply") ?: throw IOException("FTP connection closed before reply")
         val code = first.take(3).toIntOrNull()
         if (first.length < 4 || code == null || first[3] !in charArrayOf(' ', '-')) {
             throw IOException("Invalid FTP reply")
         }
         if (first[3] == '-') {
+            val response = StringBuilder(first)
             var lines = 0
             while (true) {
-                val line = input.readLine() ?: throw IOException("FTP multiline reply was truncated")
-                if (line.startsWith("${first.take(3)} ")) break
+                val line = readBoundedLine(input, "reply") ?: throw IOException("FTP multiline reply was truncated")
+                if (response.length + 1 + line.length > MAX_REPLY_LENGTH) {
+                    throw IOException("FTP multiline reply exceeds limit")
+                }
+                response.append('\n').append(line)
+                if (line.startsWith("${first.take(3)} ")) return response.toString()
                 if (++lines > 1024) throw IOException("FTP multiline reply exceeds limit")
             }
         }
         return first
+    }
+
+    /** BufferedReader.readLine() would allocate without a bound for an untrusted server. */
+    private fun readBoundedLine(
+        input: BufferedReader,
+        kind: String,
+    ): String? {
+        val line = StringBuilder()
+        while (true) {
+            val next = input.read()
+            if (next == -1) return if (line.isEmpty()) null else line.toString().removeSuffix("\r")
+            if (next == '\n'.code) return line.toString().removeSuffix("\r")
+            if (line.length >= MAX_LINE_LENGTH) throw IOException("FTP $kind line exceeds limit")
+            line.append(next.toChar())
+        }
     }
 
     private fun openPassiveDataSocket(): Socket {
@@ -183,6 +215,10 @@ internal class FtpProtocolClient(
     private companion object {
         const val CONNECT_TIMEOUT = 10_000
         const val READ_TIMEOUT = 15_000
+        const val MAX_LINE_LENGTH = 8192
+        const val MAX_REPLY_LENGTH = 64 * 1024
+        const val MAX_LIST_ENTRIES = 10_000
+        const val MAX_LIST_CHARACTERS = 4 * 1024 * 1024
         val PASV = Regex("(\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)")
     }
 }

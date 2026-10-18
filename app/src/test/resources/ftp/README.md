@@ -18,5 +18,10 @@ keytool -genkeypair -alias localhost -keyalg RSA -keysize 2048 -sigalg SHA256wit
 
 These tests cover explicit FTPS, protected passive data channels, handshake
 ordering, certificate trust/host rejection, failure replies and plain FTP.
+Control replies are limited to 8,192 characters per line and 64 KiB total;
+directory listings are limited to 10,000 entries and 4 Mi characters total,
+with the same line bound. Oversized replies or listings fail explicitly;
+they never return a truncated successful directory listing. Multiline PASV
+responses retain their terminal endpoint text.
 They do not establish compatibility with every FTP server, TLS session-reuse
 policy, EPSV/IPv6, or remote storage atomicity.
