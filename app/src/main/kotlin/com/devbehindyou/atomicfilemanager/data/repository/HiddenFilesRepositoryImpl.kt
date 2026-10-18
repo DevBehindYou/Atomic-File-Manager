@@ -595,13 +595,16 @@ class HiddenFilesRepositoryImpl(
 }
 
 /** `/storage/emulated/0/...` gives `/storage/emulated/0`, `/storage/ABCD-1234/...` gives `/storage/ABCD-1234`. */
-internal fun volumeRootOf(file: File): File? {
-    val segments = file.absolutePath.replace('\\', '/').split('/').filter { it.isNotEmpty() }
+internal fun volumeRootOf(file: File): File? = volumeRootPathOf(file.absolutePath)?.let(::File)
+
+/** Parse Android paths without depending on the JVM test host's filesystem. */
+internal fun volumeRootPathOf(path: String): String? {
+    val segments = path.replace('\\', '/').split('/').filter { it.isNotEmpty() }
     return when {
         segments.size < 2 || segments[0] != "storage" -> null
-        segments[1] == "emulated" -> if (segments.size >= 3) File("/storage/emulated/${segments[2]}") else null
+        segments[1] == "emulated" -> if (segments.size >= 3) "/storage/emulated/${segments[2]}" else null
         segments[1] == "self" -> null
-        else -> File("/storage/${segments[1]}")
+        else -> "/storage/${segments[1]}"
     }
 }
 
