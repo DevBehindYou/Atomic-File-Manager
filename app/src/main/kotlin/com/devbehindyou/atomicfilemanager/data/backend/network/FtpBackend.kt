@@ -9,22 +9,16 @@ import com.devbehindyou.atomicfilemanager.domain.repository.BackendType
 import com.devbehindyou.atomicfilemanager.domain.repository.InputStreamProvider
 import com.devbehindyou.atomicfilemanager.domain.repository.OutputTarget
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.BufferedWriter
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.net.InetSocketAddress
 import java.net.Socket
-import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
-import javax.net.ssl.SSLSocketFactory
 
 /**
  * Robust FTP and FTPS storage backend conforming to [StorageBackend].
@@ -81,29 +75,13 @@ class FtpBackend(
             }
 
             val parentPath = getParentPath(parsed.path)
-            val parentId = makeNodeId(parsed, parentPath)
             val name = getFileName(parsed.path)
-
-            // Query parent directory listing to locate this entry
-            val listResult = runCatching { listRemote(parsed, parentPath) }
-            val items = listResult.getOrNull()
-            if (items != null) {
-                val match = items.firstOrNull { it.name == name }
-                if (match != null) {
-                    return@withContext FileResult.Success(match)
-                }
+            try {
+                val match = listRemote(parsed, parentPath).firstOrNull { it.name == name }
+                if (match == null) FileResult.Failure(FileError.FileNotFound(name)) else FileResult.Success(match)
+            } catch (e: Exception) {
+                FileResult.Failure(mapException(e))
             }
-
-            // Fallback: create placeholder directory or file node
-            FileResult.Success(
-                NetworkNodeHelper.createNode(
-                    id = id,
-                    parentId = parentId,
-                    name = name,
-                    isDirectory = false,
-                    isVirtual = false,
-                ),
-            )
         }
 
     override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
@@ -127,19 +105,17 @@ class FtpBackend(
     override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
         withContext(Dispatchers.IO) {
             val parsed = parseId(id)
+            var activeClient: FtpProtocolClient? = null
+            var activeData: Socket? = null
             try {
                 val client = connectAndLogin(parsed)
-                val dataSocket = client.openPassiveDataSocket()
-                client.sendCommand("TYPE I")
-                val resp = client.sendCommand("RETR ${parsed.path}")
-                if (!resp.startsWith("150") && !resp.startsWith("125")) {
-                    client.close()
-                    dataSocket.close()
-                    return@withContext FileResult.Failure(FileError.FileNotFound(parsed.path))
-                }
+                activeClient = client
+                val dataSocket = client.openDataTransfer("RETR ${parsed.path}", binary = true)
+                activeData = dataSocket
+                val rawIn = dataSocket.getInputStream()
+                var closed = false
                 FileResult.Success(
                     InputStreamProvider {
-                        val rawIn = dataSocket.getInputStream()
                         object : InputStream() {
                             override fun read(): Int = rawIn.read()
 
@@ -150,18 +126,21 @@ class FtpBackend(
                             ): Int = rawIn.read(b, off, len)
 
                             override fun close() {
+                                if (closed) return
+                                closed = true
                                 try {
-                                    rawIn.close()
                                     dataSocket.close()
-                                    client.readResponse()
+                                    client.completeTransfer()
+                                } finally {
                                     client.close()
-                                } catch (_: Exception) {
                                 }
                             }
                         }
                     },
                 )
             } catch (e: Exception) {
+                runCatching { activeData?.close() }
+                activeClient?.close()
                 FileResult.Failure(mapException(e))
             }
         }
@@ -175,19 +154,14 @@ class FtpBackend(
             val parsed = parseId(parent)
             val targetPath = if (parsed.path.endsWith("/")) "${parsed.path}$name" else "${parsed.path}/$name"
             val targetNodeId = makeNodeId(parsed, targetPath)
-
+            var activeClient: FtpProtocolClient? = null
+            var activeData: Socket? = null
             try {
                 val client = connectAndLogin(parsed)
-                val dataSocket = client.openPassiveDataSocket()
-                client.sendCommand("TYPE I")
-                val resp = client.sendCommand("STOR $targetPath")
-                if (!resp.startsWith("150") && !resp.startsWith("125")) {
-                    client.close()
-                    dataSocket.close()
-                    return@withContext FileResult.Failure(FileError.AccessDenied("STOR rejected"))
-                }
-
-                val dataOut = dataSocket.getOutputStream()
+                activeClient = client
+                val dataSocket = client.openDataTransfer("STOR $targetPath", binary = true)
+                activeData = dataSocket
+                val dataOut = FtpUploadStream(client, dataSocket)
                 var discarded = false
 
                 val target =
@@ -200,13 +174,9 @@ class FtpBackend(
 
                         override fun discard() {
                             discarded = true
+                            dataOut.abort()
                             try {
-                                dataOut.close()
-                                dataSocket.close()
-                                client.close()
-                                val cleanClient = connectAndLogin(parsed)
-                                cleanClient.sendCommand("DELE $targetPath")
-                                cleanClient.close()
+                                connectAndLogin(parsed).use { it.sendCommand("DELE $targetPath") }
                             } catch (_: Exception) {
                             }
                         }
@@ -220,12 +190,9 @@ class FtpBackend(
                                 return FileResult.Failure(FileError.OperationCancelled)
                             }
                             try {
-                                dataOut.flush()
                                 dataOut.close()
-                                dataSocket.close()
-                                client.readResponse()
-                                client.close()
-                            } catch (_: Exception) {
+                            } catch (e: Exception) {
+                                return FileResult.Failure(mapException(e))
                             }
 
                             return FileResult.Success(
@@ -244,6 +211,8 @@ class FtpBackend(
 
                 FileResult.Success(target)
             } catch (e: Exception) {
+                runCatching { activeData?.close() }
+                activeClient?.close()
                 FileResult.Failure(mapException(e))
             }
         }
@@ -258,9 +227,7 @@ class FtpBackend(
             val newNodeId = makeNodeId(parsed, newPath)
 
             try {
-                val client = connectAndLogin(parsed)
-                val resp = client.sendCommand("MKD $newPath")
-                client.close()
+                val resp = connectAndLogin(parsed).use { it.sendCommand("MKD $newPath") }
                 if (resp.startsWith("257")) {
                     FileResult.Success(
                         NetworkNodeHelper.createNode(
@@ -284,12 +251,10 @@ class FtpBackend(
         withContext(Dispatchers.IO) {
             val parsed = parseId(id)
             try {
-                val client = connectAndLogin(parsed)
-                var resp = client.sendCommand("DELE ${parsed.path}")
-                if (!resp.startsWith("250")) {
-                    resp = client.sendCommand("RMD ${parsed.path}")
+                val resp = connectAndLogin(parsed).use { client ->
+                    val deleted = client.sendCommand("DELE ${parsed.path}")
+                    if (deleted.startsWith("250")) deleted else client.sendCommand("RMD ${parsed.path}")
                 }
-                client.close()
                 if (resp.startsWith("250")) {
                     FileResult.Success(Unit)
                 } else {
@@ -311,10 +276,10 @@ class FtpBackend(
             val newNodeId = makeNodeId(parsed, newPath)
 
             try {
-                val client = connectAndLogin(parsed)
-                client.sendCommand("RNFR ${parsed.path}")
-                val resp = client.sendCommand("RNTO $newPath")
-                client.close()
+                val resp = connectAndLogin(parsed).use { client ->
+                    val from = client.sendCommand("RNFR ${parsed.path}")
+                    if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
+                }
                 if (resp.startsWith("250")) {
                     FileResult.Success(
                         NetworkNodeHelper.createNode(
@@ -352,10 +317,10 @@ class FtpBackend(
             val newNodeId = makeNodeId(parsed, newPath)
 
             try {
-                val client = connectAndLogin(parsed)
-                client.sendCommand("RNFR ${parsed.path}")
-                val resp = client.sendCommand("RNTO $newPath")
-                client.close()
+                val resp = connectAndLogin(parsed).use { client ->
+                    val from = client.sendCommand("RNFR ${parsed.path}")
+                    if (from.startsWith("350")) client.sendCommand("RNTO $newPath") else from
+                }
                 if (resp.startsWith("250")) {
                     FileResult.Success(
                         NetworkNodeHelper.createNode(
@@ -379,12 +344,8 @@ class FtpBackend(
     ): Boolean =
         withContext(Dispatchers.IO) {
             val parsed = parseId(parent)
-            try {
-                val items = listRemote(parsed, parsed.path)
-                items.any { it.name == name }
-            } catch (_: Exception) {
-                false
-            }
+            // Unknown presence must not be reported as absence before a write.
+            listRemote(parsed, parsed.path).any { it.name == name }
         }
 
     override suspend fun freeSpace(id: FileNodeId): Long = 0L
@@ -400,39 +361,27 @@ class FtpBackend(
                 port = server.port,
                 isFtps = parsed.isFtps || server.protocol == NetworkProtocol.FTPS,
             )
-        client.connect()
-
-        val pass = credentialsStore.getPassword(server.id) ?: ""
-        val username = if (server.anonymous || server.username.isBlank()) "anonymous" else server.username
-        val userPass = if (server.anonymous) "atomic@filemanager.local" else pass
-
-        client.login(username, userPass)
-        return client
+        try {
+            client.connect()
+            val pass = credentialsStore.getPassword(server.id) ?: ""
+            val username = if (server.anonymous || server.username.isBlank()) "anonymous" else server.username
+            val userPass = if (server.anonymous) "atomic@filemanager.local" else pass
+            client.login(username, userPass)
+            return client
+        } catch (e: Exception) {
+            client.close()
+            throw e
+        }
     }
 
     private fun listRemote(
         parsed: ParsedFtpId,
         remotePath: String,
     ): List<FileNode> {
-        val client = connectAndLogin(parsed)
-        try {
-            val dataSocket = client.openPassiveDataSocket()
-            client.sendCommand("TYPE A")
-            val resp = client.sendCommand("LIST $remotePath")
-            if (!resp.startsWith("150") && !resp.startsWith("125")) {
-                dataSocket.close()
-                return emptyList()
-            }
-
-            val reader = BufferedReader(InputStreamReader(dataSocket.getInputStream(), StandardCharsets.UTF_8))
-            val lines = reader.readLines()
-            dataSocket.close()
-            client.readResponse()
-
+        return connectAndLogin(parsed).use { client ->
+            val lines = client.list(remotePath)
             val parentNodeId = makeNodeId(parsed, remotePath)
-            return lines.mapNotNull { parseFtpListLine(it, parentNodeId, parsed) }
-        } finally {
-            client.close()
+            lines.mapNotNull { parseFtpListLine(it, parentNodeId, parsed.copy(path = remotePath)) }
         }
     }
 
@@ -502,6 +451,7 @@ class FtpBackend(
     }
 
     private fun mapException(e: Throwable): FileError {
+        if (e is CancellationException) throw e
         val msg = e.message.orEmpty()
         return when {
             msg.contains("login", ignoreCase = true) || msg.contains("530", ignoreCase = true) ->
@@ -512,114 +462,6 @@ class FtpBackend(
             msg.contains("550", ignoreCase = true) ->
                 FileError.FileNotFound(msg)
             else -> FileError.StorageUnavailable("FTP Error: $msg")
-        }
-    }
-}
-
-/**
- * Lightweight RFC 959 / 4217 compliant FTP control client.
- */
-internal class FtpProtocolClient(
-    private val host: String,
-    private val port: Int,
-    private val isFtps: Boolean,
-) {
-    private var socket: Socket? = null
-    private var reader: BufferedReader? = null
-    private var writer: BufferedWriter? = null
-
-    fun connect() {
-        val sock = Socket()
-        sock.connect(InetSocketAddress(host, port), 10_000)
-        sock.soTimeout = 15_000
-        socket = sock
-
-        reader = BufferedReader(InputStreamReader(sock.getInputStream(), StandardCharsets.UTF_8))
-        writer = BufferedWriter(OutputStreamWriter(sock.getOutputStream(), StandardCharsets.UTF_8))
-
-        readResponse()
-
-        if (isFtps) {
-            val authResp = sendCommand("AUTH TLS")
-            if (!authResp.startsWith("234")) {
-                sock.close()
-                error("FTPS server rejected TLS: $authResp")
-            }
-            if (authResp.startsWith("234")) {
-                val sslFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
-                val sslSock = sslFactory.createSocket(sock, host, port, true)
-                socket = sslSock
-                reader = BufferedReader(InputStreamReader(sslSock.getInputStream(), StandardCharsets.UTF_8))
-                writer = BufferedWriter(OutputStreamWriter(sslSock.getOutputStream(), StandardCharsets.UTF_8))
-                sendCommand("PBSZ 0")
-                sendCommand("PROT P")
-            }
-        }
-    }
-
-    fun login(
-        user: String,
-        pass: String,
-    ) {
-        val userResp = sendCommand("USER $user")
-        if (userResp.startsWith("331")) {
-            val passResp = sendCommand("PASS $pass")
-            if (!passResp.startsWith("230")) {
-                error("FTP login rejected: $passResp")
-            }
-        } else if (!userResp.startsWith("230")) {
-            error("FTP user rejected: $userResp")
-        }
-    }
-
-    fun sendCommand(cmd: String): String {
-        val w = writer ?: error("Not connected")
-        w.write(cmd + "\r\n")
-        w.flush()
-        return readResponse()
-    }
-
-    fun readResponse(): String {
-        val r = reader ?: error("Not connected")
-        val initialLine = r.readLine() ?: error("Connection closed by FTP server")
-        val response = StringBuilder(initialLine)
-
-        if (initialLine.length >= 4 && initialLine[3] == '-') {
-            val code = initialLine.substring(0, 3)
-            var nextLine = r.readLine()
-            while (nextLine != null) {
-                response.append("\n").append(nextLine)
-                if (nextLine.startsWith("$code ")) break
-                nextLine = r.readLine()
-            }
-        }
-        return response.toString()
-    }
-
-    fun openPassiveDataSocket(): Socket {
-        val pasvResp = sendCommand("PASV")
-        val pattern = Pattern.compile("(\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)")
-        val matcher = pattern.matcher(pasvResp)
-        if (!matcher.find()) {
-            error("Invalid PASV response: $pasvResp")
-        }
-        val dataHost = "${matcher.group(1)}.${matcher.group(2)}.${matcher.group(3)}.${matcher.group(4)}"
-        val dataPort = (matcher.group(5)!!.toInt() shl 8) + matcher.group(6)!!.toInt()
-
-        val dataSocket = Socket()
-        dataSocket.connect(InetSocketAddress(dataHost, dataPort), 10_000)
-        dataSocket.soTimeout = 15_000
-        return dataSocket
-    }
-
-    fun close() {
-        try {
-            sendCommand("QUIT")
-        } catch (_: Exception) {
-        }
-        try {
-            socket?.close()
-        } catch (_: Exception) {
         }
     }
 }
