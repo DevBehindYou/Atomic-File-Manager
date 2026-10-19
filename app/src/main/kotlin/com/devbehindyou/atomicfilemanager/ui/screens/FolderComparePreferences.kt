@@ -36,6 +36,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -79,6 +81,7 @@ internal class FolderComparePreferences(
             scope.launch {
                 try {
                     val saved = preferences.access { it.findMode(left, right) }
+                    currentCoroutineContext().ensureActive()
                     if (request == generation) {
                         mutableState.update {
                             it.copy(
@@ -91,6 +94,7 @@ internal class FolderComparePreferences(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
+                    currentCoroutineContext().ensureActive()
                     if (request == generation) mutableState.update { it.copy(loading = false, loadFailed = true) }
                 }
             }
@@ -167,7 +171,7 @@ internal fun StoredFolderCompareScreen(
                 Modifier.fillMaxSize().background(Atomic.colors.background)
                     .statusBarsPadding().navigationBarsPadding(),
             ) {
-                AtomicPushedHeader(onBack = onBack, title = "Compare")
+                AtomicPushedHeader(onBack = onBack, title = stringResource(R.string.compare_title))
                 if (state.loading) {
                     AtomicLoading(stringResource(R.string.compare_preferences_loading))
                 } else {

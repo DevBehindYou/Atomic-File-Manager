@@ -143,6 +143,32 @@ class FolderComparePreferencesTest {
         }
 
     @Test
+    fun `read cancellation rejects both a same-dispatcher result and a late ordinary failure`() =
+        runTest {
+            for (failAfterCancellation in listOf(false, true)) {
+                val dispatcher = StandardTestDispatcher(testScheduler)
+                val screen = CoroutineScope(SupervisorJob() + dispatcher)
+                val store =
+                    TestPairStore(SyncMode.MIRROR, onAccess = {
+                        screen.cancel()
+                        if (failAfterCancellation) error("read failed after screen disposal")
+                    })
+                val model =
+                    FolderComparePreferences(
+                        "left",
+                        "right",
+                        screen,
+                        StoragePreferenceAccess(dispatcher) { store },
+                    )
+                val initial = model.state.value
+                model.load()
+                advanceUntilIdle()
+                assertEquals(initial, model.state.value)
+                assertFalse(model.state.value.loadFailed)
+            }
+        }
+
+    @Test
     fun `delayed preference read cannot overwrite a newer mode choice`() =
         runTest {
             val entered = CountDownLatch(1)

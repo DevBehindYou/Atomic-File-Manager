@@ -101,7 +101,7 @@ fun FolderCompareScreen(
     ) {
         AtomicPushedHeader(
             onBack = onBack,
-            title = "Compare",
+            title = stringResource(R.string.compare_title),
             eyebrow = "${CompareText.folderName(left.raw)} → ${CompareText.folderName(right.raw)}",
         )
         if (entries != null) {

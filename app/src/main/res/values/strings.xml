@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="compare_title">Compare</string>
     <string name="compare_preferences_loading">Loading saved sync mode…</string>
     <string name="compare_preferences_load_error">Could not load this saved sync.</string>
     <string name="compare_preferences_load_error_detail">Try again before comparing folders or reviewing a sync.</string>
