@@ -13,6 +13,7 @@ import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
@@ -21,11 +22,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class BrowsePaneLifecycleTest {
-    @get:Rule
     val compose = createComposeRule()
 
-    @get:Rule
     val fixture = BrowsePaneFixture()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(fixture).around(compose)
 
     @Test
     fun compactPaneDoesNotCreateFactoryOrStartListing() {

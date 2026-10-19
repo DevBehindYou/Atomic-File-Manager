@@ -1,6 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -21,9 +22,11 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 
 /**
@@ -111,7 +114,10 @@ internal fun PlaybackFailure(
     modifier: Modifier = Modifier,
 ) {
     if (rememberPlaybackFailed(player)) {
-        Column(modifier.padding(AtomicSpacing.s16), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+        Column(
+            modifier.background(Atomic.colors.surfaceCard, AtomicShape.sm).padding(AtomicSpacing.s16),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        ) {
             AtomicText(stringResource(R.string.viewer_playback_error), AtomicTextRole.Body)
             AtomicButton(stringResource(R.string.viewer_playback_retry), onClick = {
                 player.prepare()

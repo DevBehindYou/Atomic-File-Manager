@@ -1,5 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ViewModelProvider
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -22,7 +24,9 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.domain.usecase.RenameFileUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -30,10 +34,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.rules.ExternalResource
+import org.robolectric.Shadows.shadowOf
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Real BrowseViewModels and queue, with a listing suspended until its owner cancels it. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class BrowsePaneFixture : ExternalResource() {
     private val memory = InMemoryBackend()
     val root = memory.rootId
@@ -43,13 +51,8 @@ class BrowsePaneFixture : ExternalResource() {
     var factories = 0
         private set
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val queue =
-        OperationQueue(
-            engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
-            journal = null,
-            scope = scope,
-        )
+    private lateinit var scope: CoroutineScope
+    private lateinit var queue: OperationQueue
 
     private val backend =
         object : StorageBackend by memory {
@@ -65,11 +68,22 @@ class BrowsePaneFixture : ExternalResource() {
         }
 
     override fun before() {
+        // Multi-SDK Robolectric runs can leave the default Main dispatcher bound to an older sandbox's looper.
+        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher().immediate)
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        queue =
+            OperationQueue(
+                engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
+                journal = null,
+                scope = scope,
+            )
         scope.launch { queue.finished.collect { completed.incrementAndGet() } }
     }
 
     override fun after() {
         scope.cancel()
+        shadowOf(Looper.getMainLooper()).idle()
+        Dispatchers.resetMain()
     }
 
     fun factory(folder: FileNodeId): ViewModelProvider.Factory {

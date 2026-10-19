@@ -90,7 +90,10 @@ import com.devbehindyou.atomicfilemanager.ui.components.preview.MarkdownPreviewC
 import com.devbehindyou.atomicfilemanager.ui.components.preview.PdfPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.VideoPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * File preview (ATOMIC_UI_PLAN.md §7.5): a header with the name as stored and a mono size line,
@@ -115,7 +118,13 @@ fun FilePreviewPane(
     var shown by remember(node.id) { mutableStateOf(node) }
     // Every preview counts as "opened" for Home > Recent (ALL_IN_ONE_PLAN.md 1.2).
     LaunchedEffect(shown.id) {
-        runCatching { app?.container?.recentsRepository?.recordOpened(shown) }
+        try {
+            withContext(Dispatchers.IO) { app?.container?.recentsRepository?.recordOpened(shown) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Recording a shortcut must not prevent viewing a readable file.
+        }
     }
     val container = app?.container ?: return
     val externalHelper =

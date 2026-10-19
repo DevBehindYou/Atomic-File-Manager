@@ -116,7 +116,7 @@ class MediaPreviewOwnershipTest {
                     ) { error("Local media must not be copied") }
                 val result =
                     helper.withMedia(FileNodeId.file(source.absolutePath), source.name) { media ->
-                    assertEquals(Uri.fromFile(source), media.playbackUri)
+                        assertEquals(Uri.fromFile(source), media.playbackUri)
                         assertTrue(source.exists())
                     }
                 assertTrue(result is FileResult.Success)

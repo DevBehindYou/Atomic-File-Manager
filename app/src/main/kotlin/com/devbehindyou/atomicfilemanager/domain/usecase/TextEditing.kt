@@ -258,14 +258,15 @@ class TextFileEditor(
     ): ByteArray {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(BUFFER)
-        while (out.size() < limit) {
+        var ended = false
+        while (!ended && out.size() < limit) {
             currentCoroutineContext().ensureActive()
             val read = input.read(buffer, 0, minOf(BUFFER.toLong(), limit - out.size()).toInt())
-            if (read < 0) break
-            if (read == 0) {
+            if (read < 0) {
+                ended = true
+            } else if (read == 0) {
                 val single = input.read()
-                if (single < 0) break
-                out.write(single)
+                if (single < 0) ended = true else out.write(single)
             } else {
                 out.write(buffer, 0, read)
             }
