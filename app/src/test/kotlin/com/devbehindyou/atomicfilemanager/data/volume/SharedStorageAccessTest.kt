@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
@@ -15,15 +16,25 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [27, 29])
 class SharedStorageAccessTest {
+    @Before
+    fun installPrimaryVolumeForPlatformEnvironmentCheck() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Robolectric's UserEnvironment reads its own external-dir list, not StorageManager's volumes.
+            ShadowEnvironment.addExternalDir("shared-access-fixture")
+        }
+    }
+
     @Test
     fun legacyAccessUsesReadPermission() {
         val context = PermissionContext()
