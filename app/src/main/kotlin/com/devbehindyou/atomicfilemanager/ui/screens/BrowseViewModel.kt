@@ -25,13 +25,17 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.domain.usecase.RenameFileUseCase
 import com.devbehindyou.atomicfilemanager.ui.components.BreadcrumbItem
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.DropDecision
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class SortOption(val label: String) {
@@ -84,6 +88,8 @@ class BrowseViewModel(
     private var listingJob: Job? = null
     private var filterJob: Job? = null
     private var appliedOpenRequest: Int? = null
+    private var sortRevision = 0L
+    private val sortWrites = Mutex()
 
     init {
         loadDirectory(initialFolderId)
@@ -101,11 +107,7 @@ class BrowseViewModel(
     ) {
         listingJob?.cancel()
         selectionAnchor = null
-        val rememberedSort =
-            folderSorts?.get(folderId.raw)?.let { name -> SortOption.entries.firstOrNull { it.name == name } }
-        if (rememberedSort != null && rememberedSort != _uiState.value.sortOption) {
-            _uiState.update { it.copy(sortOption = rememberedSort) }
-        }
+        val requestedSortRevision = sortRevision
         listingJob =
             viewModelScope.launch {
                 _uiState.update {
@@ -117,6 +119,13 @@ class BrowseViewModel(
                         errorMessage = null,
                         selectedIds = emptySet(),
                     )
+                }
+
+                val rememberedSort =
+                    sortWrites.withLock { folderSorts?.get(folderId.raw) }
+                        ?.let { name -> SortOption.entries.firstOrNull { it.name == name } }
+                if (sortRevision == requestedSortRevision && rememberedSort != null) {
+                    _uiState.update { it.copy(sortOption = rememberedSort) }
                 }
 
                 val folder = (getNodeUseCase(folderId) as? FileResult.Success)?.value
@@ -321,8 +330,17 @@ class BrowseViewModel(
 
     /** Applies [option] and remembers it for the current folder (FR-3.3). */
     fun setSortOption(option: SortOption) {
+        sortRevision++
+        val folder = _uiState.value.currentFolderId
         _uiState.update { it.copy(sortOption = option) }
-        folderSorts?.set(_uiState.value.currentFolderId.raw, option.name)
+        if (folderSorts != null) {
+            // Accept a small metadata save immediately, in order, even if the pane closes.
+            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                withContext(NonCancellable) {
+                    sortWrites.withLock { folderSorts.set(folder.raw, option.name) }
+                }
+            }
+        }
         refilter()
     }
 

@@ -23,10 +23,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,24 +74,32 @@ fun TransferBubbleRail(
     onCreateBubble: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val preferences = remember { context.getSharedPreferences("bubble_position", android.content.Context.MODE_PRIVATE) }
-    var fractionX by remember {
-        mutableFloatStateOf(if (preferences.getFloat("x", 1f) < 0.5f) 0f else 1f)
-    }
-    var fractionY by remember { mutableFloatStateOf(preferences.getFloat("y", 0.5f).coerceIn(0f, 1f)) }
+    val context = LocalContext.current.applicationContext
+    val persistence = remember(context) { BubblePositionPersistence(context) }
+    val scope = rememberCoroutineScope()
+    var fractionX by remember { mutableFloatStateOf(1f) }
+    var fractionY by remember { mutableFloatStateOf(0.5f) }
     var railSize by remember { mutableStateOf(IntSize.Zero) }
     var isRepositioning by remember { mutableStateOf(false) }
+    var hasPositionInteraction by remember { mutableStateOf(false) }
     val velocityTracker = remember { VelocityTracker() }
     var dragDistance by remember { mutableStateOf(Offset.Zero) }
     val displayedX by animateFloatAsState(
         targetValue = fractionX,
-        animationSpec = if (isRepositioning) snap() else spring(),
+        animationSpec = if (isRepositioning || !hasPositionInteraction) snap() else spring(),
         label = "bubbleEdgeDock",
     )
 
+    LaunchedEffect(persistence) {
+        persistence.loadInitial {
+            fractionX = it.x
+            fractionY = it.y
+        }
+    }
+
     fun savePosition() {
-        preferences.edit().putFloat("x", fractionX).putFloat("y", fractionY).apply()
+        hasPositionInteraction = true
+        persistence.save(scope, BubblePosition(fractionX, fractionY))
     }
     BoxWithConstraints(modifier = modifier.fillMaxSize().padding(top = 64.dp, bottom = 64.dp)) {
         val density = LocalDensity.current
@@ -103,6 +113,8 @@ fun TransferBubbleRail(
                     .pointerInput(maxX, maxY) {
                         detectDragGestures(
                             onDragStart = {
+                                hasPositionInteraction = true
+                                persistence.markInteraction()
                                 isRepositioning = true
                                 velocityTracker.resetTracking()
                                 dragDistance = Offset.Zero
