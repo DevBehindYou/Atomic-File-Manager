@@ -208,7 +208,9 @@ class FtpProtocolIntegrationTest {
                     val wire = Wire(socket)
                     wire.reply("220 Ready")
                     wire.expect("AUTH TLS", "234 Secure")
-                    assertThrows(SSLException::class.java) { secureServer(socket, context).close() }
+                    // A rejecting client may send a TLS alert or reset the TCP connection.
+                    // The client assertion below still requires certificate/hostname rejection.
+                    assertThrows(IOException::class.java) { secureServer(socket, context).close() }
                 }
             }
             FtpProtocolClient(host, server.localPort, true, factory).use { client ->
