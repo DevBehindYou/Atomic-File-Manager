@@ -9,6 +9,7 @@ import com.devbehindyou.atomicfilemanager.data.vault.VaultFiles
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.HiddenItem
 import com.devbehindyou.atomicfilemanager.domain.model.isVaultEncrypted
 import com.devbehindyou.atomicfilemanager.domain.model.originalParent
 import com.google.crypto.tink.KeyTemplates
@@ -58,6 +59,13 @@ class HiddenFilesIntegrationTest {
                 FileNodeId.file(file.absolutePath),
             ) as FileResult.Success
         ).value
+
+    /** Domain path helpers receive Android paths; Robolectric's real files use host separators. */
+    private fun HiddenItem.withAndroidPaths(): HiddenItem =
+        copy(
+            originalLocation = originalLocation.replace(File.separatorChar, '/'),
+            currentLocation = currentLocation.replace(File.separatorChar, '/'),
+        )
 
     @Test
     fun galleryHideRestoresBytesUsingRealFileNodeId() =
@@ -112,7 +120,7 @@ class HiddenFilesIntegrationTest {
             val file = temporary.newFile("diary.txt").apply { writeBytes(ByteArray(70_000) { (it % 251).toByte() }) }
             val bytes = file.readBytes()
 
-            val item = vaulted.moveToPrivateStorage(node(file)).getOrThrow()
+            val item = vaulted.moveToPrivateStorage(node(file)).getOrThrow().withAndroidPaths()
 
             assertFalse(file.exists())
             val stored = File(item.currentLocation)
@@ -158,7 +166,7 @@ class HiddenFilesIntegrationTest {
         runBlocking {
             val file = temporary.newFile("old.bin").apply { writeBytes(ByteArray(512) { it.toByte() }) }
             val bytes = file.readBytes()
-            val item = repository.moveToPrivateStorage(node(file)).getOrThrow()
+            val item = repository.moveToPrivateStorage(node(file)).getOrThrow().withAndroidPaths()
 
             vaultRepository().restoreFromPrivateStorage(item, item.originalParent()).getOrThrow()
 
@@ -170,11 +178,11 @@ class HiddenFilesIntegrationTest {
         runBlocking {
             val file = temporary.newFile("plain.bin").apply { writeBytes(ByteArray(3_000) { (it % 97).toByte() }) }
             val bytes = file.readBytes()
-            val plainItem = repository.moveToPrivateStorage(node(file)).getOrThrow()
+            val plainItem = repository.moveToPrivateStorage(node(file)).getOrThrow().withAndroidPaths()
             assertFalse(plainItem.isVaultEncrypted)
             val vaulted = vaultRepository()
 
-            val encrypted = vaulted.encryptPrivateItem(plainItem).getOrThrow()
+            val encrypted = vaulted.encryptPrivateItem(plainItem).getOrThrow().withAndroidPaths()
 
             assertTrue(encrypted.isVaultEncrypted)
             assertFalse(File(plainItem.currentLocation).exists())
@@ -199,7 +207,7 @@ class HiddenFilesIntegrationTest {
         runBlocking {
             val file = temporary.newFile("private-parent.bin").apply { writeBytes(ByteArray(64) { it.toByte() }) }
             val bytes = file.readBytes()
-            val item = repository.moveToPrivateStorage(node(file)).getOrThrow()
+            val item = repository.moveToPrivateStorage(node(file)).getOrThrow().withAndroidPaths()
             repository.restoreFromPrivateStorage(item, item.originalParent()).getOrThrow()
             assertArrayEquals(bytes, file.readBytes())
         }
@@ -209,7 +217,7 @@ class HiddenFilesIntegrationTest {
         runBlocking {
             val folder = temporary.newFolder("gone")
             val file = File(folder, "note.txt").apply { writeText("note") }
-            val item = repository.moveToPrivateStorage(node(file)).getOrThrow()
+            val item = repository.moveToPrivateStorage(node(file)).getOrThrow().withAndroidPaths()
             assertTrue(folder.deleteRecursively())
             repository.restoreFromPrivateStorage(item, item.originalParent()).getOrThrow()
             assertEquals("note", file.readText())
