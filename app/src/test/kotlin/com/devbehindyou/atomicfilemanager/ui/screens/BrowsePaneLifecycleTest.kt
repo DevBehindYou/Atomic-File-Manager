@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import android.os.Looper
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -14,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -45,14 +47,14 @@ class BrowsePaneLifecycleTest {
                 model = rememberSecondaryBrowseViewModel(true, "tab", fixture.root) { fixture.factory(fixture.root) }
             }
         }
-        compose.waitUntil { fixture.started.get() == 1 }
+        awaitCondition { fixture.started.get() == 1 }
         compose.runOnIdle { visible.value = false }
-        compose.waitUntil { fixture.cancelled.get() == 1 }
+        awaitCondition { fixture.cancelled.get() == 1 }
         compose.runOnIdle {
             assertFalse(checkNotNull(model).viewModelScope.isActive)
             fixture.finishOperation()
         }
-        compose.waitUntil { fixture.completed.get() == 1 }
+        awaitCondition { fixture.completed.get() == 1 }
         compose.runOnIdle { assertEquals(1, fixture.started.get()) }
     }
 
@@ -62,11 +64,11 @@ class BrowsePaneLifecycleTest {
         compose.setContent {
             rememberSecondaryBrowseViewModel(wide.value, "tab", fixture.root) { fixture.factory(fixture.root) }
         }
-        compose.waitUntil { fixture.started.get() == 1 }
+        awaitCondition { fixture.started.get() == 1 }
         compose.runOnIdle { wide.value = false }
-        compose.waitUntil { fixture.cancelled.get() == 1 }
+        awaitCondition { fixture.cancelled.get() == 1 }
         compose.runOnIdle { wide.value = true }
-        compose.waitUntil { fixture.started.get() == 2 }
+        awaitCondition { fixture.started.get() == 2 }
         compose.runOnIdle {
             assertEquals(2, fixture.factories)
             assertEquals(1, fixture.cancelled.get())
@@ -80,10 +82,10 @@ class BrowsePaneLifecycleTest {
         compose.setContent {
             model = rememberSecondaryBrowseViewModel(true, tab.value, fixture.root) { fixture.factory(fixture.root) }
         }
-        compose.waitUntil { fixture.started.get() == 1 }
+        awaitCondition { fixture.started.get() == 1 }
         val original = compose.runOnIdle { model }
         compose.runOnIdle { tab.value = "second" }
-        compose.waitUntil { fixture.started.get() == 2 && fixture.cancelled.get() == 1 }
+        awaitCondition { fixture.started.get() == 2 && fixture.cancelled.get() == 1 }
         compose.runOnIdle {
             assertNotSame(original, model)
             assertFalse(checkNotNull(original).viewModelScope.isActive)
@@ -99,7 +101,7 @@ class BrowsePaneLifecycleTest {
             BasicText(if (redraw.value) "Updated" else "Initial")
             model = rememberSecondaryBrowseViewModel(true, "tab", folder.value) { fixture.factory(folder.value) }
         }
-        compose.waitUntil { fixture.started.get() == 1 }
+        awaitCondition { fixture.started.get() == 1 }
         val original = compose.runOnIdle { model }
         compose.runOnIdle { redraw.value = true }
         compose.runOnIdle {
@@ -107,10 +109,19 @@ class BrowsePaneLifecycleTest {
             assertEquals(1, fixture.factories)
             folder.value = FileNodeId.file("/other")
         }
-        compose.waitUntil { fixture.started.get() == 2 && fixture.cancelled.get() == 1 }
+        awaitCondition { fixture.started.get() == 2 && fixture.cancelled.get() == 1 }
         compose.runOnIdle {
             assertNotSame(original, model)
             assertFalse(checkNotNull(original).viewModelScope.isActive)
+        }
+    }
+
+    private fun awaitCondition(condition: () -> Boolean) {
+        compose.waitUntil(timeoutMillis = 5_000) {
+            // ViewModel cancellation resumes on Android's main Handler. Compose's frame
+            // clock does not execute messages on Robolectric's paused Android looper.
+            shadowOf(Looper.getMainLooper()).idle()
+            condition()
         }
     }
 }
