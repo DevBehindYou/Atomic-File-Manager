@@ -52,6 +52,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.toNode
 import com.devbehindyou.atomicfilemanager.domain.repository.SearchIndex
 import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewDialog
+import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.CancellationException
@@ -152,6 +153,7 @@ fun SearchScreen(
                     name = hit.name,
                     meta = SearchText.meta(hit),
                     icon = iconFor(hit.toNode()),
+                    leading = { FileThumbnail(hit.toNode()) },
                     onClick = {
                         if (hit.isDirectory) {
                             onOpenFolder(hit.id)

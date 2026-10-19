@@ -57,6 +57,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisCategory
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisResult
 import com.devbehindyou.atomicfilemanager.domain.usecase.CleanupRules
+import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.launch
@@ -362,6 +363,7 @@ private fun CleanupRow(
                 path,
             ).joinToString(" · "),
         icon = iconFor(node),
+        leading = { FileThumbnail(node) },
         onClick = { onToggle(node) },
         selectionMode = true,
         selected = node.id.raw in selected,

@@ -39,6 +39,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewDialog
+import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.Dispatchers
@@ -148,6 +149,7 @@ fun CategoryScreen(
                         name = file.name,
                         meta = "${FileUtils.formatBytes(file.size)} · $folder",
                         icon = iconFor(file),
+                        leading = { FileThumbnail(file) },
                         onClick = { preview = file },
                         hidden = file.isHidden,
                         modifier = Modifier.padding(horizontal = AtomicSpacing.s16),

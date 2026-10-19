@@ -67,6 +67,7 @@ fun AtomicFileRow(
     selected: Boolean = false,
     hidden: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val colors = Atomic.colors
     val frame =
@@ -92,7 +93,7 @@ fun AtomicFileRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
         ) {
-            AtomicIconTile(icon)
+            if (leading != null) leading() else AtomicIconTile(icon)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s2)) {
                 AtomicText(name, AtomicTextRole.Name, maxLines = 2)
                 AtomicText(meta, AtomicTextRole.MonoMeta, maxLines = 1)
