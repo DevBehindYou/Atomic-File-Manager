@@ -76,7 +76,7 @@ class BrowseViewModel(
     /** The last row the user selected or unselected; a long-press selects the range from here. */
     private var selectionAnchor: FileNodeId? = null
 
-    private val folderHistory = mutableListOf<FileNodeId>()
+    private val folderHistory = mutableListOf<BrowseLocation>()
     private val _uiState = MutableStateFlow(BrowseUiState(currentFolderId = initialFolderId))
     val uiState: StateFlow<BrowseUiState> = _uiState.asStateFlow()
     val bubbles: StateFlow<List<TransferBubble>> = transferBubbleRepository.bubbles
@@ -97,6 +97,7 @@ class BrowseViewModel(
     fun loadDirectory(
         folderId: FileNodeId,
         isRefresh: Boolean = false,
+        knownBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     ) {
         listingJob?.cancel()
         selectionAnchor = null
@@ -110,6 +111,7 @@ class BrowseViewModel(
                 _uiState.update {
                     it.copy(
                         currentFolderId = folderId,
+                        breadcrumbs = knownBreadcrumbs,
                         isLoading = !isRefresh,
                         isRefreshing = isRefresh,
                         errorMessage = null,
@@ -117,15 +119,11 @@ class BrowseViewModel(
                     )
                 }
 
-                // Resolve folder node for name and breadcrumbs
-                val nodeResult = getNodeUseCase(folderId)
-                val folderName =
-                    when (nodeResult) {
-                        is FileResult.Success -> nodeResult.value.displayName
-                        is FileResult.Failure -> folderId.raw.substringAfterLast('/').ifEmpty { "Folder" }
-                    }
-                updateBreadcrumbs(folderId, folderName)
-
+                val folder = (getNodeUseCase(folderId) as? FileResult.Success)?.value
+                val crumbs = resolveBrowseBreadcrumbs(folderId, folder, knownBreadcrumbs) { getNodeUseCase(it) }
+                _uiState.update {
+                    it.copy(currentFolderName = folder?.displayName ?: crumbs.last().name, breadcrumbs = crumbs)
+                }
                 val accumulated = mutableListOf<FileNode>()
                 var lastPush = 0L
                 var pushedAny = false
@@ -244,35 +242,6 @@ class BrowseViewModel(
         return compareByDescending<FileNode> { it.isDirectory }.then(byField)
     }
 
-    private fun updateBreadcrumbs(
-        folderId: FileNodeId,
-        folderName: String,
-    ) {
-        val raw = folderId.raw
-        val prefix = folderId.prefix?.scheme ?: ""
-        val pathPart = raw.removePrefix(prefix)
-
-        val segments = pathPart.split('/').filter { it.isNotEmpty() }
-        val crumbs = mutableListOf<BreadcrumbItem>()
-
-        var runningPath = ""
-        for (segment in segments) {
-            runningPath += "/$segment"
-            crumbs.add(
-                BreadcrumbItem(
-                    name = segment,
-                    path = "$prefix$runningPath",
-                ),
-            )
-        }
-
-        if (crumbs.isEmpty()) {
-            crumbs.add(BreadcrumbItem(name = folderName.ifEmpty { "Root" }, path = raw))
-        }
-
-        _uiState.update { it.copy(currentFolderName = folderName, breadcrumbs = crumbs) }
-    }
-
     /**
      * Returns to the start folder when [request] differs from the last one seen, meaning the user
      * opened this folder again from outside Browse. The first call only records the value, so a new
@@ -289,14 +258,18 @@ class BrowseViewModel(
 
     fun navigateTo(folder: FileNode) {
         if (!folder.isDirectory) return
-        folderHistory.add(_uiState.value.currentFolderId)
-        loadDirectory(folder.id)
+        val current = _uiState.value
+        folderHistory.add(BrowseLocation(current.currentFolderId, current.breadcrumbs))
+        loadDirectory(
+            folder.id,
+            knownBreadcrumbs = current.breadcrumbs + BreadcrumbItem(folder.displayName, folder.id.raw),
+        )
     }
 
     fun navigateBack(): Boolean {
         if (folderHistory.isNotEmpty()) {
             val previous = folderHistory.removeAt(folderHistory.lastIndex)
-            loadDirectory(previous)
+            loadDirectory(previous.id, knownBreadcrumbs = previous.breadcrumbs)
             return true
         }
         return false
@@ -313,15 +286,19 @@ class BrowseViewModel(
     }
 
     fun navigateToBreadcrumb(crumb: BreadcrumbItem) {
-        val targetId = FileNodeId.parse(crumb.path) ?: return
-        if (targetId != _uiState.value.currentFolderId) {
-            folderHistory.add(_uiState.value.currentFolderId)
-            loadDirectory(targetId)
+        val current = _uiState.value
+        val index = current.breadcrumbs.indexOf(crumb)
+        if (index < 0) return
+        val targetId = FileNodeId(crumb.path)
+        if (targetId != current.currentFolderId) {
+            folderHistory.add(BrowseLocation(current.currentFolderId, current.breadcrumbs))
+            loadDirectory(targetId, knownBreadcrumbs = current.breadcrumbs.take(index + 1))
         }
     }
 
     fun refresh() {
-        loadDirectory(_uiState.value.currentFolderId, isRefresh = true)
+        val current = _uiState.value
+        loadDirectory(current.currentFolderId, isRefresh = true, knownBreadcrumbs = current.breadcrumbs)
     }
 
     fun onSearchQueryChanged(query: String) {
