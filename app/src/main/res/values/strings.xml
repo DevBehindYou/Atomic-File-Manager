@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="storage_servers_loading">Loading saved servers…</string>
+    <string name="storage_servers_load_error">Could not load saved servers.</string>
+    <string name="storage_server_save_error">Could not save this server. Try again.</string>
+    <string name="storage_server_remove_error">Could not remove this server. Try again.</string>
+    <string name="storage_server_password_unavailable">Server saved without its password: it could not be encrypted on this phone.</string>
+    <string name="storage_syncs_load_error">Could not load saved folder syncs.</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_saving">Saving…</string>
     <string name="operation_history_unavailable">Operation history could not be saved.</string>
     <string name="operation_history_unavailable_detail">Check your files before retrying. Some operations may not have started, and recent history may be incomplete.</string>
     <string name="app_name">Atomic File Manager</string>
