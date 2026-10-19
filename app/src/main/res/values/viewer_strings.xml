@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="viewer_playback_error">This media could not be played. The format may not be supported by this phone. Try again or use Open with.</string>
+    <string name="viewer_playback_retry">Retry playback</string>
+    <string name="viewer_open_external">Open with another app</string>
+    <string name="viewer_external_failed">Could not open this file. Check access and that a compatible app is installed. Remote exports are limited to 64 MiB.</string>
+    <string name="viewer_external_loading">Preparing file…</string>
+</resources>

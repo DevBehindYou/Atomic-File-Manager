@@ -1,6 +1,8 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.graphics.Bitmap
+import android.content.Intent
+import android.content.ClipData
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -26,19 +28,25 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalPreviewHelper
+import com.devbehindyou.atomicfilemanager.data.preview.DocxPreviewHelper
+import com.devbehindyou.atomicfilemanager.ui.components.preview.DocxPreviewContent
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -80,46 +88,12 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.TextContent
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextFileEditor
 import com.devbehindyou.atomicfilemanager.domain.usecase.WRONG_PASSWORD
 import com.devbehindyou.atomicfilemanager.domain.usecase.checkExpectedChecksum
+import com.devbehindyou.atomicfilemanager.ui.components.preview.PdfPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.AudioPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.MarkdownPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.VideoPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.launch
-
-private enum class PreviewType {
-    IMAGE,
-    PDF,
-    TEXT,
-    MARKDOWN,
-    ARCHIVE,
-    AUDIO,
-    VIDEO,
-    GENERIC,
-}
-
-private fun resolvePreviewType(node: FileNode): PreviewType {
-    val name = node.name.lowercase()
-    val mime = node.mimeType.orEmpty().lowercase()
-    return when {
-        Gallery.isImage(node) -> PreviewType.IMAGE
-        mime.startsWith("audio/") || name.endsWith(".mp3") || name.endsWith(".m4a") ||
-            name.endsWith(".aac") || name.endsWith(".flac") || name.endsWith(".wav") ||
-            name.endsWith(".ogg") || name.endsWith(".opus") -> PreviewType.AUDIO
-        mime.startsWith("video/") || name.endsWith(".mp4") || name.endsWith(".mkv") ||
-            name.endsWith(".webm") || name.endsWith(".avi") || name.endsWith(".mov") ||
-            name.endsWith(".3gp") -> PreviewType.VIDEO
-        mime == "application/pdf" || name.endsWith(".pdf") -> PreviewType.PDF
-        name.endsWith(".md") -> PreviewType.MARKDOWN
-        ArchiveFormats.kindOf(name) != null || mime.contains("zip") -> PreviewType.ARCHIVE
-        mime.startsWith("text/") || mime.contains("json") || mime.contains("xml") ||
-            name.endsWith(".txt") || name.endsWith(".json") || name.endsWith(".xml") ||
-            name.endsWith(".kt") || name.endsWith(".java") ||
-            name.endsWith(".log") || name.endsWith(".gradle") || name.endsWith(".sh") ||
-            name.endsWith(".py") || name.endsWith(".html") || name.endsWith(".css") ||
-            name.endsWith(".js") || name.endsWith(".csv") -> PreviewType.TEXT
-        else -> PreviewType.GENERIC
-    }
-}
 
 /**
  * File preview (ATOMIC_UI_PLAN.md §7.5): a header with the name as stored and a mono size line,
@@ -147,6 +121,36 @@ fun FilePreviewPane(
         runCatching { app?.container?.recentsRepository?.recordOpened(shown) }
     }
     val container = app?.container ?: return
+    val externalHelper = remember(container, context) {
+        ExternalPreviewHelper(context.applicationContext) { container.storageBackendSelector.forNode(it) }
+    }
+    val docxHelper = remember(container) { DocxPreviewHelper({ container.storageBackendSelector.forNode(it) }) }
+    val openScope = rememberCoroutineScope()
+    var openingExternal by remember(node.id) { mutableStateOf(false) }
+    var externalFailed by remember(node.id) { mutableStateOf(false) }
+    val openExternal: () -> Unit = onOpenExternal ?: {
+        if (!openingExternal) {
+            openScope.launch {
+                openingExternal = true
+                externalFailed = false
+                try {
+                    externalFailed = externalHelper.open(shown) { file ->
+                        val view = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(file.uri, file.mimeType)
+                            clipData = ClipData.newRawUri(node.name, file.uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(
+                            Intent.createChooser(view, context.getString(R.string.viewer_open_external))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    } is FileResult.Failure
+                } finally {
+                    openingExternal = false
+                }
+            }
+        }
+    }
     val colors = Atomic.colors
     val previewType = remember(node) { resolvePreviewType(node) }
     // Share and open-with act on the file the caller opened, so they hide once another image is shown.
@@ -184,16 +188,24 @@ fun FilePreviewPane(
                     modifier = Modifier.testTag("preview_share"),
                 )
             }
-            if (onOpenExternal != null && actsOnShown) {
+            if (onOpenExternal == null || actsOnShown) {
                 AtomicIconButton(
                     AtomicIcons.OpenExternally,
                     "Open with another app",
-                    onClick = onOpenExternal,
+                    onClick = openExternal,
+                    enabled = !openingExternal,
                     modifier = Modifier.testTag("preview_open_external"),
                 )
             }
         }
         AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
+        if (openingExternal || externalFailed) {
+            AtomicText(
+                stringResource(if (openingExternal) R.string.viewer_external_loading else R.string.viewer_external_failed),
+                AtomicTextRole.BodySecondary,
+                modifier = Modifier.padding(AtomicSpacing.s12),
+            )
+        }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (images != null) {
                 ImageGallery(images.first, images.second, container, onPageChange = { shown = it })
@@ -201,12 +213,13 @@ fun FilePreviewPane(
                 when (previewType) {
                     PreviewType.IMAGE -> ZoomableImage(node, container)
                     PreviewType.PDF -> PdfPreviewContent(node, container)
-                    PreviewType.TEXT -> TextPreviewContent(node, container)
+                    PreviewType.DOCX -> DocxPreviewContent(node, docxHelper::read)
+                    PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = { shown = it })
                     PreviewType.MARKDOWN -> MarkdownPreviewContent(node, container)
                     PreviewType.ARCHIVE -> ArchivePreviewContent(node, container)
                     PreviewType.AUDIO -> AudioPreviewContent(node, container)
                     PreviewType.VIDEO -> VideoPreviewContent(node, container)
-                    PreviewType.GENERIC -> GenericFileContent(node, container, onOpenExternal)
+                    PreviewType.GENERIC -> GenericFileContent(node, container, openExternal)
                 }
             }
         }
@@ -252,119 +265,26 @@ internal fun ViewerState(
 }
 
 @Composable
-private fun PdfPreviewContent(
-    node: FileNode,
-    container: AppContainer,
-) {
-    var pageCount by remember { mutableIntStateOf(0) }
-    var currentPage by remember { mutableIntStateOf(0) }
-    var currentBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(node.id) {
-        isLoading = true
-        when (val countRes = container.pdfPreviewHelper.getPageCount(node.id)) {
-            is FileResult.Success -> {
-                pageCount = countRes.value
-                if (pageCount > 0) {
-                    when (val pageRes = container.pdfPreviewHelper.renderPage(node.id, 0)) {
-                        is FileResult.Success -> {
-                            currentBitmap = pageRes.value
-                            isLoading = false
-                        }
-                        is FileResult.Failure -> {
-                            errorMessage = "The first page couldn't be drawn. Try opening it with another app."
-                            isLoading = false
-                        }
-                    }
-                } else {
-                    errorMessage = "This PDF has no pages."
-                    isLoading = false
-                }
-            }
-            is FileResult.Failure -> {
-                errorMessage = "The PDF couldn't be opened. It may be damaged or password-protected."
-                isLoading = false
-            }
-        }
-    }
-
-    val coroutineScope = rememberCoroutineScope()
-
-    fun loadPage(pageIndex: Int) {
-        if (pageIndex < 0 || pageIndex >= pageCount) return
-        isLoading = true
-        currentPage = pageIndex
-        coroutineScope.launch {
-            when (val pageRes = container.pdfPreviewHelper.renderPage(node.id, pageIndex)) {
-                is FileResult.Success -> {
-                    currentBitmap = pageRes.value
-                    isLoading = false
-                }
-                is FileResult.Failure -> {
-                    errorMessage = "Page ${pageIndex + 1} couldn't be drawn."
-                    isLoading = false
-                }
-            }
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            val page = currentBitmap
-            if (isLoading || errorMessage != null || page == null) {
-                ViewerState(isLoading, errorMessage)
-            } else {
-                Image(
-                    bitmap = page.asImageBitmap(),
-                    contentDescription = "PDF page ${currentPage + 1}",
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-
-        if (pageCount > 1) {
-            AtomicDivider(strong = true)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s6),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AtomicIconButton(
-                    AtomicIcons.Back,
-                    "Previous page",
-                    onClick = { loadPage(currentPage - 1) },
-                    enabled = currentPage > 0,
-                )
-                AtomicText("Page ${currentPage + 1} / $pageCount", AtomicTextRole.MonoLabel)
-                AtomicIconButton(
-                    AtomicIcons.Forward,
-                    "Next page",
-                    onClick = { loadPage(currentPage + 1) },
-                    enabled = currentPage < pageCount - 1,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun TextPreviewContent(
     node: FileNode,
     container: AppContainer,
+    onSourceChanged: (FileNode) -> Unit,
 ) {
     var textContent by remember { mutableStateOf<TextContent?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var wrapLines by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf(false) }
+    var sourceRaw by rememberSaveable(node.id.raw) { mutableStateOf(node.id.raw) }
+    var editorRaw by rememberSaveable(node.id.raw) { mutableStateOf<String?>(null) }
+    val currentNode = remember(node, sourceRaw) { node.copy(id = FileNodeId(sourceRaw)) }
     // Bumped after each save in the editor, so the preview shows what was saved.
     var reloads by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(node.id, reloads) {
+    LaunchedEffect(sourceRaw, reloads) {
         isLoading = true
-        when (val res = container.readFileContentUseCase.readText(node.id)) {
+        errorMessage = null
+        onSourceChanged(currentNode)
+        when (val res = container.readFileContentUseCase.readText(currentNode.id)) {
             is FileResult.Success -> {
                 textContent = res.value
                 isLoading = false
@@ -398,15 +318,23 @@ private fun TextPreviewContent(
                     AtomicChip(
                         label = "Edit",
                         selected = false,
-                        onSelectedChange = { editing = true },
+                        onSelectedChange = { editorRaw = sourceRaw },
                         modifier = Modifier.testTag("preview_edit_text"),
                     )
                 }
                 AtomicChip(label = "Wrap", selected = wrapLines, onSelectedChange = { wrapLines = it })
             }
         }
-        if (editing) {
-            TextEditorDialog(node = node, onDismiss = { editing = false }, onSaved = { reloads++ })
+        editorRaw?.let { opened ->
+            TextEditorDialog(
+                node = node.copy(id = FileNodeId(opened)),
+                onDismiss = { editorRaw = null },
+                onSaved = { saved ->
+                    sourceRaw = saved.id.raw
+                    onSourceChanged(saved)
+                    reloads++
+                },
+            )
         }
         AtomicDivider()
 

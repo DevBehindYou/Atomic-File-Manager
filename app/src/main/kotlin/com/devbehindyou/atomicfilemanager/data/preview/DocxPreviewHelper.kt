@@ -6,6 +6,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
@@ -43,7 +44,7 @@ internal data class DocxPreviewLimits(
 /** Text-layout preview only. Never extracts ZIP entries or resolves relationships, images or external resources. */
 class DocxPreviewHelper(
     private val backendSelector: (FileNodeId) -> StorageBackend,
-    private val io: CoroutineDispatcher,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     suspend fun read(id: FileNodeId): FileResult<DocxDocument> =
         withContext(io) {

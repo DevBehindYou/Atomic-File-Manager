@@ -1,33 +1,47 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.exoplayer.ExoPlayer
-import java.io.File
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 
 /**
- * One Media3 player for a preview (ALL_IN_ONE_PLAN.md 1.5): prepared for [filePath], paused when the
+ * One Media3 player for a preview (ALL_IN_ONE_PLAN.md 1.5): prepared for [uri], paused when the
  * app goes to the background, and released when the preview closes, so audio never keeps playing
  * behind the app. [onRelease] runs after the player is released (for example to delete a temp copy).
  */
 @Composable
 fun rememberPreviewPlayer(
-    filePath: String,
+    uri: Uri,
     playWhenReady: Boolean,
     onRelease: () -> Unit,
 ): ExoPlayer {
     val context = LocalContext.current
     val player =
-        remember(filePath) {
+        remember(uri) {
             ExoPlayer.Builder(context.applicationContext).build().apply {
-                setMediaItem(MediaItem.fromUri(Uri.fromFile(File(filePath))))
+                setMediaItem(MediaItem.fromUri(uri))
                 this.playWhenReady = playWhenReady
                 prepare()
             }
@@ -41,11 +55,42 @@ fun rememberPreviewPlayer(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    DisposableEffect(player) {
+        onDispose {
             player.release()
             onRelease()
         }
     }
     return player
+}
+
+@Composable
+internal fun rememberPlaybackFailed(player: Player): Boolean {
+    var failed by remember(player) { mutableStateOf(player.playerError != null) }
+    DisposableEffect(player) {
+        val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) { failed = true }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY) failed = false
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
+    return failed
+}
+
+@Composable
+internal fun PlaybackFailure(player: Player, modifier: Modifier = Modifier) {
+    if (rememberPlaybackFailed(player)) {
+        Column(modifier.padding(AtomicSpacing.s16), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+            AtomicText(stringResource(R.string.viewer_playback_error), AtomicTextRole.Body)
+            AtomicButton(stringResource(R.string.viewer_playback_retry), onClick = { player.prepare(); player.play() })
+        }
+    }
 }
 
 /** Playback speeds the preview offers, in tap order; pure so it is unit-tested. */

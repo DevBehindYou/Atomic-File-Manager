@@ -40,16 +40,19 @@ fun VideoPreviewContent(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    var preparedMedia by remember { mutableStateOf<PreparedMedia?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var preparedMedia by remember(node.id) { mutableStateOf<PreparedMedia?>(null) }
+    var isLoading by remember(node.id) { mutableStateOf(true) }
+    var errorMessage by remember(node.id) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(node.id) {
         isLoading = true
-        when (val res = container.mediaPreviewHelper.prepareMedia(node.id, node.name)) {
+        when (val res = container.mediaPreviewHelper.withMedia<Unit>(node.id, node.name) { media ->
+            preparedMedia = media
+            isLoading = false
+            kotlinx.coroutines.awaitCancellation()
+        }) {
             is FileResult.Success -> {
-                preparedMedia = res.value
-                isLoading = false
+                Unit
             }
             is FileResult.Failure -> {
                 errorMessage = "Failed to load video file"
@@ -78,7 +81,7 @@ private fun VideoPlayerView(
     media: PreparedMedia,
     modifier: Modifier = Modifier,
 ) {
-    val player = rememberPreviewPlayer(media.filePath, playWhenReady = true, onRelease = media.cleanup)
+    val player = rememberPreviewPlayer(media.playbackUri, playWhenReady = true, onRelease = {})
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         // Media3's own controls: play, pause, seek, and playback speed in its settings menu.
@@ -87,10 +90,15 @@ private fun VideoPlayerView(
                 PlayerView(context).apply {
                     this.player = player
                     useController = true
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                 }
             },
+            update = { it.player = player },
+            onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
+
+        PlaybackFailure(player)
 
         if (media.metadata.width > 0 && media.metadata.height > 0) {
             VideoMetadataBadge(

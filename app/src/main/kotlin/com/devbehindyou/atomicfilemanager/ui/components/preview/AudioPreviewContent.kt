@@ -67,16 +67,19 @@ fun AudioPreviewContent(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    var preparedMedia by remember { mutableStateOf<PreparedMedia?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var preparedMedia by remember(node.id) { mutableStateOf<PreparedMedia?>(null) }
+    var isLoading by remember(node.id) { mutableStateOf(true) }
+    var errorMessage by remember(node.id) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(node.id) {
         isLoading = true
-        when (val res = container.mediaPreviewHelper.prepareMedia(node.id, node.name)) {
+        when (val res = container.mediaPreviewHelper.withMedia<Unit>(node.id, node.name) { media ->
+            preparedMedia = media
+            isLoading = false
+            kotlinx.coroutines.awaitCancellation()
+        }) {
             is FileResult.Success -> {
-                preparedMedia = res.value
-                isLoading = false
+                Unit
             }
             is FileResult.Failure -> {
                 errorMessage = "Failed to load audio file"
@@ -100,7 +103,7 @@ private fun AudioPlayerView(
     media: PreparedMedia,
     modifier: Modifier = Modifier,
 ) {
-    val player = rememberPreviewPlayer(media.filePath, playWhenReady = false, onRelease = media.cleanup)
+    val player = rememberPreviewPlayer(media.playbackUri, playWhenReady = false, onRelease = {})
     var isPlaying by remember { mutableStateOf(false) }
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(media.metadata.durationMs) }
@@ -145,6 +148,7 @@ private fun AudioPlayerView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        PlaybackFailure(player)
         AudioArtworkCard(artwork = media.metadata.artwork)
         Spacer(modifier = Modifier.height(24.dp))
         AudioTrackInfo(node = node, media = media)

@@ -136,7 +136,7 @@ internal fun ZoomableImage(
 
 /** Gallery rules; pure so they are unit-tested. */
 internal object Gallery {
-    private val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif")
+    private val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif")
 
     fun isImage(node: FileNode): Boolean =
         !node.isDirectory &&
