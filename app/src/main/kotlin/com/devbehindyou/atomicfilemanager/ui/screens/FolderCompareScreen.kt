@@ -25,6 +25,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -50,6 +52,9 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.SyncPlan
 import com.devbehindyou.atomicfilemanager.domain.usecase.SyncPlanner
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
+/** A saved mode is acknowledged only after its metadata write succeeds. */
+data class FolderCompareSaveState(val savedMode: SyncMode?, val saving: Boolean = false, val failed: Boolean = false)
+
 /**
  * Folder compare and sync (ALL_IN_ONE_PLAN.md 4.1): what differs between [left] and [right], on
  * any two storages, and a one-way sync from left to right. The plan is always shown before it
@@ -67,14 +72,17 @@ fun FolderCompareScreen(
     savedMode: SyncMode? = null,
     /** Saves the pair with a mode for one-tap re-runs; null hides the button. */
     onSave: ((SyncMode) -> Unit)? = null,
+    saveState: FolderCompareSaveState? = null,
+    onModeChanged: ((SyncMode) -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     var reloads by remember { mutableIntStateOf(0) }
     var result by remember { mutableStateOf<FileResult<List<CompareEntry>>?>(null) }
-    var filter by rememberSaveable { mutableStateOf<CompareState?>(null) }
-    var mode by rememberSaveable { mutableStateOf(savedMode ?: SyncMode.COPY_NEW) }
-    var savedAs by rememberSaveable { mutableStateOf(savedMode) }
-    var reviewing by rememberSaveable { mutableStateOf(false) }
+    var filter by rememberSaveable(left, right) { mutableStateOf<CompareState?>(null) }
+    var mode by rememberSaveable(left, right) { mutableStateOf(savedMode ?: SyncMode.COPY_NEW) }
+    var savedAs by rememberSaveable(left, right) { mutableStateOf(savedMode) }
+    var reviewing by rememberSaveable(left, right) { mutableStateOf(false) }
+    val confirmedMode = if (saveState != null) saveState.savedMode else savedAs
 
     LaunchedEffect(left, right, reloads) {
         result = null
@@ -154,21 +162,34 @@ fun FolderCompareScreen(
                         AtomicChip(
                             CompareText.mode(option),
                             selected = mode == option,
-                            onSelectedChange = { mode = option },
+                            onSelectedChange = {
+                                mode = option
+                                onModeChanged?.invoke(option)
+                            },
                         )
                     }
                 }
                 if (onSave != null) {
                     AtomicButton(
-                        if (savedAs == mode) "Saved for one-tap sync" else "Save this pair",
+                        when {
+                            saveState?.saving == true -> stringResource(R.string.action_saving)
+                            confirmedMode == mode -> "Saved for one-tap sync"
+                            else -> "Save this pair"
+                        },
                         onClick = {
                             onSave(mode)
-                            savedAs = mode
+                            if (saveState == null) savedAs = mode
                         },
-                        enabled = savedAs != mode,
+                        enabled = confirmedMode != mode && saveState?.saving != true,
                         variant = AtomicButtonVariant.Text,
                         modifier = Modifier.testTag("save_sync_pair"),
                     )
+                    if (saveState?.failed == true) {
+                        AtomicText(
+                            stringResource(R.string.compare_preferences_save_error),
+                            AtomicTextRole.BodySecondary,
+                        )
+                    }
                 }
                 AtomicButton(
                     "Review sync",

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="compare_preferences_loading">Loading saved sync mode…</string>
+    <string name="compare_preferences_load_error">Could not load this saved sync.</string>
+    <string name="compare_preferences_load_error_detail">Try again before comparing folders or reviewing a sync.</string>
+    <string name="compare_preferences_save_error">Could not save this pair. Try again.</string>
     <string name="settings_startup_loading">Loading saved settings…</string>
     <string name="settings_startup_failed">Settings unavailable</string>
     <string name="settings_startup_failed_detail">Your saved settings could not be loaded. Try again to open the app.</string>

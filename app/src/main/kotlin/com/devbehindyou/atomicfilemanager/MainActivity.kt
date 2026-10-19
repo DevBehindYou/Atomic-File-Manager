@@ -73,7 +73,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSnac
 import com.devbehindyou.atomicfilemanager.core.navigation.AtomicRoute
 import com.devbehindyou.atomicfilemanager.core.navigation.RouteStack
 import com.devbehindyou.atomicfilemanager.data.operations.PendingConflict
-import com.devbehindyou.atomicfilemanager.data.repository.SyncPairStore
 import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
@@ -91,7 +90,6 @@ import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.domain.model.ThemeMode
 import com.devbehindyou.atomicfilemanager.domain.repository.SettingsRepository
 import com.devbehindyou.atomicfilemanager.domain.usecase.FolderComparer
-import com.devbehindyou.atomicfilemanager.domain.usecase.SyncPair
 import com.devbehindyou.atomicfilemanager.ui.components.ConflictSheet
 import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
@@ -100,7 +98,6 @@ import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabStrip
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabsState
 import com.devbehindyou.atomicfilemanager.ui.screens.CategoryScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.CommandPaletteSheet
-import com.devbehindyou.atomicfilemanager.ui.screens.FolderCompareScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
@@ -109,6 +106,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageIntelligenceScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.StoredFolderCompareScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashText
 import com.devbehindyou.atomicfilemanager.ui.screens.WifiShareScreen
@@ -627,13 +625,10 @@ fun AtomicAppContent(
         }
         is AtomicRoute.FolderCompare -> {
             val comparer = remember { FolderComparer { app.container.storageBackendSelector.forNode(it) } }
-            val pairs = remember { SyncPairStore(context) }
-            FolderCompareScreen(
+            StoredFolderCompareScreen(
                 left = FileNodeId(route.leftRaw),
                 right = FileNodeId(route.rightRaw),
                 comparer = comparer,
-                savedMode = remember(route) { pairs.find(route.leftRaw, route.rightRaw)?.mode },
-                onSave = { mode -> pairs.save(SyncPair(route.leftRaw, route.rightRaw, mode)) },
                 onRun = { operations ->
                     operations.forEach { operationQueue.enqueue(it) }
                     pop()
