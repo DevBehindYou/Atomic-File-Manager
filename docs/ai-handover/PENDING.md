@@ -1,8 +1,8 @@
 # Pending
 
-Last updated: 2026-10-08
+Last updated: 2026-10-19
 
-All of plan Phases 0 to 4 are merged. What is left needs a real device, the owner, or is optional. The order below is the recommended order.
+Feature Phases 0–4 are merged, but the October audit found implementation defects requiring local fixes. Follow [OPTIMIZATION_ROADMAP](../roadmap/OPTIMIZATION_ROADMAP.md) and its [progress record](../roadmap/IMPLEMENTATION_PROGRESS.md) before the historical tasks below. Complete integrated safety tests, static analysis and packaging; finish protocol hardening and opaque breadcrumbs; create focused reviewable PRs. Do not auto-merge high-risk filesystem changes. Hardware and owner gates below still apply.
 
 ## P0 — device verification (needs a phone or emulator)
 

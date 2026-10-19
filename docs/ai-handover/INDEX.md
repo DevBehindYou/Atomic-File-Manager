@@ -2,6 +2,8 @@
 
 Protocol: AI-HANDOVER/V2
 
+Active modernization: [implementation progress](../roadmap/IMPLEMENTATION_PROGRESS.md), [audit](../architecture/PROJECT_AUDIT.md), [roadmap](../roadmap/OPTIMIZATION_ROADMAP.md), and [performance evidence](../testing/PERFORMANCE_BASELINE.md). Historical feature completion is distinct from the new fixes' acceptance.
+
 Start here:
 
 1. `STATE.yaml`: a compact snapshot of the current state
