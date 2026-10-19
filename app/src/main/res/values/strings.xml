@@ -4,4 +4,12 @@
     <string name="widget_storage_title">Internal storage</string>
     <string name="widget_storage_description">Free space on this phone. Tap to open Storage.</string>
     <string name="tile_wifi_share">Wi-Fi share</string>
+    <string name="storage_servers_loading">Loading saved servers…</string>
+    <string name="storage_servers_load_error">Could not load saved servers.</string>
+    <string name="storage_server_save_error">Could not save this server. Try again.</string>
+    <string name="storage_server_remove_error">Could not remove this server. Try again.</string>
+    <string name="storage_server_password_unavailable">Server saved without its password: it could not be encrypted on this phone.</string>
+    <string name="storage_syncs_load_error">Could not load saved folder syncs.</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_saving">Saving…</string>
 </resources>
