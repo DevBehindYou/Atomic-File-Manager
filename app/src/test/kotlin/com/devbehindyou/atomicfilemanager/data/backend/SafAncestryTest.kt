@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.data.backend
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
@@ -36,9 +37,13 @@ class SafAncestryTest {
 
     @Before
     fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         provider = AncestryProvider()
+        // API 29 ContentProvider.Transport.call validates the attached authority before
+        // dispatching isChildDocument; registering an unattached fixture only covers queries.
+        provider.attachInfo(context, ProviderInfo().apply { authority = AUTHORITY })
         ShadowContentResolver.registerProviderInternal(AUTHORITY, provider)
-        backend = SafBackend(ApplicationProvider.getApplicationContext<Context>())
+        backend = SafBackend(context)
     }
 
     @Test
@@ -127,6 +132,7 @@ class SafAncestryTest {
             provider.children["a"] = listOf(directory("z"))
             provider.deniedId = "z"
             assertEquals(FileResult.Failure(FileError.AccessDenied(null)), backend.isSameOrDescendant(id("a"), id("b")))
+            assertEquals(listOf("a", "z"), provider.queries)
             assertTrue(provider.cursors.all { it.isClosed })
         }
 
