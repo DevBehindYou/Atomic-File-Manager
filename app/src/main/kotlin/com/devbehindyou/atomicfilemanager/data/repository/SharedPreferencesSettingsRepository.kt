@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.updateAndGet
 
 /**
  * Settings live in a small SharedPreferences file. They are read once, synchronously, at
- * construction because the theme must be known before the first frame is drawn.
+ * construction because the theme must be known before the first app frame is drawn.
+ * Activity startup initializes this process-shared instance on IO while retaining the splash;
+ * headless callers must also construct it on IO. No default snapshot is published before the read.
  */
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

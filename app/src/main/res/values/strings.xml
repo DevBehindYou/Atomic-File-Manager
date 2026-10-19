@@ -4,6 +4,10 @@
     <string name="widget_storage_title">Internal storage</string>
     <string name="widget_storage_description">Free space on this phone. Tap to open Storage.</string>
     <string name="tile_wifi_share">Wi-Fi share</string>
+    <string name="settings_startup_loading">Loading saved settings…</string>
+    <string name="settings_startup_failed">Settings unavailable</string>
+    <string name="settings_startup_failed_detail">Your saved settings could not be loaded. Try again to open the app.</string>
+    <string name="action_close">Close</string>
     <string name="storage_servers_loading">Loading saved servers…</string>
     <string name="storage_servers_load_error">Could not load saved servers.</string>
     <string name="storage_server_save_error">Could not save this server. Try again.</string>
