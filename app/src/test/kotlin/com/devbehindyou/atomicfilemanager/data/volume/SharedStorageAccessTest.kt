@@ -158,7 +158,8 @@ class SharedStorageAccessTest {
     ) {
         val appOps = context.getSystemService(AppOpsManager::class.java)
         shadowOf(appOps).setMode(
-            AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE,
+            // Platform app-op name; its constant is hidden from the public SDK stubs.
+            "android:manage_external_storage",
             context.applicationInfo.uid,
             context.packageName,
             mode,
