@@ -490,8 +490,18 @@ class FileOperationsEngine
             visited: MutableSet<FileNodeId> = mutableSetOf(),
         ): ItemResult {
             coroutineContext.ensureActive()
+            val isRoot = visited.isEmpty()
             if (!visited.add(sourceNode.id)) return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
             if (sourceBackend === destBackend) {
+                if (isRoot && sourceNode.isDirectory) {
+                    when (val ancestry = sourceBackend.isSameOrDescendant(sourceNode.id, destParentId)) {
+                        is FileResult.Failure -> return ItemResult.Failure(ancestry.error)
+                        is FileResult.Success ->
+                            if (ancestry.value) {
+                                return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
+                            }
+                    }
+                }
                 if (sourceNode.parentId == destParentId && collisionPolicy == CollisionPolicy.OVERWRITE) {
                     return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
                 }

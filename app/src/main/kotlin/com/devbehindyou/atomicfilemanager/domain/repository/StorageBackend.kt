@@ -61,6 +61,19 @@ interface StorageBackend {
 
     fun canHandle(id: FileNodeId): Boolean
 
+    /**
+     * Read-only recursive-operation guard. [ancestor] must be a directory. A failure means
+     * ancestry could not be established and callers must not start mutating the destination.
+     *
+     * The default detects exact identity only; callers retain their parent-chain/path checks
+     * for existing backends. Providers with opaque IDs must override this method to compare
+     * provider identity and ancestry, including aliases through different grants.
+     */
+    suspend fun isSameOrDescendant(
+        ancestor: FileNodeId,
+        candidate: FileNodeId,
+    ): FileResult<Boolean> = FileResult.Success(ancestor == candidate)
+
     suspend fun getNode(id: FileNodeId): FileResult<FileNode>
 
     fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>>
