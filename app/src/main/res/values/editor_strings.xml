@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_close">Close editor</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_saving">Saving…</string>
+    <string name="editor_retry">Retry</string>
+    <string name="editor_save_unconfirmed">Save could not be confirmed. Check the file before retrying.</string>
+    <string name="editor_find">Find</string>
+    <string name="editor_wrap">Wrap</string>
+    <string name="editor_unsaved">Unsaved changes</string>
+    <string name="editor_discard_question">Close without saving?</string>
+    <string name="editor_discard_detail">Your changes to “%1$s” will be lost.</string>
+    <string name="editor_discard">Discard changes</string>
+    <string name="editor_keep_editing">Keep editing</string>
+    <string name="editor_replace_with">Replace with</string>
+    <string name="editor_next">Next</string>
+    <string name="editor_replace_all">Replace all</string>
+</resources>

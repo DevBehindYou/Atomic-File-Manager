@@ -5,8 +5,12 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -130,24 +134,35 @@ class TextFileEditor(
     private val backendFor: (FileNodeId) -> StorageBackend,
     private val trashManager: TrashManager? = null,
     private val newToken: () -> String = { UUID.randomUUID().toString().take(TOKEN_LENGTH) },
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     suspend fun open(node: FileNode): FileResult<EditableText> =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             if (node.size > MAX_EDIT_BYTES) {
                 return@withContext FileResult.Failure(FileError.FileTooLarge(node.name, MAX_EDIT_BYTES))
             }
-            when (val input = backendFor(node.id).openInput(node.id)) {
-                is FileResult.Failure -> input
-                is FileResult.Success -> {
-                    val bytes = input.value.stream().use { readAtMost(it, MAX_EDIT_BYTES + 1) }
-                    when {
-                        bytes.size > MAX_EDIT_BYTES ->
-                            FileResult.Failure(FileError.FileTooLarge(node.name, MAX_EDIT_BYTES))
-                        else ->
-                            TextCodec.decode(bytes)?.let { FileResult.Success(it) }
-                                ?: FileResult.Failure(FileError.UnsupportedFormat(node.mimeType))
+            try {
+                currentCoroutineContext().ensureActive()
+                when (val input = backendFor(node.id).openInput(node.id)) {
+                    is FileResult.Failure -> input
+                    is FileResult.Success -> {
+                        val bytes = input.value.stream().use { readAtMost(it, MAX_EDIT_BYTES + 1) }
+                        currentCoroutineContext().ensureActive()
+                        when {
+                            bytes.size > MAX_EDIT_BYTES ->
+                                FileResult.Failure(FileError.FileTooLarge(node.name, MAX_EDIT_BYTES))
+                            else ->
+                                TextCodec.decode(bytes)?.let { FileResult.Success(it) }
+                                    ?: FileResult.Failure(FileError.UnsupportedFormat(node.mimeType))
+                        }
                     }
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: SecurityException) {
+                FileResult.Failure(FileError.AccessDenied(node.name))
+            } catch (_: Exception) {
+                FileResult.Failure(FileError.IoFailure(node.name))
             }
         }
 
@@ -157,7 +172,7 @@ class TextFileEditor(
         text: String,
         format: TextFormat,
     ): FileResult<FileNode> =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             val parent = node.parentId ?: return@withContext FileResult.Failure(FileError.InvalidDestination(node.name))
             val backend = backendFor(node.id)
             val bytes = TextCodec.encode(text, format)
@@ -237,16 +252,23 @@ class TextFileEditor(
     }
 
     /** Reads up to [limit] bytes (InputStream.readNBytes needs API 33). */
-    private fun readAtMost(
+    private suspend fun readAtMost(
         input: InputStream,
         limit: Long,
     ): ByteArray {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(BUFFER)
         while (out.size() < limit) {
+            currentCoroutineContext().ensureActive()
             val read = input.read(buffer, 0, minOf(BUFFER.toLong(), limit - out.size()).toInt())
             if (read < 0) break
-            out.write(buffer, 0, read)
+            if (read == 0) {
+                val single = input.read()
+                if (single < 0) break
+                out.write(single)
+            } else {
+                out.write(buffer, 0, read)
+            }
         }
         return out.toByteArray()
     }

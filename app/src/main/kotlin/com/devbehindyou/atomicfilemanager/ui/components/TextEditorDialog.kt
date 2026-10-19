@@ -1,5 +1,8 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -18,22 +21,33 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -50,13 +64,11 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
-import com.devbehindyou.atomicfilemanager.domain.model.FileResult
-import com.devbehindyou.atomicfilemanager.domain.usecase.EditableText
 import com.devbehindyou.atomicfilemanager.domain.usecase.LineEnding
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextCodec
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextEncoding
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextFormat
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Plain text editor (ALL_IN_ONE_PLAN.md 2.3): monospace, line numbers while lines don't wrap,
@@ -69,29 +81,62 @@ fun TextEditorDialog(
     onDismiss: () -> Unit,
     onSaved: (FileNode) -> Unit = {},
 ) {
-    val editor = (LocalContext.current.applicationContext as AtomicApp).container.textFileEditor
-    val scope = rememberCoroutineScope()
-    var loaded by remember(node.id) { mutableStateOf<FileResult<EditableText>?>(null) }
-    var saved by remember(node.id) { mutableStateOf("") }
-    var value by remember(node.id) { mutableStateOf(TextFieldValue("")) }
-    var current by remember(node.id) { mutableStateOf(node) }
-    var saving by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var confirmClose by remember { mutableStateOf(false) }
-    var findOpen by remember { mutableStateOf(false) }
-    var wrap by remember { mutableStateOf(false) }
-
-    LaunchedEffect(node.id) {
-        val result = editor.open(node)
-        if (result is FileResult.Success) {
-            saved = result.value.text
-            value = TextFieldValue(result.value.text)
+    val context = LocalContext.current
+    val app = context.applicationContext as AtomicApp
+    val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
+    val sessions =
+        remember(owner, app) {
+            ViewModelProvider(
+                owner,
+                TextEditorSessionsViewModel.factory(
+                    io = Dispatchers.IO,
+                    open = { app.container.textFileEditor.open(it) },
+                    save = { current, text, format -> app.container.textFileEditor.save(current, text, format) },
+                ),
+            )["atomic:text-editor-sessions", TextEditorSessionsViewModel::class.java]
         }
-        loaded = result
+    val session = remember(sessions, node.id) { sessions.session(node) }
+    val activity = context.editorActivity()
+    DisposableEffect(sessions, session, activity) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) sessions.release(session, force = true)
+        }
     }
-    val dirty = value.text != saved
+    TextEditorSessionDialog(
+        node,
+        session,
+        onDismiss = { if (sessions.release(session)) onDismiss() },
+        onSaved = onSaved,
+    )
+}
+
+@Composable
+internal fun TextEditorSessionDialog(
+    node: FileNode,
+    session: TextEditorSession,
+    onDismiss: () -> Unit,
+    onSaved: (FileNode) -> Unit,
+) {
+    val state by session.state.collectAsState()
+    val current = state.current ?: node
+    val latestSaved by rememberUpdatedState(onSaved)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var confirmClose by rememberSaveable(session) { mutableStateOf(false) }
+    var findOpen by rememberSaveable(session) { mutableStateOf(false) }
+    var wrap by rememberSaveable(session) { mutableStateOf(false) }
+    LaunchedEffect(session) { session.load() }
+    LaunchedEffect(session, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            session.state.collect { snapshot ->
+                val pending = snapshot.acknowledgement
+                if (pending != null) session.acknowledgeSave(pending.revision)?.let { latestSaved(it) }
+            }
+        }
+    }
     val close: () -> Unit = {
-        if (dirty) confirmClose = true else onDismiss()
+        if (!state.saving) {
+            if (state.dirty) confirmClose = true else onDismiss()
+        }
     }
 
     Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -110,66 +155,78 @@ fun TextEditorDialog(
             ) {
                 AtomicIconButton(
                     AtomicIcons.Close,
-                    "Close editor",
+                    stringResource(R.string.editor_close),
                     onClick = close,
+                    enabled = !state.saving,
                     variant = AtomicIconButtonVariant.Back,
                 )
                 Column(Modifier.weight(1f)) {
                     AtomicText(current.name, AtomicTextRole.Name, maxLines = 1)
-                    val format = (loaded as? FileResult.Success)?.value?.format
-                    AtomicText(status ?: EditorText.meta(format, dirty), AtomicTextRole.MonoMeta, maxLines = 1)
+                    val status =
+                        when {
+                            state.saveUnconfirmed -> stringResource(R.string.editor_save_unconfirmed)
+                            state.saveError != null -> EditorText.saveFailed(checkNotNull(state.saveError))
+                            else -> EditorText.meta(state.format, state.dirty)
+                        }
+                    AtomicText(status, AtomicTextRole.MonoMeta, maxLines = 1)
                 }
                 AtomicButton(
-                    if (saving) "Saving…" else "Save",
-                    onClick = {
-                        val format = (loaded as? FileResult.Success)?.value?.format ?: return@AtomicButton
-                        saving = true
-                        val text = value.text
-                        scope.launch {
-                            when (val result = editor.save(current, text, format)) {
-                                is FileResult.Success -> {
-                                    saved = text
-                                    current = result.value
-                                    status = null
-                                    onSaved(result.value)
-                                }
-                                is FileResult.Failure -> status = EditorText.saveFailed(result.error)
-                            }
-                            saving = false
-                        }
-                    },
-                    enabled = dirty && !saving && loaded is FileResult.Success,
+                    stringResource(if (state.saving) R.string.editor_saving else R.string.editor_save),
+                    onClick = { session.save() },
+                    enabled = state.dirty && !state.saving && state.format != null,
                     variant = AtomicButtonVariant.Solid,
                     modifier = Modifier.testTag("text_editor_save"),
                 )
             }
             AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
 
-            when (val state = loaded) {
-                null -> ViewerState(loading = true, error = null)
-                is FileResult.Failure -> ViewerState(loading = false, error = EditorText.openFailed(state.error))
-                is FileResult.Success -> {
+            when {
+                state.loading -> ViewerState(loading = true, error = null)
+                state.openError != null ->
+                    Column(Modifier.padding(AtomicSpacing.s16)) {
+                        AtomicText(EditorText.openFailed(checkNotNull(state.openError)), AtomicTextRole.Body)
+                        AtomicButton(
+                            stringResource(R.string.editor_retry),
+                            onClick = session::load,
+                            modifier = Modifier.testTag("text_editor_retry"),
+                        )
+                    }
+                state.format != null -> {
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s4),
                         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
                     ) {
-                        AtomicChip("Find", selected = findOpen, onSelectedChange = { findOpen = it })
-                        AtomicChip("Wrap", selected = wrap, onSelectedChange = { wrap = it })
+                        AtomicChip(
+                            stringResource(R.string.editor_find),
+                            selected = findOpen,
+                            onSelectedChange = { findOpen = it },
+                        )
+                        AtomicChip(
+                            stringResource(R.string.editor_wrap),
+                            selected = wrap,
+                            onSelectedChange = { wrap = it },
+                        )
                     }
-                    if (findOpen) FindBar(value, onChange = { value = it })
+                    if (findOpen) FindBar(state.value, enabled = !state.saving, onChange = session::edit)
                     AtomicDivider()
-                    EditorBody(value, wrap, onChange = { value = it }, modifier = Modifier.weight(1f))
+                    EditorBody(
+                        state.value,
+                        wrap,
+                        readOnly = state.saving,
+                        onChange = session::edit,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
     }
 
     if (confirmClose) {
-        AtomicSheet(label = "Unsaved changes", onDismiss = { confirmClose = false }) {
-            AtomicText("Close without saving?", AtomicTextRole.DisplayPushed)
-            AtomicText("Your changes to “${current.name}” will be lost.", AtomicTextRole.Body)
+        AtomicSheet(label = stringResource(R.string.editor_unsaved), onDismiss = { confirmClose = false }) {
+            AtomicText(stringResource(R.string.editor_discard_question), AtomicTextRole.DisplayPushed)
+            AtomicText(stringResource(R.string.editor_discard_detail, current.name), AtomicTextRole.Body)
             AtomicButton(
-                "Discard changes",
+                stringResource(R.string.editor_discard),
                 onClick = {
                     confirmClose = false
                     onDismiss()
@@ -178,7 +235,7 @@ fun TextEditorDialog(
                 modifier = Modifier.fillMaxWidth().testTag("text_editor_discard"),
             )
             AtomicButton(
-                "Keep editing",
+                stringResource(R.string.editor_keep_editing),
                 onClick = { confirmClose = false },
                 variant = AtomicButtonVariant.Ghost,
                 modifier = Modifier.fillMaxWidth(),
@@ -187,10 +244,23 @@ fun TextEditorDialog(
     }
 }
 
+private fun Context.editorActivity(): Activity? {
+    var current = this
+    repeat(32) {
+        when (current) {
+            is Activity -> return current as Activity
+            is ContextWrapper -> current = (current as ContextWrapper).baseContext
+            else -> return null
+        }
+    }
+    return null
+}
+
 @Composable
 private fun EditorBody(
     value: TextFieldValue,
     wrap: Boolean,
+    readOnly: Boolean,
     onChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -219,6 +289,7 @@ private fun EditorBody(
             BasicTextField(
                 value = value,
                 onValueChange = onChange,
+                readOnly = readOnly,
                 textStyle = mono,
                 cursorBrush = SolidColor(colors.content),
                 modifier = Modifier.testTag("text_editor_field").then(if (wrap) Modifier.fillMaxWidth() else Modifier),
@@ -230,6 +301,7 @@ private fun EditorBody(
 @Composable
 private fun FindBar(
     value: TextFieldValue,
+    enabled: Boolean,
     onChange: (TextFieldValue) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
@@ -242,8 +314,20 @@ private fun FindBar(
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
-            AtomicTextField(query, { query = it }, label = "Find", modifier = Modifier.weight(1f).testTag("find_query"))
-            AtomicTextField(replacement, { replacement = it }, label = "Replace with", modifier = Modifier.weight(1f))
+            AtomicTextField(
+                query,
+                { query = it },
+                label = stringResource(R.string.editor_find),
+                enabled = enabled,
+                modifier = Modifier.weight(1f).testTag("find_query"),
+            )
+            AtomicTextField(
+                replacement,
+                { replacement = it },
+                label = stringResource(R.string.editor_replace_with),
+                enabled = enabled,
+                modifier = Modifier.weight(1f),
+            )
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -255,21 +339,21 @@ private fun FindBar(
                 modifier = Modifier.weight(1f),
             )
             AtomicButton(
-                "Next",
+                stringResource(R.string.editor_next),
                 onClick = {
                     val next = matches.firstOrNull { it.first >= value.selection.max } ?: matches.first()
                     onChange(value.copy(selection = TextRange(next.first, next.last + 1)))
                 },
-                enabled = matches.isNotEmpty(),
+                enabled = enabled && matches.isNotEmpty(),
                 variant = AtomicButtonVariant.Text,
             )
             AtomicButton(
-                "Replace all",
+                stringResource(R.string.editor_replace_all),
                 onClick = {
                     val text = value.text.replace(query, replacement, ignoreCase = true)
                     onChange(TextFieldValue(text, TextRange(0)))
                 },
-                enabled = matches.isNotEmpty(),
+                enabled = enabled && matches.isNotEmpty(),
                 variant = AtomicButtonVariant.Text,
                 modifier = Modifier.testTag("find_replace_all"),
             )
