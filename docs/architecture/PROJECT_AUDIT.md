@@ -24,6 +24,7 @@ Paths below are relative to `app/src/main/kotlin/com/devbehindyou/atomicfilemana
 | A16 / P2 | Build/dependency integrity gaps | wrapper lacks checksum; no dependency verification/lock or vulnerability CI | Verify upstream artifacts, pin checksum, add deliberate dependency review; do not fabricate CVE clearance |
 | A17 / release gate | Debug-signed release, limited device evidence | `app/build.gradle.kts`, handover ISS-001/002 | Owner signing and actual supported-device acceptance |
 | A18 / P2 | Large shell, UI/data coupling, promised diagnostics absent | MainActivity, direct screen orchestration; LOGGING_DIAGNOSTICS specification | Incremental orchestration seams and privacy-conscious diagnostics after integrity fixes |
+| A19 / P1 device-confirmed follow-up | Existing preference construction/reads and a Context directory getter execute during UI setup/composition | API34 surface run, 19 October: FolderSortPreferences, TransferBubbleRail, NetworkCredentialsStore, SyncPairStore and HomeScreen; [device evidence](../testing/DEVICE_SURFACE_TEST_2026-10-19.md) | Load construction/snapshots on injected IO, expose cached state, preserve persisted formats and retest cold navigation/restart |
 
 ## Verification and risk interpretation
 

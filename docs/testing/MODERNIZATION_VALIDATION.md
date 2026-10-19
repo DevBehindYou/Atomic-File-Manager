@@ -12,13 +12,19 @@ Baseline: `7782660`. Integration branch: `codex/architecture-audit`. Read the cu
 | Full app JVM/Robolectric suite | **663 tests, 0 failures, 0 errors** in the final standard Gradle run |
 | Custom Lint-rule tests | **28 tests, 0 failures**, all eight test classes |
 | Standard ktlint / detekt | Passed in the final standard Gradle run |
-| Android Lint / packaging | Running; see `build/audit-tools/final-verification.log` and matching `.exit` marker |
+| Android Lint | Debug and release tasks pass; debug rerun has zero errors, 148 warnings |
+| APK packaging | Debug, R8 release and debug instrumentation APKs assembled; benchmark packaging remains |
 | Socket tests inside sandbox | Could not execute: loopback connection denied by sandbox; this is an environment restriction, not a protocol assertion failure |
-| Connected-device / macrobenchmark tests | Not run; no device connected |
+| Connected-device surface tests | Four automated navigation/recreation tests pass on API34; manual tabs/Back/rotation/sheets pass; see [device report](DEVICE_SURFACE_TEST_2026-10-19.md) |
+| Broader device / macrobenchmark tests | Not run in this surface-only pass |
 
 The earlier self-contained check uses Kotlin 2.2.10 and cached dependencies, compiles changed logic from source against the existing application compile jar, and invokes selected no-lifecycle JUnit 4/5 methods. It excludes Android provider/Compose/Room integration and network fixtures. Its local reproduction is `build/audit-tools/run-protocol-tests.ps1 -Suite Core`; output is `build/audit-tools/host-core-tests.log`. These generated host tools are local artifacts under ignored `build/`. The final standard Gradle run supersedes this limited checkpoint and includes the later journal-state persistence regression.
 
-Do not describe this subset as the full test suite or APK validation. The standard test source remains in `app/src/test`; no tests have been disabled to accommodate this host.
+The first final run completed tests/static checks and debug assembly, then was stopped during release R8 after sustained full-heap garbage collection (about 100% old-generation occupancy, 438 full collections and 623 seconds collecting). Its log is preserved alongside `final-verification.interrupted.txt`; it has no successful overall exit marker. `release-validation.log` records successful R8 release assembly with one worker and a local 3 GiB Gradle heap. That command exited 1 solely because debug Lint reused the old SDK-property error; release Lint passed. `surface-test-packaging.log` then records an explicit debug analysis rerun, successful debug Lint and instrumentation APK assembly, with exit 0. These resource flags and the ignored SDK-property fix do not change checked-in build configuration.
+
+The debug APK is built and its signature verifies as Android Debug. `aapt dump badging` confirms application ID `com.devbehindyou.atomicfilemanager`, minSdk 27 and targetSdk 36. This is an installable test artifact, not owner-signed production output.
+
+The 68-test intermediate subset alone did not establish full-suite or APK validation. The later standard checks above provide that broader evidence. No tests were disabled to accommodate this host; the phone surface run deliberately selected four existing non-mutating UI tests.
 
 ## Deterministic performance evidence
 
@@ -28,7 +34,7 @@ Search fixtures verify that category matches after more than 2,000 matching fold
 
 ## Required remaining acceptance
 
-1. Complete Android Lint and debug/release/instrumentation/benchmark packaging; the final ktlint, detekt, full JVM/Robolectric and custom Lint tests have passed.
+1. Complete benchmark APK packaging; the other listed host/static/package gates have passed across the recorded runs.
 2. Check the PR head revisions independently in CI; the integration branch's results do not prove every isolated or stacked review branch by themselves.
 3. Run actual API 27/36 provider, USB, network, process-kill and performance acceptance on generated test data; record device/build/dataset/thermal conditions.
 4. Keep filesystem/provider/protocol changes for human review and production signing for the owner.
