@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicActionStrip
@@ -37,8 +38,8 @@ class SelectionActionsComposeTest {
         compose.onNodeWithContentDescription("Copy").assertExists()
         compose.onNodeWithContentDescription("Rename").assertDoesNotExist()
         compose.onNodeWithContentDescription("More actions").performClick()
-        compose.onNodeWithContentDescription("Rename").performClick()
-        assertEquals(listOf("Rename"), invoked)
+        compose.onNodeWithContentDescription("Rename").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(listOf("Rename"), invoked) }
         compose.onNodeWithContentDescription("More actions").performClick()
         compose.onNodeWithContentDescription("Hide").assertExists()
         compose.onNodeWithContentDescription("Add to favourites").assertExists()

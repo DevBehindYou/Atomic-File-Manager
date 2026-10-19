@@ -2,6 +2,7 @@ package com.devbehindyou.atomicfilemanager.data.preview
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
@@ -46,7 +47,7 @@ class MediaPreviewOwnershipTest {
                     ) { error("Local media must not be copied") }
                 val result =
                     helper.withMedia(FileNodeId.file(source.absolutePath), source.name) { media ->
-                        assertEquals(source.absolutePath, media.playbackUri.path)
+                    assertEquals(Uri.fromFile(source), media.playbackUri)
                         assertTrue(source.exists())
                     }
                 assertTrue(result is FileResult.Success)

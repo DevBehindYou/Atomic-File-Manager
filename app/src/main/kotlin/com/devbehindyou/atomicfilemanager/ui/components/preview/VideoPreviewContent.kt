@@ -47,12 +47,12 @@ fun VideoPreviewContent(
     LaunchedEffect(node.id) {
         isLoading = true
         when (
-            val res =
-                container.mediaPreviewHelper.withMedia<Unit>(node.id, node.name) { media ->
-                    preparedMedia = media
-                    isLoading = false
-                    kotlinx.coroutines.awaitCancellation()
-                }
+
+            container.mediaPreviewHelper.withMedia<Unit>(node.id, node.name) { media ->
+                preparedMedia = media
+                isLoading = false
+                kotlinx.coroutines.awaitCancellation()
+            }
         ) {
             is FileResult.Success -> {
                 Unit

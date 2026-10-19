@@ -163,68 +163,71 @@ private fun parseDocument(
         if (event == XmlPullParser.END_DOCUMENT) break
         if (ignoredDepth > 0) {
             if (event == XmlPullParser.END_TAG && parser.depth == ignoredDepth) ignoredDepth = 0
-            continue
-        }
-        val word = parser.namespace in WORD_NAMESPACES
-        if (event == XmlPullParser.START_TAG && word) {
-            when (parser.name) {
-                "document" -> {
-                    require(parser.depth == 1)
-                    sawDocument = true
-                }
-                "body" -> {
-                    require(sawDocument && !sawBody && parser.depth == 2)
-                    sawBody = true
-                    bodyDepth = parser.depth
-                }
-                "drawing", "pict", "object" -> ignoredDepth = parser.depth
-                "tbl" -> tableDepth++
-                "del" -> deletedDepth++
-                "p" -> {
-                    require(bodyDepth > 0 && paragraphDepth == 0) { "Invalid paragraph nesting" }
-                    paragraphDepth = parser.depth
-                    runs = mutableListOf()
-                    heading = 0
-                    list = false
-                }
-                "r" -> {
-                    text = StringBuilder()
-                    bold = false
-                    italic = false
-                }
-                "b" -> bold = parser.wordValue() !in DISABLED_VALUES
-                "i" -> italic = parser.wordValue() !in DISABLED_VALUES
-                "pStyle" -> heading = parser.wordValue()?.removePrefix("Heading")?.toIntOrNull()?.coerceIn(0, 9) ?: 0
-                "numPr" -> list = true
-                "t" -> textDepth = parser.depth
-                "tab", "br", "cr" ->
-                    if (paragraphDepth > 0 && deletedDepth == 0) {
-                        text.append(if (parser.name == "tab") '\t' else '\n')
-                        characters++
+        } else {
+            val word = parser.namespace in WORD_NAMESPACES
+            if (event == XmlPullParser.START_TAG && word) {
+                when (parser.name) {
+                    "document" -> {
+                        require(parser.depth == 1)
+                        sawDocument = true
                     }
-            }
-        } else if (event == XmlPullParser.END_TAG && word) {
-            when (parser.name) {
-                "body" -> bodyDepth = 0
-                "t" -> textDepth = 0
-                "r" -> if (text.isNotEmpty()) runs.add(DocxTextRun(text.toString(), bold, italic))
-                "p" -> {
-                    require(output.size < limits.paragraphs) { "Too many paragraphs" }
-                    output.add(DocxParagraph(runs.toList(), heading, list, tableDepth > 0))
-                    paragraphDepth = 0
+                    "body" -> {
+                        require(sawDocument && !sawBody && parser.depth == 2)
+                        sawBody = true
+                        bodyDepth = parser.depth
+                    }
+                    "drawing", "pict", "object" -> ignoredDepth = parser.depth
+                    "tbl" -> tableDepth++
+                    "del" -> deletedDepth++
+                    "p" -> {
+                        require(bodyDepth > 0 && paragraphDepth == 0) { "Invalid paragraph nesting" }
+                        paragraphDepth = parser.depth
+                        runs = mutableListOf()
+                        heading = 0
+                        list = false
+                    }
+                    "r" -> {
+                        text = StringBuilder()
+                        bold = false
+                        italic = false
+                    }
+                    "b" -> bold = parser.wordValue() !in DISABLED_VALUES
+                    "i" -> italic = parser.wordValue() !in DISABLED_VALUES
+                    "pStyle" -> {
+                        heading = parser.wordValue()?.removePrefix("Heading")?.toIntOrNull()?.coerceIn(0, 9) ?: 0
+                    }
+                    "numPr" -> list = true
+                    "t" -> textDepth = parser.depth
+                    "tab", "br", "cr" ->
+                        if (paragraphDepth > 0 && deletedDepth == 0) {
+                            text.append(if (parser.name == "tab") '\t' else '\n')
+                            characters++
+                        }
                 }
-                "tbl" -> tableDepth--
-                "del" -> deletedDepth--
+            } else if (event == XmlPullParser.END_TAG && word) {
+                when (parser.name) {
+                    "body" -> bodyDepth = 0
+                    "t" -> textDepth = 0
+                    "r" -> if (text.isNotEmpty()) runs.add(DocxTextRun(text.toString(), bold, italic))
+                    "p" -> {
+                        require(output.size < limits.paragraphs) { "Too many paragraphs" }
+                        output.add(DocxParagraph(runs.toList(), heading, list, tableDepth > 0))
+                        paragraphDepth = 0
+                    }
+                    "tbl" -> tableDepth--
+                    "del" -> deletedDepth--
+                }
+            } else if (textDepth > 0 && deletedDepth == 0 && event in TEXT_EVENTS) {
+                require(
+                    event != XmlPullParser.ENTITY_REF || parser.name in PREDEFINED_ENTITIES ||
+                        parser.name.startsWith("#"),
+                ) {
+                    "Unsupported entity"
+                }
+                val value = parser.text.orEmpty()
+                characters += value.length
+                text.append(value)
             }
-        } else if (textDepth > 0 && deletedDepth == 0 && event in TEXT_EVENTS) {
-            require(
-                event != XmlPullParser.ENTITY_REF || parser.name in PREDEFINED_ENTITIES || parser.name.startsWith("#"),
-            ) {
-                "Unsupported entity"
-            }
-            val value = parser.text.orEmpty()
-            characters += value.length
-            text.append(value)
         }
         require(characters <= limits.characters) { "Document text exceeds preview limit" }
     }
