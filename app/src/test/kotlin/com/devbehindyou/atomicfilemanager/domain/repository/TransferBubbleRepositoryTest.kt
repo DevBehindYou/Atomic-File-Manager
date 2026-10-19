@@ -96,7 +96,7 @@ class TransferBubbleRepositoryTest {
         }
 
     @Test
-    fun `adding files to a bubble stages references without copying bytes`() =
+    fun stagesReferencesWithoutCopying() =
         runTest(testDispatcher) {
             val bubbleRes = repository.createBubble("Staging")
             val bubble = bubbleRes.getOrThrow()
@@ -134,7 +134,7 @@ class TransferBubbleRepositoryTest {
         }
 
     @Test
-    fun `clearing bubble removes all items but retains bubble container`() =
+    fun clearingRetainsContainer() =
         runTest(testDispatcher) {
             val bubble = repository.createBubble("Batch").getOrThrow()
             repository.addItemsToBubble(bubble.id, listOf(createTestNode("file1"), createTestNode("file2")))
@@ -178,8 +178,9 @@ class TransferBubbleRepositoryTest {
             assertEquals("resume.pdf", updatedB2.items[0].displayNameSnapshot)
         }
 
+    // Robolectric includes the method name in SQLite paths; keep native Windows paths short.
     @Test
-    fun `with a load scope the first read waits for the dispatcher instead of running in the constructor`() =
+    fun initialReadUsesDispatcher() =
         runTest(testDispatcher) {
             repository.createBubble("Saved").getOrThrow()
             val loader = StandardTestDispatcher(testScheduler)
