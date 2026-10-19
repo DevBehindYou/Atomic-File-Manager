@@ -71,6 +71,11 @@ class DocxPreviewHelperTest {
             listOf(
                 zip("other.xml" to body("")),
                 zip("word/document.xml" to "<document><body/></document>"),
+                zip(
+                    "word/document.xml" to
+                        body("").replace("<w:body>", "<w:extra><w:body>")
+                            .replace("</w:body>", "</w:body></w:extra>"),
+                ),
                 zip("word/document.xml" to body("<w:p>")),
                 zip(
                     "word/document.xml" to
@@ -91,6 +96,16 @@ class DocxPreviewHelperTest {
         val bytes = zip("word/document.xml" to body(""), "word/media/large.bin" to "x".repeat(20_000))
         assertThrows(Exception::class.java) { parse(bytes, DocxPreviewLimits(expandedBytes = 1024)) }
         assertThrows(Exception::class.java) { parse(bytes, DocxPreviewLimits(entries = 1)) }
+    }
+
+    @Test
+    fun drawingSubtreesAreSkippedWithoutRejectingBodyParagraphsOrExecutingObjects() {
+        val xml =
+            body(
+                """<w:p><w:r><w:t>Before</w:t><w:drawing><w:p><w:r><w:t>Text box</w:t></w:r></w:p></w:drawing></w:r>
+                <w:r><w:object><w:p/></w:object><w:t>After</w:t></w:r></w:p>""",
+            )
+        assertEquals("BeforeAfter", parse(zip("word/document.xml" to xml)).paragraphs.single().text)
     }
 
     @Test

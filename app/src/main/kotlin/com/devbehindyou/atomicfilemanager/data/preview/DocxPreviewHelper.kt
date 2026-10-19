@@ -148,6 +148,8 @@ private fun parseDocument(
     var paragraphDepth = 0
     var textDepth = 0
     var deletedDepth = 0
+    var ignoredDepth = 0
+    var bodyDepth = 0
     var characters = 0
     var tokens = 0
     var sawDocument = false
@@ -158,6 +160,10 @@ private fun parseDocument(
         require(++tokens <= limits.tokens && parser.depth <= limits.depth) { "Document is too complex" }
         require(event != XmlPullParser.DOCDECL) { "DTD declarations are not supported" }
         if (event == XmlPullParser.END_DOCUMENT) break
+        if (ignoredDepth > 0) {
+            if (event == XmlPullParser.END_TAG && parser.depth == ignoredDepth) ignoredDepth = 0
+            continue
+        }
         val word = parser.namespace in WORD_NAMESPACES
         if (event == XmlPullParser.START_TAG && word) {
             when (parser.name) {
@@ -166,13 +172,15 @@ private fun parseDocument(
                     sawDocument = true
                 }
                 "body" -> {
-                    require(sawDocument)
+                    require(sawDocument && !sawBody && parser.depth == 2)
                     sawBody = true
+                    bodyDepth = parser.depth
                 }
+                "drawing", "pict", "object" -> ignoredDepth = parser.depth
                 "tbl" -> tableDepth++
                 "del" -> deletedDepth++
                 "p" -> {
-                    require(sawBody && paragraphDepth == 0) { "Invalid paragraph nesting" }
+                    require(bodyDepth > 0 && paragraphDepth == 0) { "Invalid paragraph nesting" }
                     paragraphDepth = parser.depth
                     runs = mutableListOf()
                     heading = 0
@@ -196,6 +204,7 @@ private fun parseDocument(
             }
         } else if (event == XmlPullParser.END_TAG && word) {
             when (parser.name) {
+                "body" -> bodyDepth = 0
                 "t" -> textDepth = 0
                 "r" -> if (text.isNotEmpty()) runs.add(DocxTextRun(text.toString(), bold, italic))
                 "p" -> {

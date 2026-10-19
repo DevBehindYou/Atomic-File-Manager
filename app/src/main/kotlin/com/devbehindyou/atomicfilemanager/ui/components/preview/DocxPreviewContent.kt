@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -79,6 +81,7 @@ internal fun DocxDocumentContent(
     var current by rememberSaveable(document) { mutableIntStateOf(0) }
     var fontStep by rememberSaveable(document) { mutableIntStateOf(0) }
     val matches = remember(document, query) { findDocxMatches(document, query) }
+    val matchesByParagraph = remember(matches) { matches.groupBy { it.paragraph } }
     val selected = matches.getOrNull(current)
     val listState = rememberLazyListState()
     LaunchedEffect(selected) { if (selected != null) listState.animateScrollToItem(selected.paragraph) }
@@ -135,13 +138,15 @@ internal fun DocxDocumentContent(
                 modifier = Modifier.weight(1f),
             )
         }
-        if (document.paragraphs.isEmpty()) AtomicText(stringResource(R.string.docx_empty), AtomicTextRole.Body)
+        if (document.paragraphs.none { it.text.isNotBlank() }) {
+            AtomicText(stringResource(R.string.docx_empty), AtomicTextRole.Body)
+        }
         SelectionContainer(Modifier.weight(1f)) {
             LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
                 itemsIndexed(document.paragraphs) { index, paragraph ->
                     DocxParagraphContent(
                         paragraph,
-                        matches.filter { it.paragraph == index },
+                        matchesByParagraph[index].orEmpty(),
                         selected,
                         1f + fontStep * .2f,
                     )
@@ -192,7 +197,7 @@ private fun DocxParagraphContent(
         annotated,
         style = base.copy(fontSize = base.fontSize * fontScale, lineHeight = base.lineHeight * fontScale),
         color = colors.content,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics { if (paragraph.headingLevel > 0) heading() },
     )
 }
 
