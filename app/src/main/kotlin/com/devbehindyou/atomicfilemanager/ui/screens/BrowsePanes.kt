@@ -68,6 +68,8 @@ internal data class DualPaneItemActions(
     val onDelete: (FileNode) -> Unit,
     val onHide: (FileNode) -> Unit,
     val onNewFolder: () -> Unit,
+    val onPrimaryActivated: () -> Unit = {},
+    val onSecondaryActivated: () -> Unit = {},
 )
 
 @Composable
@@ -81,6 +83,7 @@ internal fun DualPaneBrowseContent(
     quickPeekController: QuickPeekController,
     nodeForPreview: FileNode?,
     actions: DualPaneItemActions,
+    previewGallery: List<FileNode> = uiState.filteredItems,
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -113,6 +116,7 @@ internal fun DualPaneBrowseContent(
                 onDelete = actions.onDelete,
                 onHide = actions.onHide,
                 onNewFolder = actions.onNewFolder,
+                onPaneActivated = actions.onPrimaryActivated,
             )
         }
         Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(Atomic.colors.borderStrong))
@@ -152,6 +156,7 @@ internal fun DualPaneBrowseContent(
                         onDelete = actions.onDelete,
                         onHide = actions.onHide,
                         onNewFolder = actions.onNewFolder,
+                        onPaneActivated = actions.onSecondaryActivated,
                     )
                 }
             } else {
@@ -159,7 +164,7 @@ internal fun DualPaneBrowseContent(
                     FilePreviewPane(
                         node = nodeForPreview,
                         onClose = actions.onClosePreview,
-                        gallery = uiState.filteredItems,
+                        gallery = previewGallery,
                     )
                 } else {
                     EmptyPreviewPane()
@@ -229,6 +234,7 @@ internal fun FileListContent(
     onHide: (FileNode) -> Unit,
     onNewFolder: () -> Unit,
     modifier: Modifier = Modifier,
+    onPaneActivated: () -> Unit = {},
 ) {
     val favourites = (LocalContext.current.applicationContext as AtomicApp).container.favouritesRepository
     val favouriteFlow = remember(favourites) { favourites.observe() }
@@ -239,7 +245,10 @@ internal fun FileListContent(
         if (uiState.breadcrumbs.isNotEmpty()) {
             BreadcrumbBar(
                 breadcrumbs = uiState.breadcrumbs,
-                onBreadcrumbClick = { viewModel.navigateToBreadcrumb(it) },
+                onBreadcrumbClick = {
+                    onPaneActivated()
+                    viewModel.navigateToBreadcrumb(it)
+                },
                 dragController = dragController,
             )
         }
@@ -269,7 +278,10 @@ internal fun FileListContent(
                         AtomicEmptyState(
                             message = "This folder is empty.",
                             actionLabel = "New folder",
-                            onAction = onNewFolder,
+                            onAction = {
+                                onPaneActivated()
+                                onNewFolder()
+                            },
                         )
                     }
                 }
@@ -303,6 +315,7 @@ internal fun FileListContent(
                                 Modifier.mediaGestureArbiter(
                                     node = node,
                                     onTap = {
+                                        onPaneActivated()
                                         if (onOpenFile != null) {
                                             onOpenFile(node)
                                         } else {
@@ -344,9 +357,11 @@ internal fun FileListContent(
                             isSelectionMode = isSelectionMode,
                             isSelected = isSelected,
                             onToggleSelect = {
+                                onPaneActivated()
                                 viewModel.longPressSelect(node.id)
                             },
                             onClick = {
+                                onPaneActivated()
                                 if (isSelectionMode) {
                                     viewModel.toggleSelection(node.id)
                                 } else if (node.isDirectory) {
@@ -359,13 +374,25 @@ internal fun FileListContent(
                                     }
                                 }
                             },
-                            onShowDetails = { onShowDetails(node) },
-                            onRename = { onRename(node) },
-                            onDelete = { onDelete(node) },
+                            onShowDetails = {
+                                onPaneActivated()
+                                onShowDetails(node)
+                            },
+                            onRename = {
+                                onPaneActivated()
+                                onRename(node)
+                            },
+                            onDelete = {
+                                onPaneActivated()
+                                onDelete(node)
+                            },
                             onExtract = { viewModel.extractArchive(node) },
                             onCompress = { viewModel.compressSingle(node) },
                             onQuickPeek = { quickPeekController.startPeek(node) },
-                            onHide = { onHide(node) },
+                            onHide = {
+                                onPaneActivated()
+                                onHide(node)
+                            },
                             modifier =
                                 Modifier
                                     .then(dragOrPeekMod)

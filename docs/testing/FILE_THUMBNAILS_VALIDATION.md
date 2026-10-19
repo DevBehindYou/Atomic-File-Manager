@@ -21,6 +21,14 @@ enumerated for decoration. A bounded peek can miss media beyond its scan window.
 Per-file and per-folder More boxes and their unused sheet were removed as requested. Long press
 continues to select rows; the selection toolbar and TalkBack custom actions remain available.
 
+The tablet follow-up routes top/bottom actions, keyboard shortcuts, Back and mutation dialogs
+through the active pane. Activating one pane clears the other pane's selection; ownership is
+retained after clearing selection, with focus reset when returning to compact layout. Preview
+uses its originating pane's gallery. A focused API 34/w900dp Compose regression exercises real
+image-row long presses, right-pane contextual Rename and switching selection back left. Its
+execution and full tablet/device acceptance remain pending. Pane clipboards retain their
+existing independent behavior; this change does not introduce a shared clipboard.
+
 Regression coverage checks source mapping, revision keys, bounded scanning and stream closure,
 privacy, cancellation, fallback rendering, thumbnail row clicks and long-press selection without
 the More box. A host without symlink support may skip that filesystem-specific case; report any

@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -127,7 +128,8 @@ fun BrowseScreen(
     var comparePair by remember { mutableStateOf<Pair<FileNode, FileNode>?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
 
-    val isSelectionMode = uiState.selectedIds.isNotEmpty()
+    var useSecondary by rememberSaveable(tabKey, initialFolderId.raw) { mutableStateOf(false) }
+    var previewFromSecondary by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val isDualPane = configuration.screenWidthDp >= 720
     var dualPaneMode by remember { mutableStateOf(DualPaneMode.DUAL_BROWSE) }
@@ -149,6 +151,15 @@ fun BrowseScreen(
             )
         } ?: viewModel
     val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
+    val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
+    val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
+    val isSelectionMode = actionState.selectedIds.isNotEmpty()
+    LaunchedEffect(isDualPane) {
+        if (!isDualPane) {
+            useSecondary = false
+            previewFromSecondary = false
+        }
+    }
 
     val bubbles by viewModel.bubbles.collectAsState()
     var bubbleForDetails by remember { mutableStateOf<TransferBubble?>(null) }
@@ -169,6 +180,7 @@ fun BrowseScreen(
         node: FileNode,
         mode: HideMode,
     ) {
+        val owner = actionViewModel
         coroutineScope.launch {
             val repository = app.container.hiddenFilesRepository
             val result =
@@ -185,7 +197,7 @@ fun BrowseScreen(
                     "Couldn't hide ${node.name}: ${error.message ?: "unknown error"}"
                 }
             onNotify(message)
-            viewModel.refresh()
+            owner.refresh()
             nodeToHide = null
         }
     }
@@ -221,9 +233,9 @@ fun BrowseScreen(
                 viewModel.refresh()
             }
             quickPeekController.isPeeking -> quickPeekController.dismiss()
-            isSelectionMode -> viewModel.clearSelection()
-            uiState.isSearching -> viewModel.toggleSearch(false)
-            !viewModel.navigateBack() -> onNavigateBack()
+            isSelectionMode -> actionViewModel.clearSelection()
+            actionState.isSearching -> actionViewModel.toggleSearch(false)
+            !actionViewModel.navigateBack() -> onNavigateBack()
         }
     }
 
@@ -256,12 +268,16 @@ fun BrowseScreen(
                 .onKeyEvent { event ->
                     handleBrowseKeyEvent(
                         event = event,
-                        viewModel = viewModel,
+                        viewModel = actionViewModel,
                         isSelectionMode = isSelectionMode,
-                        uiState = uiState,
+                        uiState = actionState,
                         onOpenFile = onOpenFile,
                         onRequestRename = { nodeToRename = it },
-                        onRequestPreview = { nodeForPreview = it },
+                        onRequestPreview = {
+                            nodeForPreview = it
+                            previewFromSecondary = useSecondary
+                            if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                        },
                         onRequestMultiDelete = { confirmMultiDelete = true },
                     )
                 },
@@ -269,7 +285,7 @@ fun BrowseScreen(
         Column(Modifier.fillMaxSize().background(Atomic.colors.background)) {
             tabStrip()
             BrowseTopBar(
-                uiState = uiState,
+                uiState = actionState,
                 isSelectionMode = isSelectionMode,
                 bubbles = bubbles,
                 isDualPane = isDualPane,
@@ -280,19 +296,21 @@ fun BrowseScreen(
                 onShowAddToBubbleMenu = { showAddToBubbleMenu = it },
                 actions =
                     BrowseTopBarActions(
-                        onClearSelection = { viewModel.clearSelection() },
-                        onSelectAll = { viewModel.selectAll() },
-                        onAddToBubble = { bubbleId -> viewModel.addSelectionToBubble(bubbleId) },
-                        onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
-                        onToggleSearch = { viewModel.toggleSearch(it) },
+                        onClearSelection = { actionViewModel.clearSelection() },
+                        onSelectAll = { actionViewModel.selectAll() },
+                        onAddToBubble = { bubbleId -> actionViewModel.addSelectionToBubble(bubbleId) },
+                        onSearchQueryChanged = { actionViewModel.onSearchQueryChanged(it) },
+                        onToggleSearch = { actionViewModel.toggleSearch(it) },
                         onNavigateBack = {
-                            if (!viewModel.navigateBack()) {
+                            if (!actionViewModel.navigateBack()) {
                                 onNavigateBack()
                             }
                         },
-                        onSetSortOption = { viewModel.setSortOption(it) },
+                        onSetSortOption = { actionViewModel.setSortOption(it) },
                         onShowHiddenScreen = { showHiddenScreen = true },
                         onToggleDualPaneMode = {
+                            useSecondary = false
+                            secondaryViewModel.clearSelection()
                             dualPaneMode =
                                 if (dualPaneMode == DualPaneMode.DUAL_BROWSE) {
                                     DualPaneMode.PREVIEW
@@ -301,15 +319,15 @@ fun BrowseScreen(
                                 }
                         },
                         onShowNewFolderDialog = { showNewFolderDialog = true },
-                        onInvertSelection = { viewModel.invertSelection() },
-                        onSelectSameType = { viewModel.selectSameType() },
+                        onInvertSelection = { actionViewModel.invertSelection() },
+                        onSelectSameType = { actionViewModel.selectSameType() },
                     ),
             )
             OperationBanner(uiState.activeOperation, onOpen = onOpenOperations)
             val pullState = rememberPullToRefreshState()
             PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.refresh() },
+                isRefreshing = actionState.isRefreshing,
+                onRefresh = { actionViewModel.refresh() },
                 state = pullState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
@@ -323,16 +341,28 @@ fun BrowseScreen(
                         dragController = dragController,
                         quickPeekController = quickPeekController,
                         nodeForPreview = nodeForPreview,
+                        previewGallery =
+                            if (previewFromSecondary) secondaryUiState.filteredItems else uiState.filteredItems,
                         actions =
                             DualPaneItemActions(
+                                onPrimaryActivated = {
+                                    useSecondary = false
+                                    secondaryViewModel.clearSelection()
+                                },
+                                onSecondaryActivated = {
+                                    useSecondary = true
+                                    viewModel.clearSelection()
+                                },
                                 onOpenFile = onOpenFile,
                                 onPreviewNode = { node ->
+                                    previewFromSecondary = false
                                     nodeForPreview = node
                                     if (dualPaneMode != DualPaneMode.PREVIEW) {
                                         dualPaneMode = DualPaneMode.PREVIEW
                                     }
                                 },
                                 onSecondaryPreviewNode = { node ->
+                                    previewFromSecondary = true
                                     nodeForPreview = node
                                     dualPaneMode = DualPaneMode.PREVIEW
                                 },
@@ -362,39 +392,41 @@ fun BrowseScreen(
                 }
             }
             BrowseBottomBar(
-                uiState = uiState,
+                uiState = actionState,
                 isSelectionMode = isSelectionMode,
-                onCopySelected = { viewModel.copySelected() },
-                onCutSelected = { viewModel.cutSelected() },
-                onCompressSelected = { viewModel.compressSelected() },
+                onCopySelected = { actionViewModel.copySelected() },
+                onCutSelected = { actionViewModel.cutSelected() },
+                onCompressSelected = { actionViewModel.compressSelected() },
                 singleFileActions =
-                    uiState.rawItems.singleOrNull { it.id in uiState.selectedIds }?.let { selected ->
+                    actionState.rawItems.singleOrNull { it.id in actionState.selectedIds }?.let { selected ->
                         buildList {
                             add(
                                 AtomicStripAction(stringResource(R.string.selection_rename), AtomicIcons.Document, {
                                     nodeToRename = selected
-                                    viewModel.clearSelection()
+                                    actionViewModel.clearSelection()
                                 }),
                             )
                             add(
                                 AtomicStripAction(stringResource(R.string.selection_hide), AtomicIcons.Hide, {
                                     nodeToHide = selected
-                                    viewModel.clearSelection()
+                                    actionViewModel.clearSelection()
                                 }),
                             )
                             if (thumbnailKind(selected) != null) {
                                 add(
                                     AtomicStripAction(stringResource(R.string.selection_preview), AtomicIcons.Preview, {
                                         nodeForPreview = selected
-                                        viewModel.clearSelection()
+                                        previewFromSecondary = useSecondary
+                                        if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                                        actionViewModel.clearSelection()
                                     }),
                                 )
                             }
                             if (ArchiveFormats.kindOf(selected.name) != null) {
                                 add(
                                     AtomicStripAction(stringResource(R.string.selection_extract), AtomicIcons.Archive, {
-                                        viewModel.extractArchive(selected)
-                                        viewModel.clearSelection()
+                                        actionViewModel.extractArchive(selected)
+                                        actionViewModel.clearSelection()
                                     }),
                                 )
                             }
@@ -423,7 +455,7 @@ fun BrowseScreen(
                                                             repository.add(selected)
                                                         }
                                                     }
-                                                    viewModel.clearSelection()
+                                                    actionViewModel.clearSelection()
                                                 } catch (cancelled: CancellationException) {
                                                     throw cancelled
                                                 } catch (_: Exception) {
@@ -442,20 +474,20 @@ fun BrowseScreen(
                     onOpenInNewTab?.let { open ->
                         { folder: FileNode ->
                             open(folder)
-                            viewModel.clearSelection()
+                            actionViewModel.clearSelection()
                         }
                     },
                 onShowDetails = { node ->
                     nodeForDetails = node
-                    viewModel.clearSelection()
+                    actionViewModel.clearSelection()
                 },
-                onClearClipboard = { viewModel.clearClipboard() },
-                onPaste = { viewModel.paste(CollisionPolicy.ASK) },
+                onClearClipboard = { actionViewModel.clearClipboard() },
+                onPaste = { actionViewModel.paste(CollisionPolicy.ASK) },
                 onCompare = { a, b -> comparePair = a to b },
                 onCompareFolders =
                     onCompareFolders?.let { compare ->
                         { left: FileNodeId, right: FileNodeId ->
-                            viewModel.clearSelection()
+                            actionViewModel.clearSelection()
                             compare(left, right)
                         }
                     },
@@ -466,10 +498,10 @@ fun BrowseScreen(
         batchRename?.let { nodes ->
             BatchRenameSheet(
                 nodes = nodes,
-                folderNames = uiState.rawItems.map { it.name },
+                folderNames = actionState.rawItems.map { it.name },
                 onChanged = {
-                    viewModel.clearSelection()
-                    viewModel.refresh()
+                    actionViewModel.clearSelection()
+                    actionViewModel.refresh()
                 },
                 onDismiss = { batchRename = null },
             )
@@ -498,10 +530,10 @@ fun BrowseScreen(
         )
 
         BrowseDialogs(
-            viewModel = viewModel,
-            secondaryViewModel = secondaryViewModel,
+            viewModel = actionViewModel,
+            secondaryViewModel = if (useSecondary) viewModel else secondaryViewModel,
             isDualPane = isDualPane,
-            uiState = uiState,
+            uiState = actionState,
             bubbles = bubbles,
             dragController = dragController,
             state =
