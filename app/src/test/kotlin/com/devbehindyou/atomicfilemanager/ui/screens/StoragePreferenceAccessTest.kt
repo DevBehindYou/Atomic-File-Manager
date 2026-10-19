@@ -14,7 +14,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
@@ -179,7 +178,11 @@ class StoragePreferenceAccessTest {
             val failure = IllegalStateException("preference failure")
             val preferences = StoragePreferenceAccess(StandardTestDispatcher(testScheduler)) { Unit }
             val result = runCatching { preferences.update<Unit> { throw failure } }
-            assertSame(failure, result.exceptionOrNull())
+            val reported = result.exceptionOrNull()
+            // Coroutine debug stack recovery may copy an exception while preserving its cause.
+            assertEquals(failure.javaClass, reported?.javaClass)
+            assertEquals(failure.message, reported?.message)
+            assertTrue(generateSequence(reported) { it.cause }.any { it === failure })
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
