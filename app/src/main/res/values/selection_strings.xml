@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selection_more_actions">More actions</string>
+    <string name="selection_rename">Rename</string>
+    <string name="selection_hide">Hide</string>
+    <string name="selection_preview">Preview</string>
+    <string name="selection_extract">Extract</string>
+    <string name="selection_favourite_add">Add to favourites</string>
+    <string name="selection_favourite_remove">Remove from favourites</string>
+    <string name="selection_favourite_error">Could not update favourites. Try again.</string>
+</resources>

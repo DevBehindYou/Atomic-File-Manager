@@ -106,7 +106,11 @@ private fun PdfReader(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AtomicText(
                             stringResource(
-                                if (openError is FileError.FileTooLarge) R.string.pdf_too_large else R.string.pdf_open_error,
+                                if (openError is FileError.FileTooLarge) {
+                                    R.string.pdf_too_large
+                                } else {
+                                    R.string.pdf_open_error
+                                },
                             ),
                             AtomicTextRole.Body,
                         )
@@ -190,7 +194,11 @@ private fun PdfZoomablePage(
                         zoom = (zoom * scale).coerceIn(1f, 6f)
                         val maxX = (zoom - 1f) * size.width / 2
                         val maxY = (zoom - 1f) * size.height / 2
-                        offset = Offset((offset.x + pan.x).coerceIn(-maxX, maxX), (offset.y + pan.y).coerceIn(-maxY, maxY))
+                        offset =
+                            Offset(
+                                (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                (offset.y + pan.y).coerceIn(-maxY, maxY),
+                            )
                     }
                 }
                 .graphicsLayer(scaleX = zoom, scaleY = zoom, translationX = offset.x, translationY = offset.y),

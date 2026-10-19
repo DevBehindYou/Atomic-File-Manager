@@ -28,7 +28,8 @@ internal fun resolvePreviewType(node: FileNode): PreviewType {
 }
 
 private const val DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-private val OFFICE_EXTENSIONS = setOf("doc", "docm", "dotx", "dotm", "xls", "xlsx", "xlsm", "ppt", "pptx", "pptm", "odt", "ods", "odp")
+private val OFFICE_EXTENSIONS =
+    setOf("doc", "docm", "dotx", "dotm", "xls", "xlsx", "xlsm", "ppt", "pptx", "pptm", "odt", "ods", "odp")
 private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "opus")
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm", "avi", "mov", "3gp", "m4v")
 private val ARCHIVE_MIMES = setOf("application/zip", "application/x-zip-compressed", "application/x-7z-compressed")

@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -33,16 +34,22 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStripAction
+import com.devbehindyou.atomicfilemanager.data.preview.thumbnailKind
 import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.HideMode
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
+import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.components.BatchRenameSheet
 import com.devbehindyou.atomicfilemanager.ui.components.CompareSheet
 import com.devbehindyou.atomicfilemanager.ui.interaction.bubble.TransferBubbleRail
@@ -51,7 +58,10 @@ import com.devbehindyou.atomicfilemanager.ui.interaction.drag.FileDragController
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.QuickPeekController
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.QuickPeekOverlay
 import com.devbehindyou.atomicfilemanager.ui.security.AuthGate
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class DualPaneMode {
     DUAL_BROWSE,
@@ -148,6 +158,11 @@ fun BrowseScreen(
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val favouriteIds by produceState<Set<FileNodeId>?>(null, app.container) {
+        withContext(Dispatchers.IO) { app.container.favouritesRepository }.observe().collect { favourites ->
+            value = favourites.mapTo(HashSet()) { it.id }
+        }
+    }
     val focusRequester = remember { FocusRequester() }
 
     fun hideNode(
@@ -352,6 +367,75 @@ fun BrowseScreen(
                 onCopySelected = { viewModel.copySelected() },
                 onCutSelected = { viewModel.cutSelected() },
                 onCompressSelected = { viewModel.compressSelected() },
+                singleFileActions =
+                    uiState.rawItems.singleOrNull { it.id in uiState.selectedIds }?.let { selected ->
+                        buildList {
+                            add(
+                                AtomicStripAction(stringResource(R.string.selection_rename), AtomicIcons.Document, {
+                                    nodeToRename = selected
+                                    viewModel.clearSelection()
+                                }),
+                            )
+                            add(
+                                AtomicStripAction(stringResource(R.string.selection_hide), AtomicIcons.Hide, {
+                                    nodeToHide = selected
+                                    viewModel.clearSelection()
+                                }),
+                            )
+                            if (thumbnailKind(selected) != null) {
+                                add(
+                                    AtomicStripAction(stringResource(R.string.selection_preview), AtomicIcons.Preview, {
+                                        nodeForPreview = selected
+                                        viewModel.clearSelection()
+                                    }),
+                                )
+                            }
+                            if (ArchiveFormats.kindOf(selected.name) != null) {
+                                add(
+                                    AtomicStripAction(stringResource(R.string.selection_extract), AtomicIcons.Archive, {
+                                        viewModel.extractArchive(selected)
+                                        viewModel.clearSelection()
+                                    }),
+                                )
+                            }
+                            val ids = favouriteIds
+                            if (ids != null) {
+                                val isFavourite = selected.id in ids
+                                val failureMessage = stringResource(R.string.selection_favourite_error)
+                                add(
+                                    AtomicStripAction(
+                                        stringResource(
+                                            if (isFavourite) {
+                                                R.string.selection_favourite_remove
+                                            } else {
+                                                R.string.selection_favourite_add
+                                            },
+                                        ),
+                                        AtomicIcons.Home,
+                                        {
+                                            coroutineScope.launch {
+                                                try {
+                                                    withContext(Dispatchers.IO) {
+                                                        val repository = app.container.favouritesRepository
+                                                        if (isFavourite) {
+                                                            repository.remove(selected.id)
+                                                        } else {
+                                                            repository.add(selected)
+                                                        }
+                                                    }
+                                                    viewModel.clearSelection()
+                                                } catch (cancelled: CancellationException) {
+                                                    throw cancelled
+                                                } catch (_: Exception) {
+                                                    onNotify(failureMessage)
+                                                }
+                                            }
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                    } ?: emptyList(),
                 onDeleteSelected = { confirmMultiDelete = true },
                 onRenameSelected = { nodes -> batchRename = nodes },
                 onOpenInNewTab =

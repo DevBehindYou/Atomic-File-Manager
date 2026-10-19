@@ -7,7 +7,8 @@ class MarkdownBlocksTest {
     @Test
     fun `fences emit a single stable block with original whitespace and repeated lines`() {
         val lines = listOf("# title", "```kotlin", "  val x = 1", "", "  val x = 1", "```", "after")
-        val expected = listOf(MarkdownBlock("# title"), MarkdownBlock("  val x = 1\n\n  val x = 1", true), MarkdownBlock("after"))
+        val expected =
+            listOf(MarkdownBlock("# title"), MarkdownBlock("  val x = 1\n\n  val x = 1", true), MarkdownBlock("after"))
         assertEquals(expected, markdownBlocks(lines))
         assertEquals(expected, markdownBlocks(lines))
         // Reading items out of composition order is harmless.

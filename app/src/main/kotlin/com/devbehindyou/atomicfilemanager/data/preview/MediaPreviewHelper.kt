@@ -1,21 +1,21 @@
 package com.devbehindyou.atomicfilemanager.data.preview
 
-import android.content.Context
 import android.content.ContentUris
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
-import android.os.Build
 import android.net.Uri
+import android.os.Build
 import com.devbehindyou.atomicfilemanager.data.backend.toMediaRef
 import com.devbehindyou.atomicfilemanager.data.backend.toSafRef
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -79,18 +79,22 @@ class MediaPreviewHelper(
         try {
             return withContext(io) {
                 val direct = directMediaUri(id)
-                val uri = direct ?: copyToCache(id, fileName).also { staged = it }?.let(Uri::fromFile)
-                    ?: return@withContext FileResult.Failure(FileError.IoFailure("Could not open media"))
-                    val metadata = metadataReader?.invoke(uri) ?: readMetadata(uri)
-                    coroutineContext.ensureActive()
-                    FileResult.Success(
-                        PreparedMedia(
-                            filePath = staged?.absolutePath ?: uri.path.orEmpty(),
-                            metadata = metadata,
-                            cleanup = { staged?.delete(); Unit },
-                            playbackUri = uri,
-                        ),
-                    )
+                val uri =
+                    direct ?: copyToCache(id, fileName).also { staged = it }?.let(Uri::fromFile)
+                        ?: return@withContext FileResult.Failure(FileError.IoFailure("Could not open media"))
+                val metadata = metadataReader?.invoke(uri) ?: readMetadata(uri)
+                coroutineContext.ensureActive()
+                FileResult.Success(
+                    PreparedMedia(
+                        filePath = staged?.absolutePath ?: uri.path.orEmpty(),
+                        metadata = metadata,
+                        cleanup = {
+                            staged?.delete()
+                            Unit
+                        },
+                        playbackUri = uri,
+                    ),
+                )
             }.also { if (it is FileResult.Failure) withContext(NonCancellable + io) { staged?.delete() } }
         } catch (cancelled: CancellationException) {
             withContext(NonCancellable + io) { staged?.delete() }
@@ -114,7 +118,9 @@ class MediaPreviewHelper(
     private fun directMediaUri(id: FileNodeId): Uri? =
         when (id.prefix) {
             FileNodeId.Prefix.FILE ->
-                File(id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme)).takeIf { it.isFile && it.canRead() }?.let(Uri::fromFile)
+                File(
+                    id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme),
+                ).takeIf { it.isFile && it.canRead() }?.let(Uri::fromFile)
             FileNodeId.Prefix.SAF -> id.toSafRef().documentUri
             FileNodeId.Prefix.MEDIA -> {
                 val ref = id.toMediaRef()
@@ -128,20 +134,29 @@ class MediaPreviewHelper(
         id: FileNodeId,
         fileName: String,
     ): FileResult<Bitmap> =
-        when (val prepared = withMedia(id, fileName) { media ->
-            withContext(io) {
-                val retriever = MediaMetadataRetriever()
-                try {
-                    retriever.setDataSource(context, media.playbackUri)
-                    retriever.getScaledFrameAtTime(1_000_000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 512, 512)
-                } finally {
-                    retriever.release()
+        when (
+            val prepared =
+                withMedia(id, fileName) { media ->
+                    withContext(io) {
+                        val retriever = MediaMetadataRetriever()
+                        try {
+                            retriever.setDataSource(context, media.playbackUri)
+                            retriever.getScaledFrameAtTime(
+                                1_000_000,
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                                512,
+                                512,
+                            )
+                        } finally {
+                            retriever.release()
+                        }
+                    }
                 }
-            }
-        }) {
+        ) {
             is FileResult.Failure -> prepared
-            is FileResult.Success -> prepared.value?.let { FileResult.Success(it) }
-                ?: FileResult.Failure(FileError.IoFailure("Could not extract video frame"))
+            is FileResult.Success ->
+                prepared.value?.let { FileResult.Success(it) }
+                    ?: FileResult.Failure(FileError.IoFailure("Could not extract video frame"))
         }
 
     private fun extractMetadata(retriever: MediaMetadataRetriever): MediaMetadata {
@@ -161,11 +176,12 @@ class MediaPreviewHelper(
             if (artBytes != null && artBytes.isNotEmpty() && artBytes.size <= MAX_ART_BYTES) {
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size, bounds)
-                val options = BitmapFactory.Options().apply {
-                    var sample = 1
-                    while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_ART_DIMENSION) sample *= 2
-                    inSampleSize = sample
-                }
+                val options =
+                    BitmapFactory.Options().apply {
+                        var sample = 1
+                        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_ART_DIMENSION) sample *= 2
+                        inSampleSize = sample
+                    }
                 BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size, options)
             } else {
                 null
@@ -206,38 +222,41 @@ class MediaPreviewHelper(
         id: FileNodeId,
         fileName: String,
     ): File? {
-            val backend = backendSelector(id)
-            val inRes = backend.openInput(id)
-            if (inRes !is FileResult.Success) return null
+        val backend = backendSelector(id)
+        val inRes = backend.openInput(id)
+        if (inRes !is FileResult.Success) return null
 
-            val extension = fileName.substringAfterLast('.', "tmp").takeIf { it.length <= 12 && it.all(Char::isLetterOrDigit) } ?: "tmp"
-            val cacheFile = File.createTempFile("media-preview-", ".$extension", context.cacheDir)
-            var completed = false
-            return try {
-                inRes.value.stream().use { input ->
-                    FileOutputStream(cacheFile).use { output ->
-                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                        var copied = 0L
-                        while (true) {
-                            coroutineContext.ensureActive()
-                            val count = input.read(buffer)
-                            if (count == -1) break
-                            copied += count
-                            if (copied > maxCacheBytes) throw IOException("Media cache limit exceeded")
-                            output.write(buffer, 0, count)
-                        }
-                        output.flush()
+        val extension =
+            fileName.substringAfterLast('.', "tmp").takeIf {
+                it.length <= 12 && it.all(Char::isLetterOrDigit)
+            } ?: "tmp"
+        val cacheFile = File.createTempFile("media-preview-", ".$extension", context.cacheDir)
+        var completed = false
+        return try {
+            inRes.value.stream().use { input ->
+                FileOutputStream(cacheFile).use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var copied = 0L
+                    while (true) {
+                        coroutineContext.ensureActive()
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        copied += count
+                        if (copied > maxCacheBytes) throw IOException("Media cache limit exceeded")
+                        output.write(buffer, 0, count)
                     }
+                    output.flush()
                 }
-                coroutineContext.ensureActive()
-                completed = true
-                cacheFile
-            } catch (e: IOException) {
-                null
-            } finally {
-                if (!completed) cacheFile.delete()
             }
+            coroutineContext.ensureActive()
+            completed = true
+            cacheFile
+        } catch (e: IOException) {
+            null
+        } finally {
+            if (!completed) cacheFile.delete()
         }
+    }
 
     private companion object {
         const val MAX_ART_BYTES = 4 * 1024 * 1024

@@ -1,8 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
-import android.graphics.Bitmap
-import android.content.Intent
 import android.content.ClipData
+import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -28,9 +27,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
-
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,9 +42,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.R
-import com.devbehindyou.atomicfilemanager.data.preview.ExternalPreviewHelper
-import com.devbehindyou.atomicfilemanager.data.preview.DocxPreviewHelper
-import com.devbehindyou.atomicfilemanager.ui.components.preview.DocxPreviewContent
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -69,6 +64,8 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.data.preview.ApkInfo
 import com.devbehindyou.atomicfilemanager.data.preview.ApkInfoReader
+import com.devbehindyou.atomicfilemanager.data.preview.DocxPreviewHelper
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.androidVersionName
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -79,7 +76,6 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationId
 import com.devbehindyou.atomicfilemanager.domain.model.OperationOptions
 import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveEntryInfo
-import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchivePasswords
 import com.devbehindyou.atomicfilemanager.domain.usecase.ChecksumVerdict
 import com.devbehindyou.atomicfilemanager.domain.usecase.FileChecksums
@@ -88,9 +84,10 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.TextContent
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextFileEditor
 import com.devbehindyou.atomicfilemanager.domain.usecase.WRONG_PASSWORD
 import com.devbehindyou.atomicfilemanager.domain.usecase.checkExpectedChecksum
-import com.devbehindyou.atomicfilemanager.ui.components.preview.PdfPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.AudioPreviewContent
+import com.devbehindyou.atomicfilemanager.ui.components.preview.DocxPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.MarkdownPreviewContent
+import com.devbehindyou.atomicfilemanager.ui.components.preview.PdfPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.components.preview.VideoPreviewContent
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.launch
@@ -121,36 +118,40 @@ fun FilePreviewPane(
         runCatching { app?.container?.recentsRepository?.recordOpened(shown) }
     }
     val container = app?.container ?: return
-    val externalHelper = remember(container, context) {
-        ExternalPreviewHelper(context.applicationContext) { container.storageBackendSelector.forNode(it) }
-    }
+    val externalHelper =
+        remember(container, context) {
+            ExternalPreviewHelper(context.applicationContext) { container.storageBackendSelector.forNode(it) }
+        }
     val docxHelper = remember(container) { DocxPreviewHelper({ container.storageBackendSelector.forNode(it) }) }
     val openScope = rememberCoroutineScope()
     var openingExternal by remember(node.id) { mutableStateOf(false) }
     var externalFailed by remember(node.id) { mutableStateOf(false) }
-    val openExternal: () -> Unit = onOpenExternal ?: {
-        if (!openingExternal) {
-            openScope.launch {
-                openingExternal = true
-                externalFailed = false
-                try {
-                    externalFailed = externalHelper.open(shown) { file ->
-                        val view = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(file.uri, file.mimeType)
-                            clipData = ClipData.newRawUri(node.name, file.uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        context.startActivity(
-                            Intent.createChooser(view, context.getString(R.string.viewer_open_external))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    } is FileResult.Failure
-                } finally {
-                    openingExternal = false
+    val openExternal: () -> Unit =
+        onOpenExternal ?: {
+            if (!openingExternal) {
+                openScope.launch {
+                    openingExternal = true
+                    externalFailed = false
+                    try {
+                        externalFailed =
+                            externalHelper.open(shown) { file ->
+                                val view =
+                                    Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(file.uri, file.mimeType)
+                                        clipData = ClipData.newRawUri(node.name, file.uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                context.startActivity(
+                                    Intent.createChooser(view, context.getString(R.string.viewer_open_external))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            } is FileResult.Failure
+                    } finally {
+                        openingExternal = false
+                    }
                 }
             }
         }
-    }
     val colors = Atomic.colors
     val previewType = remember(node) { resolvePreviewType(node) }
     // Share and open-with act on the file the caller opened, so they hide once another image is shown.
@@ -201,7 +202,9 @@ fun FilePreviewPane(
         AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
         if (openingExternal || externalFailed) {
             AtomicText(
-                stringResource(if (openingExternal) R.string.viewer_external_loading else R.string.viewer_external_failed),
+                stringResource(
+                    if (openingExternal) R.string.viewer_external_loading else R.string.viewer_external_failed,
+                ),
                 AtomicTextRole.BodySecondary,
                 modifier = Modifier.padding(AtomicSpacing.s12),
             )
