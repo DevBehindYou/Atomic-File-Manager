@@ -68,5 +68,23 @@ class WebDavXmlTest {
         }
     }
 
+    @Test
+    fun `requires root closing tag even after a complete valid response`() {
+        val response =
+            "<response><href>/file</href><propstat><prop><getcontentlength>1</getcontentlength></prop>" +
+                "<status>HTTP/1.1 200 OK</status></propstat></response>"
+        for (tail in listOf("", "<response>", "<response><href>/partial", response)) {
+            assertThrows(Exception::class.java) { parse("<multistatus xmlns='DAV:'>$tail") }
+        }
+    }
+
+    @Test
+    fun `accepts complete empty listing and rejects content after its root`() {
+        val emptyListing = "<multistatus xmlns='DAV:'/>"
+        assertTrue(parse(emptyListing).isEmpty())
+        assertThrows(Exception::class.java) { parse("$emptyListing$emptyListing") }
+        assertThrows(Exception::class.java) { parse("${emptyListing}trailing data") }
+    }
+
     private fun parse(xml: String) = WebDavXml.parse(xml.byteInputStream())
 }

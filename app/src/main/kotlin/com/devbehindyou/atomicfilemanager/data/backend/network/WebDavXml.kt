@@ -26,6 +26,7 @@ internal object WebDavXml {
         val responses = mutableListOf<Response>()
         var response: ResponseBuilder? = null
         var rootSeen = false
+        var rootClosed = false
         var field: String? = null
         var fieldDepth = 0
         val value = StringBuilder()
@@ -36,7 +37,7 @@ internal object WebDavXml {
                 XmlPullParser.START_TAG -> {
                     if (parser.depth > MAX_DEPTH) throw IOException("WebDAV XML nesting limit exceeded")
                     if (parser.depth == 1) {
-                        if (parser.namespace != DAV || parser.name != "multistatus") {
+                        if (rootSeen || parser.namespace != DAV || parser.name != "multistatus") {
                             throw IOException("Expected DAV multistatus")
                         }
                         rootSeen = true
@@ -59,12 +60,18 @@ internal object WebDavXml {
                 }
                 XmlPullParser.TEXT, XmlPullParser.CDSECT, XmlPullParser.ENTITY_REF -> {
                     val text = parser.text ?: throw IOException("Unresolved WebDAV XML entity")
+                    if ((!rootSeen || rootClosed) && text.isNotBlank()) {
+                        throw IOException("Content outside DAV multistatus")
+                    }
                     if (field != null) {
                         if (value.length + text.length > MAX_VALUE) throw IOException("DAV property is too large")
                         value.append(text)
                     }
                 }
                 XmlPullParser.END_TAG -> {
+                    if (parser.depth == 1 && parser.namespace == DAV && parser.name == "multistatus") {
+                        rootClosed = true
+                    }
                     if (field != null && parser.depth == fieldDepth) {
                         response?.field(field, value.toString().trim(), fieldDepth)
                         field = null
@@ -81,7 +88,11 @@ internal object WebDavXml {
                 }
             }
         }
-        if (!rootSeen) throw IOException("Missing DAV multistatus")
+        // Some platform pull parsers return END_DOCUMENT for a truncated input without
+        // throwing. Never turn incomplete metadata into an empty or partial success.
+        if (!rootSeen || !rootClosed || response != null || field != null) {
+            throw IOException("Incomplete DAV multistatus")
+        }
         return responses
     }
 
