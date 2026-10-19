@@ -1,0 +1,11 @@
+# Owned PDF reader sessions
+
+Implementation checkpoint: host Gradle and device validation have not run for this increment.
+
+The reader copies a PDF once for a structured `withDocument` callback. Copies use exclusive random temporary names in app-private cache and an actual-byte limit of 128 MiB; copying checks cancellation between buffers. One renderer owns its descriptor for the session. Render and close operations share a mutex; cancellation, failed preparation, and dispatcher handoff cancellation all enter IO cleanup. No paths, contents, passwords, or exception text are logged. Cleanup is best effort if the OS refuses deletion; there is no process-death cleanup guarantee.
+
+Raster dimensions use overflow-safe arithmetic, a maximum edge of 2048 pixels, and at most 4,000,000 pixels. The normal reader requests 1600 pixels. There is no minimum downscale that could defeat the memory bound. Page results carry their own index, and a generation check plus cancellation check rejects stale publication. The previous bitmap is hidden while a new page loads. Errors clear on retry. Navigation supports previous/next, page number, saved page index, pinch/pan, and double-tap zoom. Zoom magnifies the bounded bitmap rather than claiming vector re-rendering, text search, selectable text, forms, password unlocking, annotation, or PDF editing.
+
+Pure JVM tests exercise one-copy reuse, exact/overflow byte limits, copy/open failures, acquisition and copy cancellation, distinct concurrent ownership, disposal cleanup, use after close, closing failures, bounded raster arithmetic, page result ordering, cancellation publication, and error recovery. `PdfReaderDeviceTest` generates a three-page PDF with Android PdfDocument and exercises native page count/render/cleanup. Run it on API 27 and API 34; generating a fixture avoids shipping private user documents.
+
+The native API used here (PdfRenderer constructor, pageCount, openPage, Page dimensions/render, close) predates minSdk 27. The renderer owns the successful constructor's descriptor. Newer PDF text and password APIs are deliberately not used. References: [PdfRenderer](https://developer.android.com/reference/android/graphics/pdf/PdfRenderer), [PdfRenderer.Page](https://developer.android.com/reference/android/graphics/pdf/PdfRenderer.Page).
