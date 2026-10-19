@@ -279,6 +279,10 @@ Each item names the existing code it replaces. "New" means nothing equivalent ex
 | `AtomicPeekFrame` | Quick Peek card: 2 dp ink border, 6 dp hard shadow, mono caption bar "IMG_2041.jpg · 3 / 15" (name as stored) | `QuickPeekOverlay` frame |
 | `AtomicCommandPanel` | Phase 4.4 command palette in the same sheet language | New (later) |
 
+Storage card headers keep the volume name and capacity details beside each other in a single
+row. Both fields share the available width and use one-line ellipsis when constrained; capacity
+details align to the trailing edge. Full strings remain available to accessibility services.
+
 ---
 
 ## 6. Information architecture and navigation

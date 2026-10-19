@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -59,9 +60,19 @@ fun AtomicStorageCard(
                 .padding(AtomicSpacing.s16),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10),
     ) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
-            AtomicText(name, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f))
-            AtomicText(usage, AtomicTextRole.MonoMeta)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        ) {
+            AtomicText(name, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f), maxLines = 1)
+            AtomicText(
+                usage,
+                AtomicTextRole.MonoMeta,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                textAlign = TextAlign.End,
+            )
         }
         AtomicMeter(fraction = fraction, contentDescription = meterDescription)
         Row(verticalAlignment = Alignment.CenterVertically) {
