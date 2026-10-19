@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -56,6 +57,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
@@ -113,6 +115,9 @@ import com.devbehindyou.atomicfilemanager.ui.screens.WifiShareScreen
 import com.devbehindyou.atomicfilemanager.ui.security.AuthGate
 import com.devbehindyou.atomicfilemanager.ui.shortcuts.AppShortcuts
 import com.devbehindyou.atomicfilemanager.ui.shortcuts.OpenTarget
+import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupLoader
+import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupScreen
+import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupState
 import com.devbehindyou.atomicfilemanager.ui.util.DebugJank
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -135,17 +140,40 @@ class MainActivity : FragmentActivity() {
     private val externalOpen = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         // After recreation the route stack is already restored; don't push the same screen again.
-        if (savedInstanceState == null) externalOpen.value = intent?.getStringExtra(EXTRA_OPEN)
+        externalOpen.value =
+            if (savedInstanceState == null) {
+                intent?.getStringExtra(EXTRA_OPEN)
+            } else {
+                savedInstanceState.getString(STATE_PENDING_OPEN)
+            }
         AppShortcuts.publish(this)
 
         enableEdgeToEdge()
 
+        val app = application as AtomicApp
+        val startup = SettingsStartupLoader(lifecycleScope) { app.container.settingsRepository }
+        var appContentReady = false
+        splash.setKeepOnScreenCondition {
+            val state = startup.state.value
+            state is SettingsStartupState.Loading || (state is SettingsStartupState.Ready && !appContentReady)
+        }
+        startup.start()
         setContent {
-            val app = application as AtomicApp
-            val settings by app.container.settingsRepository.settings.collectAsState()
+            val startupState by startup.state.collectAsState()
+            val ready = startupState as? SettingsStartupState.Ready
+            if (ready == null) {
+                SettingsStartupScreen(
+                    loading = startupState is SettingsStartupState.Loading,
+                    onRetry = startup::start,
+                    onClose = ::finish,
+                )
+                return@setContent
+            }
+            val settings by ready.repository.settings.collectAsState()
+            SideEffect { appContentReady = true }
             val darkTheme =
                 when (settings.themeMode) {
                     ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -164,10 +192,18 @@ class MainActivity : FragmentActivity() {
             }
             AtomicTheme(darkTheme = darkTheme, wallpaperAccent = settings.dynamicColor) {
                 val openRequest by externalOpen.collectAsState()
-                AtomicAppContent(openRequest = openRequest, onOpenRequestHandled = { externalOpen.value = null })
+                AtomicAppContent(
+                    openRequest = openRequest,
+                    onOpenRequestHandled = { handledRequest -> externalOpen.compareAndSet(handledRequest, null) },
+                )
             }
         }
         DebugJank.track(this)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_PENDING_OPEN, externalOpen.value)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -189,6 +225,7 @@ class MainActivity : FragmentActivity() {
     }
 
     companion object {
+        private const val STATE_PENDING_OPEN = "atomic.pending_open"
         const val EXTRA_OPEN = "com.devbehindyou.atomicfilemanager.extra.OPEN"
         const val OPEN_OPERATIONS = OpenTarget.OPERATIONS
         const val OPEN_PALETTE = OpenTarget.PALETTE
@@ -199,7 +236,7 @@ class MainActivity : FragmentActivity() {
 @Composable
 fun AtomicAppContent(
     openRequest: String? = null,
-    onOpenRequestHandled: () -> Unit = {},
+    onOpenRequestHandled: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as AtomicApp
@@ -548,7 +585,7 @@ fun AtomicAppContent(
             }
             null -> Unit
         }
-        if (openRequest != null) onOpenRequestHandled()
+        if (openRequest != null) onOpenRequestHandled(openRequest)
     }
     if (showPalette) {
         CommandPaletteSheet(onRun = ::runCommand, onDismiss = { showPalette = false })
