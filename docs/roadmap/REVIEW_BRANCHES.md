@@ -18,6 +18,7 @@
 | FTPS TLS, transfer status and bounded FTP metadata | main | [#55](https://github.com/DevBehindYou/Atomic-File-Manager/pull/55) |
 | Bounded DAV metadata, conditional mutations and URI identity | main | [#56](https://github.com/DevBehindYou/Atomic-File-Manager/pull/56) |
 | Portable Android storage fixtures on Windows | main | [#57](https://github.com/DevBehindYou/Atomic-File-Manager/pull/57) |
+| Source-linked audit, architecture, privacy and validation handover | main | [#58](https://github.com/DevBehindYou/Atomic-File-Manager/pull/58) |
 
 Review journal admission before provider ancestry, then archives/progress. When a base PR is integrated, retarget its children appropriately and rerun their current-head checks. Preserve branch history and do not force-push shared or protected branches.
 

@@ -7,8 +7,8 @@ repo:
   branch: codex/architecture-audit
   commit: "4d19ae1" # source checkpoint; documentation updates follow
   baseline: "7782660"
-  dirty: true
-  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
+  dirty: false
+  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]
 
 stack:
   - kotlin-2.2.10
@@ -19,18 +19,18 @@ stack:
   - manual DI (AppContainer), hilt declared but unused
 
 status:
-  build: IN_PROGRESS       # Kotlin, ktlint, detekt pass; Android Lint/packaging running
+  build: PARTIAL           # tests/static/Lint/debug+release+instrumentation APKs pass; benchmark packaging remains
   unit_tests: VERIFIED     # current source: 663 app tests + 28 custom Lint-rule tests
-  device_tests: UNKNOWN    # manual emulator job not run since Phases 1-4
-  runtime: UNKNOWN         # no phone run since 2026-09-15
+  device_tests: PARTIAL    # API34 surface: four automated UI tests pass; broader suites remain
+  runtime: SURFACE_PASS    # 2026-10-19 phone surface; existing StrictMode disk reads found
   release_signing: BROKEN  # debug-signed (ISS-001)
   plan_phases_0_4: IMPLEMENTED
   plan_16_optimization: PARTIAL
 
 progress:
-  verified_weight: "3/60 (5%) of modernization roadmap; 3/26 first batch"
+  implemented_weight: "47/60 (~78%) of modernization roadmap; 26/26 first batch"
   source: docs/roadmap/IMPLEMENTATION_PROGRESS.md
-  remaining: integrated regression/static/package gates, protocol hardening, breadcrumbs, device and owner gates
+  remaining: benchmark packaging, main-thread preference reads, M12 hygiene, broader device/performance acceptance, current-head CI and human/owner gates
 
 done:
   - "M01 source-linked audit, architecture, decisions, roadmap and performance methodology"
@@ -60,8 +60,9 @@ critical_files:
 
 next:
   - inspect preserved worktree changes and build/audit-tools log plus exit markers
-  - finish M02-M10 regression validation and M11 protocol hardening
-  - run static analysis, full JVM suite, lint and packaging; prepare focused draft PRs
+  - read docs/testing/DEVICE_SURFACE_TEST_2026-10-19.md; four UI tests and manual surface pass
+  - address device-confirmed main-thread preference reads without changing persisted formats
+  - finish benchmark packaging and review focused draft PRs at their exact heads
   - TASK-001..005 device, baseline profile and hardware checks when environment exists
 
-confidence: source-audited; active changes not yet fully validated; device behaviour unknown
+confidence: source and host gates verified; API34 surface pass; broader device, recovery and performance acceptance open
