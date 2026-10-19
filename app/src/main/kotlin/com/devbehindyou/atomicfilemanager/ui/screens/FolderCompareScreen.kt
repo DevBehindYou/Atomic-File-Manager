@@ -166,6 +166,7 @@ fun FolderCompareScreen(
                                 mode = option
                                 onModeChanged?.invoke(option)
                             },
+                            modifier = Modifier.testTag("sync_mode_${option.name}"),
                         )
                     }
                 }

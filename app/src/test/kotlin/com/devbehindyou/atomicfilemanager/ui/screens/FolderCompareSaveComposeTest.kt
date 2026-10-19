@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -59,21 +60,21 @@ class FolderCompareSaveComposeTest {
             compose.onAllNodesWithTag("save_sync_pair").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("save_sync_pair").assertIsEnabled().performClick()
-        compose.onNodeWithText("Saved for one-tap sync").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Saved for one-tap sync").assertDoesNotExist()
 
         compose.runOnIdle { external.value = FolderCompareSaveState(null, saving = true) }
         compose.onNodeWithTag("save_sync_pair").assertIsNotEnabled()
-        compose.onNodeWithText("Saving…").assertExists()
-        compose.onNodeWithText("Saved for one-tap sync").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Saving…").assertExists()
+        compose.onNodeWithContentDescription("Saved for one-tap sync").assertDoesNotExist()
 
         compose.runOnIdle { external.value = FolderCompareSaveState(null, failed = true) }
         compose.onNodeWithText("Could not save this pair. Try again.").assertExists()
         compose.onNodeWithTag("save_sync_pair").assertIsEnabled().performClick()
-        compose.onNodeWithText("Saved for one-tap sync").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Saved for one-tap sync").assertDoesNotExist()
         assertEquals(listOf(SyncMode.COPY_NEW, SyncMode.COPY_NEW), requests)
 
         compose.runOnIdle { external.value = FolderCompareSaveState(SyncMode.COPY_NEW) }
-        compose.onNodeWithText("Saved for one-tap sync").assertExists()
+        compose.onNodeWithContentDescription("Saved for one-tap sync").assertExists()
         compose.onNodeWithTag("save_sync_pair").assertIsNotEnabled()
     }
 
@@ -93,8 +94,8 @@ class FolderCompareSaveComposeTest {
             }
         }
         awaitReviewButton()
-        compose.onNodeWithText("Mirror to right").assertIsOn()
-        compose.onNodeWithText("Copy new to right").assertIsOff()
+        compose.onNodeWithTag("sync_mode_MIRROR").assertIsOn()
+        compose.onNodeWithTag("sync_mode_COPY_NEW").assertIsOff()
         compose.onNodeWithTag("review_sync_button").performClick()
         compose.onNodeWithText(MIRROR_SUMMARY).assertExists()
         compose.onNodeWithText("− extra.txt").assertExists()
@@ -120,8 +121,8 @@ class FolderCompareSaveComposeTest {
             }
         }
         awaitReviewButton()
-        compose.onNodeWithText("Copy new to right").assertIsOn()
-        compose.onNodeWithText("Mirror to right").performClick().assertIsOn()
+        compose.onNodeWithTag("sync_mode_COPY_NEW").assertIsOn()
+        compose.onNodeWithTag("sync_mode_MIRROR").performClick().assertIsOn()
         compose.onNodeWithTag("review_sync_button").performClick()
         compose.onNodeWithText(MIRROR_SUMMARY).assertExists()
 
@@ -131,9 +132,9 @@ class FolderCompareSaveComposeTest {
             compose.onAllNodesWithText(MIRROR_SUMMARY).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("− extra.txt").assertExists()
-        compose.onNodeWithText("Cancel").performClick()
-        compose.onNodeWithText("Mirror to right").assertIsOn()
-        compose.onNodeWithText("Copy new to right").assertIsOff()
+        compose.onNodeWithContentDescription("Cancel").performClick()
+        compose.onNodeWithTag("sync_mode_MIRROR").assertIsOn()
+        compose.onNodeWithTag("sync_mode_COPY_NEW").assertIsOff()
         compose.onNodeWithTag("save_sync_pair").assertIsEnabled()
     }
 
