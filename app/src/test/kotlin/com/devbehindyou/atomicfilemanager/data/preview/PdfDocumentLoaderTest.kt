@@ -30,6 +30,98 @@ class PdfDocumentLoaderTest {
     private val id = FileNodeId("file:/document.pdf")
 
     @Test
+    fun `cache creation failure never acquires eager backend input`() =
+        runTest {
+            val notDirectory = File(directory, "unavailable-cache").apply { writeText("file") }
+            var acquired = false
+            val loader =
+                PdfDocumentLoader(
+                    { notDirectory },
+                    {
+                        acquired = true
+                        FileResult.Success(InputStreamProvider { ByteArrayInputStream(byteArrayOf(1)) })
+                    },
+                    { renderer() },
+                    StandardTestDispatcher(testScheduler),
+                )
+            assertTrue(loader.withDocument(id) { it.pageCount } is FileResult.Failure)
+            assertFalse(acquired)
+        }
+
+    @Test
+    fun `eager source closes after read failure and renderer failure`() =
+        runTest {
+            for (failRead in listOf(false, true)) {
+                var closed = false
+                val loader =
+                    PdfDocumentLoader<String>(
+                        { directory },
+                        {
+                            val stream =
+                                object : ByteArrayInputStream(byteArrayOf(1)) {
+                                    override fun read(
+                                        bytes: ByteArray,
+                                        offset: Int,
+                                        length: Int,
+                                    ): Int {
+                                        if (failRead) throw IOException("read failed")
+                                        return super.read(bytes, offset, length)
+                                    }
+
+                                    override fun close() {
+                                        closed = true
+                                        super.close()
+                                    }
+                                }
+                            FileResult.Success(InputStreamProvider { stream })
+                        },
+                        { throw IOException("renderer failed") },
+                        StandardTestDispatcher(testScheduler),
+                    )
+                assertTrue(loader.withDocument(id) { it.pageCount } is FileResult.Failure)
+                assertTrue(closed)
+                assertTrue(directory.listFiles()!!.isEmpty())
+            }
+        }
+
+    @Test
+    fun `zero length reads do not truncate the staged document`() =
+        runTest {
+            val loader =
+                PdfDocumentLoader(
+                    { directory },
+                    {
+                        FileResult.Success(
+                            InputStreamProvider {
+                                object : ByteArrayInputStream(byteArrayOf(1, 2)) {
+                                    private var initialRead = true
+
+                                    override fun read(
+                                        bytes: ByteArray,
+                                        offset: Int,
+                                        length: Int,
+                                    ): Int {
+                                        if (initialRead) {
+                                            initialRead = false
+                                            return 0
+                                        }
+                                        return super.read(bytes, offset, length)
+                                    }
+                                }
+                            },
+                        )
+                    },
+                    { file ->
+                        assertEquals(2L, file.length())
+                        renderer()
+                    },
+                    StandardTestDispatcher(testScheduler),
+                )
+            assertTrue(loader.withDocument(id) { it.pageCount } is FileResult.Success)
+            assertTrue(directory.listFiles()!!.isEmpty())
+        }
+
+    @Test
     fun `page count and repeated pages use one owned copy and close before deletion`() =
         runTest {
             var opens = 0

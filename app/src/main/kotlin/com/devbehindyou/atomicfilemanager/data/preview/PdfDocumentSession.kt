@@ -94,12 +94,12 @@ internal class PdfDocumentLoader<T>(
         try {
             require(byteLimit > 0)
             withContext(dispatcher) {
+                val file = File.createTempFile("atomic-pdf-", ".pdf", cacheDirectory()).also { cached = it }
                 val input =
                     when (val result = openInput(id)) {
                         is FileResult.Success -> result.value
                         is FileResult.Failure -> throw PdfLoadFailure(result.error)
                     }
-                val file = File.createTempFile("atomic-pdf-", ".pdf", cacheDirectory()).also { cached = it }
                 input.stream().use { source ->
                     FileOutputStream(file).use { output ->
                         val buffer = ByteArray(64 * 1024)
@@ -108,12 +108,13 @@ internal class PdfDocumentLoader<T>(
                             currentCoroutineContext().ensureActive()
                             val read = source.read(buffer)
                             if (read < 0) break
-                            if (read == 0) continue
-                            if (read.toLong() > byteLimit - total) {
-                                throw PdfLoadFailure(FileError.FileTooLarge("PDF preview", byteLimit))
+                            if (read > 0) {
+                                if (read.toLong() > byteLimit - total) {
+                                    throw PdfLoadFailure(FileError.FileTooLarge("PDF preview", byteLimit))
+                                }
+                                output.write(buffer, 0, read)
+                                total += read
                             }
-                            output.write(buffer, 0, read)
-                            total += read
                         }
                     }
                 }

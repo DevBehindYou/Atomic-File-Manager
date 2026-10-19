@@ -2,10 +2,13 @@ package com.devbehindyou.atomicfilemanager.data.preview
 
 import android.app.Application
 import android.content.Context
+import android.content.ContextWrapper
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.repository.InputStreamProvider
+import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -24,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -34,6 +38,71 @@ import java.util.concurrent.Executors
 class MediaPreviewOwnershipTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private val metadata = MediaMetadata(null, null, null, 0, 0, 0, null, null)
+
+    @Test
+    fun cacheCreationFailureDoesNotAcquireEagerBackendInput() =
+        runBlocking {
+            val unavailableDirectory = File.createTempFile("unavailable-cache-", ".tmp", context.cacheDir)
+            try {
+                val badCache =
+                    object : ContextWrapper(context) {
+                        override fun getCacheDir() = unavailableDirectory
+                    }
+                val backend = InMemoryBackend()
+                var acquired = false
+                val eagerBackend =
+                    object : StorageBackend by backend {
+                        override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                            acquired = true
+                            return FileResult.Success(InputStreamProvider { ByteArrayInputStream(byteArrayOf(1)) })
+                        }
+                    }
+                val helper = MediaPreviewHelper(badCache, metadataReader = { metadata }) { eagerBackend }
+                assertTrue(helper.prepareMedia(FileNodeId.ftp("server", "/clip.mp4"), "clip.mp4") is FileResult.Failure)
+                assertFalse(acquired)
+            } finally {
+                unavailableDirectory.delete()
+            }
+        }
+
+    @Test
+    fun eagerBackendStreamClosesOnCopyAndMetadataFailures() =
+        runBlocking {
+            for (failRead in listOf(false, true)) {
+                var closed = false
+                val backend = InMemoryBackend()
+                val eagerBackend =
+                    object : StorageBackend by backend {
+                        override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                            val stream =
+                                object : ByteArrayInputStream(byteArrayOf(1)) {
+                                    override fun read(
+                                        bytes: ByteArray,
+                                        offset: Int,
+                                        length: Int,
+                                    ): Int {
+                                        if (failRead) throw IOException("read failed")
+                                        return super.read(bytes, offset, length)
+                                    }
+
+                                    override fun close() {
+                                        closed = true
+                                        super.close()
+                                    }
+                                }
+                            return FileResult.Success(InputStreamProvider { stream })
+                        }
+                    }
+                val before = stagedFiles()
+                val helper =
+                    MediaPreviewHelper(context, metadataReader = {
+                        throw IOException("metadata failed")
+                    }) { eagerBackend }
+                assertTrue(helper.prepareMedia(FileNodeId.ftp("server", "/clip.mp4"), "clip.mp4") is FileResult.Failure)
+                assertTrue(closed)
+                assertEquals(before, stagedFiles())
+            }
+        }
 
     @Test
     fun localMediaUsesOriginalWithoutCopyAndCleanupNeverDeletesIt() =

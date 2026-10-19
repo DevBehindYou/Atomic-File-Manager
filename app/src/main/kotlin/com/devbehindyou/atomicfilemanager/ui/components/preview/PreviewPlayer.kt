@@ -38,24 +38,18 @@ fun rememberPreviewPlayer(
     onRelease: () -> Unit,
 ): ExoPlayer {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val player =
         remember(uri) {
             ExoPlayer.Builder(context.applicationContext).build().apply {
                 setMediaItem(MediaItem.fromUri(uri))
-                this.playWhenReady = playWhenReady
+                this.playWhenReady = previewAutoplayAllowed(playWhenReady, lifecycleOwner.lifecycle)
                 prepare()
             }
         }
-    val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(player, lifecycleOwner) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) player.pause()
-            }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        val binding = PreviewPlayerLifecycleBinding(lifecycleOwner.lifecycle, player::pause)
+        onDispose { binding.close() }
     }
     DisposableEffect(player) {
         onDispose {
@@ -64,6 +58,31 @@ fun rememberPreviewPlayer(
         }
     }
     return player
+}
+
+internal fun previewAutoplayAllowed(
+    requested: Boolean,
+    lifecycle: Lifecycle,
+): Boolean = requested && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
+/** Synchronizes late preparation and owner changes without restarting playback on foregrounding. */
+internal class PreviewPlayerLifecycleBinding(
+    private val lifecycle: Lifecycle,
+    private val pause: () -> Unit,
+) : AutoCloseable {
+    private val observer =
+        LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) pause()
+        }
+
+    init {
+        lifecycle.addObserver(observer)
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) pause()
+    }
+
+    override fun close() {
+        lifecycle.removeObserver(observer)
+    }
 }
 
 @Composable

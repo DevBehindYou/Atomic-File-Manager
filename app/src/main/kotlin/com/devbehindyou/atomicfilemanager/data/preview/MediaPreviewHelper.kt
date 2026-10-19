@@ -222,10 +222,6 @@ class MediaPreviewHelper(
         id: FileNodeId,
         fileName: String,
     ): File? {
-        val backend = backendSelector(id)
-        val inRes = backend.openInput(id)
-        if (inRes !is FileResult.Success) return null
-
         val extension =
             fileName.substringAfterLast('.', "tmp").takeIf {
                 it.length <= 12 && it.all(Char::isLetterOrDigit)
@@ -233,6 +229,8 @@ class MediaPreviewHelper(
         val cacheFile = File.createTempFile("media-preview-", ".$extension", context.cacheDir)
         var completed = false
         return try {
+            val inRes = backendSelector(id).openInput(id)
+            if (inRes !is FileResult.Success) return null
             inRes.value.stream().use { input ->
                 FileOutputStream(cacheFile).use { output ->
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
