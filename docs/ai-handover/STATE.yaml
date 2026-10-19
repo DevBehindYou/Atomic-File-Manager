@@ -1,13 +1,14 @@
 protocol: AI-HANDOVER/V2
-updated: 2026-10-08
-project: atomic-file-manager   # repo DevBehindYou/Refract-Full-File-Manager, launcher name "Refract"
-objective: all-in-one-plan-complete; device verification and remaining §16 optimization
+updated: 2026-10-19
+project: atomic-file-manager   # repo DevBehindYou/Atomic-File-Manager
+objective: evidence-based architecture modernization; safety fixes and integrated validation
 
 repo:
-  branch: main
-  commit: "e2b1509"
-  dirty: false
-  open_prs: []
+  branch: codex/architecture-audit
+  commit: "4d19ae1" # source checkpoint; documentation updates follow
+  baseline: "7782660"
+  dirty: true
+  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
 
 stack:
   - kotlin-2.2.10
@@ -18,8 +19,8 @@ stack:
   - manual DI (AppContainer), hilt declared but unused
 
 status:
-  build: VERIFIED          # CI static analysis + unit + R8 release on main
-  unit_tests: VERIFIED     # ~535 JVM/Robolectric tests
+  build: IN_PROGRESS       # Kotlin, ktlint, detekt pass; Android Lint/packaging running
+  unit_tests: VERIFIED     # current source: 663 app tests + 28 custom Lint-rule tests
   device_tests: UNKNOWN    # manual emulator job not run since Phases 1-4
   runtime: UNKNOWN         # no phone run since 2026-09-15
   release_signing: BROKEN  # debug-signed (ISS-001)
@@ -27,10 +28,12 @@ status:
   plan_16_optimization: PARTIAL
 
 progress:
-  code: "~99%"
-  remaining: device verification, owner actions, optional §16 items
+  verified_weight: "3/60 (5%) of modernization roadmap; 3/26 first batch"
+  source: docs/roadmap/IMPLEMENTATION_PROGRESS.md
+  remaining: integrated regression/static/package gates, protocol hardening, breadcrumbs, device and owner gates
 
 done:
+  - "M01 source-linked audit, architecture, decisions, roadmap and performance methodology"
   - plan phases 0-4 (PRs #1-#37)
   - "§16: H1 H2 H3 H7 H8 H10, StrictMode, JankStats, monkey job (#38 #39)"
   - "§16 partial: H4 H5 H6 H9 (#39 #40 #41)"
@@ -41,8 +44,8 @@ pending:
   P2: [TASK-010..TASK-016]
 
 constraints:
-  - one PR per task on claude/<topic>; auto-merge only when CI green and no conflict
-  - no model identifiers in commits or PRs; session trailers on commits
+  - focused PRs on codex/<topic>; high-risk filesystem changes require human review
+  - no fabricated attribution, session trailers or validation evidence
   - never skip or disable tests; never rewrite shared history
   - no secrets in repo
   - plain-language UI (plan §7.4); every mutation through FileOperationsEngine + journal
@@ -56,8 +59,9 @@ critical_files:
   - .github/workflows/ci.yml
 
 next:
-  - TASK-001 run emulator job
-  - TASK-002 generate baseline profile
-  - TASK-003..005 hardware checks
+  - inspect preserved worktree changes and build/audit-tools log plus exit markers
+  - finish M02-M10 regression validation and M11 protocol hardening
+  - run static analysis, full JVM suite, lint and packaging; prepare focused draft PRs
+  - TASK-001..005 device, baseline profile and hardware checks when environment exists
 
-confidence: HIGH (code/CI), LOW (device behaviour)
+confidence: source-audited; active changes not yet fully validated; device behaviour unknown

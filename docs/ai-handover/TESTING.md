@@ -1,6 +1,8 @@
 # Testing
 
-Last verified commit: `e2b1509` (`main`)
+Current modernization verification: see [PERFORMANCE_BASELINE](../testing/PERFORMANCE_BASELINE.md) and [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md). Integrated Kotlin production/test compilation and formatting have passed at intermediate checkpoints; the latest full JVM suite, static and package gates are pending. Do not apply historical green CI to the current branch.
+
+Historical last verified feature commit: `e2b1509` (`main`)
 
 | Check | Status | Evidence |
 |---|---|---|
