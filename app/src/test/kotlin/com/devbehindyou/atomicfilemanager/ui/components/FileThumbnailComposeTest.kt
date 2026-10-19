@@ -20,6 +20,8 @@ import com.devbehindyou.atomicfilemanager.data.preview.ThumbnailSource
 import com.devbehindyou.atomicfilemanager.data.preview.thumbnailNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -107,6 +109,64 @@ class FileThumbnailComposeTest {
         compose.runOnIdle { show.value = false }
         await { cancelled }
         compose.onNodeWithTag("file_thumbnail_${folder.id.raw}").assertDoesNotExist()
+    }
+
+    @Test
+    fun permissionRevocationRejectsLatePreviewBeforeAndAfterCompletion() {
+        val initial = thumbnailNode(name = "folder").copy(isDirectory = true)
+        val folder = mutableStateOf(initial)
+        val pending = CompletableDeferred<List<ThumbnailSource>>()
+        var started = 0
+        var completed = false
+        val loader: suspend (FileNode) -> List<ThumbnailSource> = {
+            started++
+            val result = withContext(NonCancellable) { pending.await() }
+            completed = true
+            result
+        }
+        compose.setContent {
+            AtomicTheme(darkTheme = false, wallpaperAccent = false) {
+                FileThumbnail(folder.value, folderLoader = loader)
+            }
+        }
+        await { started == 1 }
+        compose.runOnIdle { folder.value = initial.copy(access = initial.access.copy(readable = false)) }
+        compose.onNodeWithTag("folder_miniature").assertDoesNotExist()
+        assertEquals(1, started)
+        compose.runOnIdle { pending.complete(listOf(ThumbnailSource(Any(), "late-private", ThumbnailKind.IMAGE))) }
+        await { completed }
+        compose.onNodeWithTag("folder_miniature").assertDoesNotExist()
+        compose.onNodeWithTag("thumbnail_image_late-private").assertDoesNotExist()
+        compose.onNodeWithTag("file_type_icon_${initial.id.raw}").assertIsDisplayed()
+    }
+
+    @Test
+    fun changedFolderMetadataHidesOldMiniatureWhileReloading() {
+        val initial = thumbnailNode(name = "folder").copy(isDirectory = true)
+        val folder = mutableStateOf(initial)
+        val pending = CompletableDeferred<List<ThumbnailSource>>()
+        var reloading = false
+        val loader: suspend (FileNode) -> List<ThumbnailSource> = {
+            if (it.modifiedAt == initial.modifiedAt) {
+                listOf(ThumbnailSource(Any(), "old-revision", ThumbnailKind.IMAGE))
+            } else {
+                reloading = true
+                pending.await()
+            }
+        }
+        compose.setContent {
+            AtomicTheme(darkTheme = false, wallpaperAccent = false) {
+                FileThumbnail(folder.value, folderLoader = loader)
+            }
+        }
+        compose.onNodeWithTag("thumbnail_image_old-revision").assertExists()
+        compose.runOnIdle { folder.value = initial.copy(modifiedAt = initial.modifiedAt + 1) }
+        await { reloading }
+        compose.onNodeWithTag("folder_miniature").assertDoesNotExist()
+        compose.onNodeWithTag("thumbnail_image_old-revision").assertDoesNotExist()
+        compose.runOnIdle { pending.complete(listOf(ThumbnailSource(Any(), "new-revision", ThumbnailKind.IMAGE))) }
+        compose.onNodeWithTag("thumbnail_image_new-revision").assertExists()
+        compose.onNodeWithTag("thumbnail_image_old-revision").assertDoesNotExist()
     }
 
     @Test

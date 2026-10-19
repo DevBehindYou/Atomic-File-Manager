@@ -92,7 +92,7 @@ class FolderThumbnailReaderTest {
         }
 
     @Test
-    fun `symlink folders and children are skipped`() =
+    fun `symlink folders children and ancestors are skipped`() =
         runBlocking {
             val target = Files.createDirectory(directory.resolve("target"))
             val image = Files.createFile(target.resolve("photo.jpg"))
@@ -108,7 +108,49 @@ class FolderThumbnailReaderTest {
             assertTrue(reader.read(folder()).isEmpty())
             val folderLink = Files.createSymbolicLink(directory.resolve("folder-link"), target)
             assertTrue(reader.read(folder().copy(id = FileNodeId.file(folderLink.toString()))).isEmpty())
+            val nested = Files.createDirectory(target.resolve("nested"))
+            Files.createFile(nested.resolve("private.jpg"))
+            var opened = false
+            val ancestorReader =
+                FolderThumbnailReader(openDirectory = {
+                    opened = true
+                    stream(emptyList())
+                })
+            val alias = folderLink.resolve("nested")
+            assertTrue(ancestorReader.read(folder().copy(id = FileNodeId.file(alias.toString()))).isEmpty())
+            assertFalse(opened)
         }
+
+    @Test
+    fun `dot and nomedia ancestors block a nested miniature before listing`() =
+        runBlocking {
+            val nested = Files.createDirectories(directory.resolve("parent").resolve("nested"))
+            Files.createFile(nested.resolve("photo.jpg"))
+            Files.createFile(nested.parent.resolve(".nomedia"))
+            val hidden = Files.createDirectories(directory.resolve(".hidden").resolve("nested"))
+            var opened = false
+            val reader =
+                FolderThumbnailReader(openDirectory = {
+                    opened = true
+                    stream(emptyList())
+                })
+            assertTrue(reader.read(folder().copy(id = FileNodeId.file(nested.toString()))).isEmpty())
+            assertTrue(reader.read(folder().copy(id = FileNodeId.file(hidden.toString()))).isEmpty())
+            assertFalse(opened)
+        }
+
+    @Test
+    fun `ancestor preflight has a fixed bound and checks root before descendants`() {
+        val normalized = directory.toAbsolutePath().normalize()
+        val chain = checkNotNull(boundedThumbnailAncestors(normalized))
+        assertEquals(normalized.root, chain.first())
+        assertEquals(normalized, chain.last())
+        val tooDeep =
+            (0..FolderThumbnailReader.MAX_ANCESTORS).fold(normalized) { path, index ->
+                path.resolve(index.toString())
+            }
+        assertEquals(null, boundedThumbnailAncestors(tooDeep))
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test

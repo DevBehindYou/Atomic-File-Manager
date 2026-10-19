@@ -14,6 +14,7 @@ import java.nio.file.DirectoryIteratorException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
@@ -33,14 +34,11 @@ internal class FolderThumbnailReader(
             }
             val id = FileNodeId.parse(folder.id.raw) ?: return@withContext emptyList()
             try {
-                val directory = Paths.get(id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme))
-                // A dot folder, symlink or explicit media-hiding marker must not leak a miniature.
-                if (directory.any { it.toString().startsWith('.') } || Files.isSymbolicLink(directory) ||
-                    !Files.isDirectory(directory, NOFOLLOW_LINKS) ||
-                    Files.exists(directory.resolve(".nomedia"), NOFOLLOW_LINKS)
-                ) {
-                    return@withContext emptyList()
-                }
+                val directory =
+                    Paths.get(
+                        id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme),
+                    ).toAbsolutePath().normalize()
+                if (!allowsMiniature(directory)) return@withContext emptyList()
                 scan(directory)
             } catch (_: IOException) {
                 emptyList()
@@ -53,6 +51,26 @@ internal class FolderThumbnailReader(
             }
         }
 
+    private suspend fun allowsMiniature(directory: Path): Boolean {
+        val ancestors = boundedThumbnailAncestors(directory) ?: return false
+        // Check from the root so no descendant of a symlink is inspected before the link is rejected.
+        for (ancestor in ancestors) {
+            currentCoroutineContext().ensureActive()
+            if (ancestor.fileName?.toString()?.startsWith('.') == true) return false
+            val attributes = Files.readAttributes(ancestor, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+            if (attributes.isSymbolicLink || !attributes.isDirectory || hasNoMediaMarker(ancestor)) return false
+        }
+        return true
+    }
+
+    private fun hasNoMediaMarker(directory: Path): Boolean =
+        try {
+            Files.readAttributes(directory.resolve(".nomedia"), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+            true
+        } catch (_: NoSuchFileException) {
+            false
+        }
+
     private suspend fun scan(directory: Path): List<ThumbnailSource> {
         val previews = ArrayList<ThumbnailSource>(MAX_PREVIEWS)
         openDirectory(directory).use { entries ->
@@ -62,19 +80,22 @@ internal class FolderThumbnailReader(
                 currentCoroutineContext().ensureActive()
                 val child = iterator.next()
                 examined++
-                if (child.fileName.toString().startsWith('.')) continue
-                val attributes =
-                    try {
-                        Files.readAttributes(child, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-                    } catch (_: IOException) {
-                        continue
-                    }
-                if (!attributes.isRegularFile || attributes.isSymbolicLink) continue
-                val node = childNode(child, attributes)
-                thumbnailSourceOf(node)?.let(previews::add)
+                childCandidate(child)?.let(previews::add)
             }
         }
         return previews.toList()
+    }
+
+    private fun childCandidate(child: Path): ThumbnailSource? {
+        if (child.fileName.toString().startsWith('.')) return null
+        val attributes =
+            try {
+                Files.readAttributes(child, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+            } catch (_: IOException) {
+                return null
+            }
+        if (!attributes.isRegularFile || attributes.isSymbolicLink) return null
+        return thumbnailSourceOf(childNode(child, attributes))
     }
 
     private fun childNode(
@@ -91,5 +112,17 @@ internal class FolderThumbnailReader(
     companion object {
         const val MAX_EXAMINED = 64
         const val MAX_PREVIEWS = 4
+        const val MAX_ANCESTORS = 128
     }
+}
+
+/** Pure bound check before any metadata access; input is absolute and normalized. */
+internal fun boundedThumbnailAncestors(directory: Path): List<Path>? {
+    val ancestors = ArrayList<Path>()
+    var current: Path? = directory
+    while (current != null && ancestors.size < FolderThumbnailReader.MAX_ANCESTORS) {
+        ancestors.add(current)
+        current = current.parent
+    }
+    return if (current == null) ancestors.asReversed() else null
 }

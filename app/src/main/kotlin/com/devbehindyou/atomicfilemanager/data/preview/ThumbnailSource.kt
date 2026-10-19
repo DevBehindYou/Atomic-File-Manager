@@ -25,8 +25,22 @@ fun thumbnailKind(node: FileNode): ThumbnailKind? {
         mime.startsWith("image/") -> ThumbnailKind.IMAGE
         mime.startsWith("video/") -> ThumbnailKind.VIDEO
         !genericThumbnailMime(mime) -> null
-        FileCollection.IMAGES.matches(node) -> ThumbnailKind.IMAGE
-        FileCollection.VIDEOS.matches(node) -> ThumbnailKind.VIDEO
+        else ->
+            mediaCollectionKind(node.id) ?: when {
+                FileCollection.IMAGES.matches(node) -> ThumbnailKind.IMAGE
+                FileCollection.VIDEOS.matches(node) -> ThumbnailKind.VIDEO
+                else -> null
+            }
+    }
+}
+
+private fun mediaCollectionKind(id: FileNodeId): ThumbnailKind? {
+    if (id.prefix != FileNodeId.Prefix.MEDIA || FileNodeId.parse(id.raw) == null) return null
+    val ref = id.toMediaRef()
+    if (ref.isCollectionRoot) return null
+    return when (ref.collection) {
+        "images" -> ThumbnailKind.IMAGE
+        "video" -> ThumbnailKind.VIDEO
         else -> null
     }
 }

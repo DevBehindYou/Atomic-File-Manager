@@ -32,6 +32,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSha
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.data.preview.ThumbnailKind
 import com.devbehindyou.atomicfilemanager.data.preview.genericThumbnailMime
 import com.devbehindyou.atomicfilemanager.data.preview.thumbnailKind
 import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
@@ -44,17 +45,16 @@ private const val HIDDEN_ALPHA = 0.62f
 /** Outlined type icon for a node (spec §10: one icon family, no per-type colours). */
 fun iconFor(node: FileNode): ImageVector {
     val mime = node.mimeType.orEmpty().lowercase().substringBefore(';').trim()
+    val visualKind = thumbnailKind(node)
     return when {
         node.isDirectory -> AtomicIcons.Files
-        mime.startsWith("image/") -> AtomicIcons.Image
-        mime.startsWith("video/") -> AtomicIcons.Video
+        visualKind == ThumbnailKind.IMAGE -> AtomicIcons.Image
+        visualKind == ThumbnailKind.VIDEO -> AtomicIcons.Video
         mime.startsWith("audio/") -> AtomicIcons.AudioFile
         mime == "application/vnd.android.package-archive" -> AtomicIcons.Apk
         mime.contains("zip") || mime.contains("compressed") || mime.contains("archive") -> AtomicIcons.Archive
         genericThumbnailMime(mime) ->
             when {
-                FileCollection.IMAGES.matches(node) -> AtomicIcons.Image
-                FileCollection.VIDEOS.matches(node) -> AtomicIcons.Video
                 FileCollection.AUDIO.matches(node) -> AtomicIcons.AudioFile
                 FileCollection.APKS.matches(node) -> AtomicIcons.Apk
                 FileCollection.ARCHIVES.matches(node) -> AtomicIcons.Archive

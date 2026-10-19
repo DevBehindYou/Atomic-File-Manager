@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -51,26 +52,29 @@ fun FileThumbnail(
         AtomicIconTile(iconFor(node), Modifier.testTag("file_type_icon_${node.id.raw}"))
         if (source != null) {
             ThumbnailImage(source, AtomicSize.iconTile)
-        } else if (node.isDirectory && !node.isHidden) {
-            val reader = remember { FolderThumbnailReader() }
-            val previews by produceState(emptyList<ThumbnailSource>(), node, folderLoader) {
-                value =
-                    try {
-                        (folderLoader ?: reader::read)(node)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        emptyList()
-                    }
-            }
-            if (previews.isNotEmpty()) {
-                Icon(
-                    iconFor(node),
-                    contentDescription = null,
-                    tint = Atomic.colors.content,
-                    modifier = Modifier.align(Alignment.TopStart).padding(AtomicSpacing.s4).size(AtomicSpacing.s16),
-                )
-                FolderMiniature(previews, Modifier.align(Alignment.BottomEnd).padding(AtomicSpacing.s4))
+        } else if (node.isDirectory && !node.isHidden && node.access.readable) {
+            key(node, folderLoader) {
+                val reader = remember { FolderThumbnailReader() }
+                val previews by produceState(emptyList<ThumbnailSource>(), node, folderLoader) {
+                    value = emptyList()
+                    value =
+                        try {
+                            (folderLoader ?: reader::read)(node)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                }
+                if (previews.isNotEmpty()) {
+                    Icon(
+                        iconFor(node),
+                        contentDescription = null,
+                        tint = Atomic.colors.content,
+                        modifier = Modifier.align(Alignment.TopStart).padding(AtomicSpacing.s4).size(AtomicSpacing.s16),
+                    )
+                    FolderMiniature(previews, Modifier.align(Alignment.BottomEnd).padding(AtomicSpacing.s4))
+                }
             }
         }
     }

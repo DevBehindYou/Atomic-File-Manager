@@ -72,6 +72,24 @@ class ThumbnailSourceTest {
     }
 
     @Test
+    fun genericMediaUsesItsCollectionWhenTheDisplayNameHasNoExtension() {
+        val image = thumbnailNode(FileNodeId.media("external", "images", 42), "42", "application/octet-stream")
+        val video = thumbnailNode(FileNodeId.media("external", "video", 43), "opaque", null)
+        assertEquals(ThumbnailKind.IMAGE, thumbnailKind(image))
+        assertEquals(ThumbnailKind.VIDEO, thumbnailKind(video))
+        assertSame(AtomicIcons.Image, iconFor(image))
+        assertSame(AtomicIcons.Video, iconFor(video))
+        assertEquals("content://media/external/images/media/42", thumbnailSourceOf(image)?.data.toString())
+        assertEquals("content://media/external/video/media/43", thumbnailSourceOf(video)?.data.toString())
+        // A generic provider MIME cannot make the filename override the known video collection.
+        assertEquals(ThumbnailKind.VIDEO, thumbnailKind(video.copy(name = "wrong.jpg")))
+        assertNull(thumbnailKind(video.copy(mimeType = "text/plain")))
+        assertSame(AtomicIcons.Document, iconFor(video.copy(mimeType = "text/plain")))
+        assertNull(thumbnailKind(video.copy(id = FileNodeId.media("external", "video", -1))))
+        assertNull(thumbnailKind(video.copy(id = FileNodeId("media:external:video:bad"))))
+    }
+
+    @Test
     fun requestSizeAndRevision() =
         runBlocking {
             val context = RuntimeEnvironment.getApplication()
