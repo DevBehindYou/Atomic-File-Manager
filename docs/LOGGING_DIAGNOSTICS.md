@@ -1,113 +1,46 @@
 # Logging and Diagnostics
 
-Goal: diagnose a user's problem from a bug report **without** learning anything about their
-files.
+Source review: 19 October 2026. This document separates implemented diagnostics from future requirements. The earlier structured-logger specification was a design target, not a description of the running app.
 
-## 1. Structured logger
+## Implemented logging
 
-```kotlin
-interface Logger {
-    fun d(tag: LogTag, event: String, vararg fields: Pair<String, Any?>)
-    fun i(tag: LogTag, event: String, vararg fields: Pair<String, Any?>)
-    fun w(tag: LogTag, event: String, error: FileError? = null, vararg fields: Pair<String, Any?>)
-    fun e(tag: LogTag, event: String, throwable: Throwable? = null, vararg fields: Pair<String, Any?>)
-}
-
-enum class LogTag { STORAGE, OPERATION, PERMISSION, SEARCH, GLASS, PREVIEW, ARCHIVE, NAV }
-```
-
-Log lines are events with fields, never prose:
-
-```text
-2026-08-27T11:04:12.881Z  I  OPERATION  op.started
-    opId=7c1f  type=COPY  items=340  bytes=2147483648
-    srcVolume=internal  dstVolume=sdcard  backend=FILE→SAF
-```
-
-Prose logs ("copying files now…") cannot be filtered, aggregated, or diffed. Events can.
-
-## 2. Operation IDs
-
-* Every `FileOperation` carries an 8-char `opId` from creation to completion.
-* Every log line touching that operation includes it.
-* The `opId` is shown in the operation card's detail view and in the exported diagnostics,
-  so a user's report can be tied to a single trace.
-* Search sessions and storage scans get the same treatment (`searchId`, `scanId`).
-
-## 3. Redaction — the hard rule
-
-| Data | Debug build | Release build |
+| Source | Behavior | Scope |
 |---|---|---|
-| File name | plaintext | `sha256(name).take(8)` |
-| Full path | plaintext | `sha256(path).take(8)` + depth + volume type |
-| Volume label | plaintext | volume **type** only (`internal` / `sdcard` / `usb`) |
-| MIME type | plaintext | plaintext (not identifying) |
-| File size | plaintext | bucketed (`<1MB`, `1-10MB`, `10-100MB`, `>100MB`) |
-| Extension | plaintext | plaintext (not identifying) |
-| File contents | never | never |
-| SAF URI | plaintext | authority only |
+| `ui/util/DebugJank.kt` | `Log.w` under tag `AtomicJank` reports janky-frame duration and `frame.states`. | Enabled only when `ApplicationInfo.FLAG_DEBUGGABLE` is set. No app calls adding file names or paths to performance states were found. |
+| `AtomicApp.kt` | StrictMode logs main-thread disk/network access and leaked closeable/SQLite objects through `penaltyLog()`. | Enabled only for a debuggable application. Platform-generated diagnostic details are not passed through an app redactor. |
+| `service/FileOperationService.kt` | `Log.w` reports an `IllegalStateException` when the foreground operation service cannot be started. | Not guarded by a debug flag. The call includes the exception and stack trace; the start Intent contains only the service component. |
 
-Redaction is applied by the logger itself, not by call sites — a call site that forgets is a
-leak, and there are hundreds of call sites.
+These were the direct logging sites found in `app/src/main` by searching for Android Log calls, print/stack-trace calls, and logger APIs. No direct call logging a password, session token, file contents, or full user path was demonstrated. This is a bounded source review, not proof that platform or transitive-library logs can never contain sensitive data.
 
-```kotlin
-// enforced: the logger's field encoder redacts by type
-@JvmInline value class FileName(val value: String)   // always redacted in release
-@JvmInline value class FilePath(val value: String)   // always redacted in release
-```
+There is no implemented structured `Logger` interface, automatic name/path hashing, release redaction test suite, 500-event ring buffer, Settings diagnostics export, crash-report consent flow, or crash-upload build flavour. The main manifest includes network permissions for the storage and sharing features described in [Privacy](PRIVACY.md).
 
-A unit test feeds known paths and names through the release logger and asserts they do not
-appear in the output.
+## Persistent operation and recovery records
 
-## 4. In-memory ring buffer
+The Room operation journal is application data, not an anonymized diagnostic log. It records full source and destination node IDs, options, status, timestamps, progress, and error text. `OperationQueue.journalStateOf` persists `FileError.toString()` for failures; error fields may contain names and paths. Hidden-file recovery journals also retain original/current locations.
 
-* The last **500 events** are held in memory (roughly 60 KB) regardless of build type.
-* Exported by the user from Settings → About → Export diagnostics, producing a `.txt` in
-  Downloads that the user can inspect before sharing. **Nothing is sent automatically.**
-* The export includes: app version, Android version, device model, glass tier, access level,
-  volume types and their mount state, and the ring buffer.
-* The export explicitly does **not** include: file names, paths, or the contents of anything.
+`OperationJournalDao.pruneFinishedBefore` defines a deletion query, but no production invocation was found. There is no implemented 24-hour path redaction or seven-day operation-history retention policy. Recovery metadata must not be described as anonymous or included wholesale in a future support export.
 
-## 5. Crash reporting
+## Performance evidence
 
-* Opt-in, off by default, and only present in the crash-reporting build flavour. The
-  base/F-Droid flavour has no `INTERNET` permission, so the guarantee is structural.
-* A crash report contains: stack trace, app/OS/device version, glass tier, `opId` of any
-  in-flight operation, and the last 50 redacted events.
-* Custom keys attached to every report: `accessLevel`, `glassTier`, `activeOperationType`,
-  `volumeTypes`, `apiLevel`.
-* The reporter runs the same redaction pass as the logger.
+- Debug JankStats supplies logcat observations; no production glass-tier demotion based on those observations was found.
+- The `:benchmark` module is enabled and contains macrobenchmark code. Device results and performance gates must be reported from actual runs, not inferred from the presence of that module.
+- File-operation progress exposes bytes, counts, and speed to the UI. This does not establish a bucketed throughput log or device-performance improvement.
+- Debug StrictMode is implemented. The previously proposed developer backend inspector, recomposition overlay, LeakCanary integration, and verbose SAF logger were not found.
 
-## 6. Performance metrics
+See [Performance Baseline](testing/PERFORMANCE_BASELINE.md) for recorded validation and outstanding measurements.
 
-Collected locally, never transmitted:
+## Requirements for future diagnostics
 
-| Metric | Source | Use |
-|---|---|---|
-| Frame timing | `JankStats` | Feeds `GlassCapabilityManager` tier demotion |
-| Cold start | `reportFullyDrawn()` + macrobenchmark | Regression gate in CI |
-| Folder open latency | Manual trace around `observeDirectory` | Regression gate |
-| Copy throughput | Executor, bytes/second | Shown to the user; logged bucketed |
-| Shader compile time | First `RuntimeShader` construction | Tier A eligibility on unknown GPUs |
-| Scan duration | Storage analysis | Cached with the result |
+These requirements are proposed work, not current capabilities:
 
-## 7. Debug-only tools
+1. Centralize event logging before adding more call sites. Explicitly classify every field, including exception messages, causes, stack traces, provider IDs, URLs, and network error strings.
+2. Exclude passwords, session tokens, file contents, and credentials from all logs. Minimize file names and paths in both debug and release builds. Truncated unsalted hashes of names or paths are not a guarantee of anonymity.
+3. Bound retained events and message lengths. Keep logging out of per-buffer copy loops, and avoid eager formatting when a log level is disabled.
+4. If a user-controlled support export is implemented, define its exact contents and retention, test it with recognizable secret/path fixtures, and allow inspection before sharing. Persistent recovery records require a separate redaction step.
+5. Treat any crash-upload SDK or automatic reporting endpoint as a new feature requiring a documented data flow and an updated privacy review. No such opt-in reporter is currently implemented.
 
-Compiled out of release via `BuildConfig.DEBUG` and R8, not a runtime flag:
+## Review boundaries
 
-* A developer screen showing the resolved glass tier and the inputs that produced it.
-* A backend inspector listing each volume, its selected backend, and its `AccessFlags`.
-* A recomposition counter overlay for the hot components.
-* LeakCanary.
-* Verbose SAF query logging.
+This pass inspected application source, manifest declarations, declared dependencies, and component wiring. It did not capture network traffic, inspect every dependency's implementation, certify release logcat output on a device, or verify a store privacy submission. No new telemetry, logging, or production behavior was added by this documentation update.
 
-## 8. Rules
-
-1. No `Log.d` calls anywhere. Use the `Logger` interface, always.
-2. No user-facing string is ever logged (they are localised and unstable).
-3. No `printStackTrace()`.
-4. Never log inside a tight loop — the copy loop logs at start, at completion, and on error
-   only.
-5. Logging must never allocate on a hot path; field varargs are only evaluated when the level
-   is enabled.
-6. Any new field added to a log line must be classified in the redaction table above.
+Kotlin paths above are relative to `app/src/main/kotlin/com/devbehindyou/atomicfilemanager/`.

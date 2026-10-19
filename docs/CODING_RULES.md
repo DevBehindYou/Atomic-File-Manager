@@ -2,6 +2,11 @@
 
 Hard rules. Each has a rationale, because a rule without one gets rationalised away at 2am.
 
+These are engineering policies and targets, not proof that every existing call site complies
+or every rule has an automated check. See [Current architecture](architecture/CURRENT_ARCHITECTURE.md)
+for the verified implementation. Dependency lifetimes currently use manual `AppContainer`
+wiring; these rules do not require a Hilt migration.
+
 ---
 
 ## Language and framework
@@ -10,7 +15,7 @@ Hard rules. Each has a rationale, because a rule without one gets rationalised a
 2. **Compose only.** No XML layouts, no Fragments, no `View`-based custom components.
    One `Activity`. *(Two UI systems means two of every problem.)*
 3. **Coroutines only** for async. No RxJava, no `AsyncTask`, no raw `Thread`.
-4. Target JVM 17, `compileSdk`/`targetSdk` 36, `minSdk` 27.
+4. Target Java/JVM 21, `compileSdk`/`targetSdk` 36, `minSdk` 27; CI uses JDK 21.
 
 ## Architecture
 

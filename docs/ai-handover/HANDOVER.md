@@ -1,6 +1,10 @@
 # Project Handover
 
-Last updated: 2026-10-08
+Last updated: 2026-10-19
+
+Current checkpoint: [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and [CURRENT_STATE](CURRENT_STATE.md) supersede the historical October 8 status below. Active branch `codex/architecture-audit`, source baseline `7782660`. Audit/design are complete; safety, performance, provider and protocol fixes are integrated and under validation. Preserve worktrees and generated verification logs. Use `codex/` branches, focused draft PRs, actual check results, and human review for high-risk filesystem changes. No current device benchmark or production-signing evidence exists.
+
+The compact block and feature inventory below describe the earlier merged feature plan.
 Verified against commit: `e2b1509` (`main`)
 
 ## Compact context

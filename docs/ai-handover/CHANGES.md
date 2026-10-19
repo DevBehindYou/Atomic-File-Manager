@@ -2,6 +2,12 @@
 
 Grouped by plan area. Git and the PRs have the line-level detail; this file keeps the why and the result. A status of IMPLEMENTED means merged with CI green (unit tests, Robolectric, Lint and the R8 build); it does **not** mean tested on a device.
 
+## Modernization checkpoint — 19 October 2026
+
+These changes are integrated locally and published in fourteen implementation draft PRs plus the audit/documentation draft, with 663 app tests and 28 custom Lint-rule tests passing: archive staging/failure propagation; durable queue admission and visible journal errors; exclusive Wi-Fi uploads and bounded sockets; owned secondary browse lifecycle; IO dispatch; actual progress throttling; cancellation-safe trash reconciliation; filtering before search limits; provider-aware SAF ancestry; actual-ID breadcrumbs; FTPS TLS and bounded replies; bounded complete DAV XML and conditional mutations. ktlint/detekt, debug/release Lint and debug/release/instrumentation APK assembly pass. Four automated API34 UI tests and manual surface checks pass; the [device report](../testing/DEVICE_SURFACE_TEST_2026-10-19.md) records existing main-thread disk reads requiring follow-up. Benchmark packaging remains. See [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md); no remote CI or device speedup is claimed.
+
+## Historical merged feature work
+
 | ID | Plan | What | PRs | Status |
 |---|---|---|---|---|
 | CHG-001 | 0.1 | Durable operation queue: journal, resume prompt, notification, Operations screen | #1 | IMPLEMENTED |

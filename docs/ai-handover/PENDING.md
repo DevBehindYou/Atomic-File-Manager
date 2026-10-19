@@ -1,8 +1,8 @@
 # Pending
 
-Last updated: 2026-10-08
+Last updated: 2026-10-19
 
-All of plan Phases 0 to 4 are merged. What is left needs a real device, the owner, or is optional. The order below is the recommended order.
+Feature Phases 0–4 are merged, but the October audit found implementation defects requiring fixes. Follow [OPTIMIZATION_ROADMAP](../roadmap/OPTIMIZATION_ROADMAP.md) and its [progress record](../roadmap/IMPLEMENTATION_PROGRESS.md) before the historical tasks below. M02–M11 implementation and host tests/static/Lint/debug+release+instrumentation packaging pass; fifteen draft PRs await review. The API34 [phone surface run](../testing/DEVICE_SURFACE_TEST_2026-10-19.md) passed four automated UI tests and manual checks, and confirmed existing main-thread preference reads to fix next. Benchmark packaging and broader device/provider/recovery/performance acceptance remain. Do not auto-merge high-risk filesystem changes. Hardware and owner gates below still apply.
 
 ## P0 — device verification (needs a phone or emulator)
 

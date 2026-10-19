@@ -2,6 +2,8 @@
 
 # File Operations Engine
 
+> **Current implementation and modernization:** consult [current architecture](CURRENT_ARCHITECTURE.md), [target contracts](TARGET_ARCHITECTURE.md), and [implementation progress](../roadmap/IMPLEMENTATION_PROGRESS.md). The detailed model below contains original requirements beyond verified behavior. In particular, not every mutation uses the queue, provider publication is not universally atomic, and per-operation journal persistence is not a complete per-file crash transaction.
+
 This is the part of the app where bugs destroy user data. It gets the most defensive design
 and the most tests.
 

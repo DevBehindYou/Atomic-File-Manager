@@ -1,76 +1,67 @@
 # Privacy
 
-## 1. Position
+Source review: 19 October 2026. This document describes the current source tree; it is not a traffic audit, legal certification, or submitted store declaration. See the [current architecture](architecture/CURRENT_ARCHITECTURE.md) and [project audit](architecture/PROJECT_AUDIT.md).
 
-Atomic File Manager is **local-first**. Browsing, indexing, thumbnailing, hashing, and analysis all
-happen on the device. Nothing about the user's files leaves the device.
+## Current behavior
 
-## 2. Data map
+Atomic File Manager performs local browsing, indexing, hashing, and analysis on the device. It also supports user-directed remote storage, network discovery, Wi-Fi sharing, and sharing with other apps. Files, names, paths, connection details, and credentials can leave the device when those features require them. There is no implemented promise that all files and metadata remain on the device.
 
-| Data | Where it lives | Leaves device? | Retention |
-|---|---|---|---|
-| File names, paths, sizes, dates | Device only — read on demand, cached in Room | **No** | Cache cleared on request; index rebuilt on demand |
-| File contents | Device only — streamed, never buffered whole | **No** | Not retained |
-| Thumbnails | App cache directory | **No** | LRU, 250 MB cap, cleared from Settings |
-| Favourites, recents, search history | Room, app-private | **No** | Until the user clears them |
-| SAF tree URI grants | Persisted permissions | **No** | Until revoked |
-| Settings | DataStore, app-private | **No** | Until uninstall |
-| Operation history | Room, names redacted after 24 h | **No** | 7 days |
-| Crash reports | **Opt-in only**, separate build flavour | Yes, if enabled | Per provider policy |
+The main manifest requests `INTERNET` and `ACCESS_NETWORK_STATE`. The current Gradle configuration has debug, release, and benchmark build types; it does not define an offline or opt-in crash-reporting product flavour. No analytics, advertising, attribution, or crash-upload SDK was identified in the declared app dependencies. This source inspection does not establish what every dependency or operating-system component may transmit.
 
-## 3. Permissions and why each exists
+## Data stored by the app
 
-| Permission | Why | Optional? |
+| Data | Current storage and handling | Retention evidence |
 |---|---|---|
-| `READ_EXTERNAL_STORAGE` (≤32) | Read user files | Yes — app works on app-private files without it |
-| `WRITE_EXTERNAL_STORAGE` (≤28) | Modify user files | Yes |
-| `READ_MEDIA_IMAGES/VIDEO/AUDIO` (33+) | Category browsing and thumbnails without All Files Access | Yes |
-| `MANAGE_EXTERNAL_STORAGE` (30+) | Core file management across storage | Yes — SAF mode is a complete alternative |
-| `POST_NOTIFICATIONS` (33+) | Operation progress notifications | Yes — operations still run |
-| `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` | Keep long operations alive | Required for background operations |
-| `INTERNET` | **Not requested at MVP.** Only present in the opt-in crash-reporting flavour | — |
+| Search metadata | Room search index stores names, node IDs/paths, parent IDs, MIME types, sizes, and dates. | Rebuilds replace older generations; no universal time-based expiry was found. |
+| Favourites and recents | App-private Room tables; recent media can also be queried from MediaStore. | Feature-specific updates; no common expiry guarantee established. |
+| Operation history | Room journal stores raw source/destination node IDs, progress, status, and error text. These fields may contain full paths or names. | A finished-row pruning DAO method exists, but no production caller was found. Neither 24-hour redaction nor seven-day deletion is implemented. |
+| Hidden items and transfer bubbles | Separate app-private SQLite databases retain item metadata and locations; hiding also has a recovery journal. | Records change with the respective feature. Metadata is not universally encrypted or redacted. |
+| Settings and saved locations | SharedPreferences stores settings, per-folder sort choices, sync pairs, search-index state, and other feature preferences. SAF grants are held through Android's persisted URI permissions. | Until changed, removed through a supported feature, or app data is removed; no universal timed expiry. |
+| Saved network servers | App-private SharedPreferences stores host, port, protocol, username, remote path, and server label. | Saved servers can be deleted. These configuration fields are not password-encrypted. |
+| Saved network passwords | AES-256-GCM ciphertext in SharedPreferences, using an Android Keystore key. Legacy values are migrated when read; failed encryption removes the saved password. | Until the password/server is removed or app data is removed. Hardware-backed key storage is device-dependent. |
+| Private vault files | Tink streaming encryption; the keyset is stored in preferences and configured to use an Android Keystore wrapping key. Older unencrypted private items are still supported. | Restore/delete/export actions govern file handling. Gallery hiding and fast obscuring are separate features, not vault encryption. |
+| Thumbnails and temporary file data | Coil image caching, preview caches, and archive spool files can hold derived images or file bytes. The app does not configure the previously promised 250 MB Coil cache cap. | Cache behavior is implementation-specific; no universal size or retention promise is established. |
 
-**No** `ACCESS_NETWORK_STATE`, `READ_PHONE_STATE`, `AD_ID`, location, contacts, or camera.
+The main manifest sets `android:allowBackup="false"`. This is the app's declared backup setting, not a verified guarantee across every device's backup or transfer behavior. Removing app data does not erase files already shared, exported, or stored outside app-private storage.
 
-## 4. Crash reporting
+## Network and sharing boundaries
 
-* Off by default. A first-run screen asks once, with a clear "No thanks" of equal visual
-  weight.
-* The reporter is compiled into a separate product flavour. The F-Droid / GitHub flavour has
-  **no network permission at all**, so the promise is structurally enforced, not just a toggle.
-* Reports contain: stack trace, Android version, device model, app version, glass tier,
-  and the anonymised operation type in flight.
-* Reports never contain: file names, paths, MIME types of user files, volume labels, URIs,
-  or any string derived from user content. Enforced by a redaction pass and a unit test that
-  feeds known paths through the reporter and asserts they are absent.
+Remote-storage requests go to the server selected by the user. Transport protection depends on the chosen protocol and server configuration: plain FTP and HTTP WebDAV are not encrypted transports. FTPS uses platform certificate trust and hostname verification; SFTP host fingerprints are retained in the app's known-host preferences.
 
-## 5. Logging
+Wi-Fi sharing starts when requested and binds to the detected Wi-Fi IPv4 address. It uses HTTP, a six-digit session PIN, and random browser-session cookies; it does not provide HTTPS transport encryption. Authenticated browsers can access the selected folder, and uploads are optional. The session stops after the configured idle period (15 minutes by default) or five wrong PIN attempts. Its notification displays the folder name, URL, and PIN. Those values are user-visible session information, not diagnostics logs.
 
-See `LOGGING_DIAGNOSTICS.md`. In release builds, file names and paths are hashed
-(`SHA-256`, first 8 hex chars) before being logged. Debug builds may log plaintext paths and
-must never be shipped.
+Explicit share actions grant another app read access through Android's sharing flow. The Copy Path action writes the displayed path to the system clipboard. Subsequent handling by recipient apps, servers, or browsers is outside this app's storage controls.
 
-## 6. AI
+## Permissions declared in the main manifest
 
-No AI feature ships in MVP or V1. Any future AI feature must satisfy all four:
+| Permission | Current purpose or declaration |
+|---|---|
+| `READ_EXTERNAL_STORAGE` through API 32 | Read shared files on supported Android versions. |
+| `WRITE_EXTERNAL_STORAGE` through API 29 | Legacy shared-storage writes, subject to Android's storage rules. |
+| `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO` | Access the respective media categories. |
+| `MANAGE_EXTERNAL_STORAGE` | Broad file-management access when granted. SAF supports linked-folder access with a different scope; it is not an identical replacement for every operation. |
+| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` | Foreground file-operation service. |
+| `POST_NOTIFICATIONS` | Operation and Wi-Fi-share notifications. |
+| `INTERNET`, `ACCESS_NETWORK_STATE` | Remote storage, discovery, connectivity checks, and Wi-Fi sharing. |
+| `REQUEST_DELETE_PACKAGES` | Open the system uninstall flow from the app manager. |
 
-1. It runs **fully on-device**.
-2. It is **off by default** and opt-in per feature.
-3. It is **useful without a network** — if it needs a server, it is rejected.
-4. Its model and index are deleted when the user turns it off.
+The manifest queries launchable apps. This inventory covers the main source manifest; a release review should also inspect its final merged manifest and optional integrations such as Shizuku.
 
-See `roadmap/FUTURE.md` §AI for the two candidates that pass this bar and the several that
-do not.
+## Diagnostics and release claims
 
-## 7. Play Data Safety declaration
+See [Logging and Diagnostics](LOGGING_DIAGNOSTICS.md) for the implemented log sites and the limits of this review. There is no implemented universal logger/redaction layer, diagnostics export ring buffer, or opt-in crash-upload flow. Do not describe release logs as automatically hashing every name and path.
 
-Declared as: **no data collected, no data shared** in the base flavour. The crash-reporting
-flavour declares *Crash logs — collected, not shared, optional, for app functionality*.
-Keep the declaration and this document in sync; changing one without the other is a review
-failure.
+No AI feature was identified in the current implementation. Future feature proposals in the roadmap are not current privacy guarantees.
 
-## 8. Third-party SDKs
+The repository does not establish the current Play Data Safety submission. The owner must review any published policy or store declaration against the shipped features, merged permissions, dependencies, and actual data flows. This audit does not submit or certify that declaration.
 
-None that phone home. The full dependency list in `TECH_STACK.md` contains no analytics,
-no advertising, and no attribution SDK. Adding one requires updating this document, the
-Data Safety form, and the store listing.
+## Source references
+
+- `app/src/main/AndroidManifest.xml`; `app/build.gradle.kts`
+- `AtomicApp.kt` for component wiring, image loader, and debug StrictMode
+- `data/database/room/OperationJournal.kt`, `SearchIndexTable.kt`, and `AtomicDatabase.kt`
+- `data/repository/SharedPreferencesSettingsRepository.kt`, `HiddenFilesRepositoryImpl.kt`
+- `data/backend/network/NetworkCredentialsStore.kt`, `PasswordCipher.kt`, `PrefsKnownHosts.kt`
+- `data/vault/VaultKeys.kt`; `data/share/ShareServer.kt`, `WifiShareController.kt`
+
+Kotlin paths above are relative to `app/src/main/kotlin/com/devbehindyou/atomicfilemanager/`.

@@ -1,6 +1,14 @@
 # Current State
 
-Last updated: 2026-10-08
+Last updated: 2026-10-19
+
+## Active modernization work
+
+The 17–18 October audit found correctness gaps beyond the historical feature-completion claims below. Current source baseline is `7782660`; integration branch is `codex/architecture-audit`. Read [implementation progress](../roadmap/IMPLEMENTATION_PROGRESS.md), [audit](../architecture/PROJECT_AUDIT.md), and [current architecture](../architecture/CURRENT_ARCHITECTURE.md) first. The roadmap uses verified weighted acceptance, not the historical ~99% feature estimate.
+
+Integrated work covers archive staging, durable admission, upload safety, browse lifecycle, IO dispatch, progress throttling, trash recovery, filtered search, SAF ancestry, actual-ID breadcrumbs and FTP/WebDAV hardening: about 78% of the weighted implementation roadmap. All 663 app JVM/Robolectric tests, 28 custom Lint-rule tests, ktlint, detekt, debug/release Android Lint and debug/release/instrumentation APK assembly pass. Benchmark packaging remains. The connected API34 phone passed manual surface checks and four automated UI tests; [device report](../testing/DEVICE_SURFACE_TEST_2026-10-19.md) records existing main-thread disk reads requiring follow-up. Broader device/performance acceptance and production signing remain open. Fifteen draft PRs are listed in [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md); none is merged. Historical green CI must not be applied to these changes.
+
+The remainder is the preserved 8 October feature handover, not current validation evidence.
 Verified against commit: `e2b1509` (`main`)
 Confidence: HIGH for code and CI. LOW for on-device behaviour, which has not been run since 15 Sep 2026.
 

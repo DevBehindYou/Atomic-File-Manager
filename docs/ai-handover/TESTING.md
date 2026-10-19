@@ -1,6 +1,8 @@
 # Testing
 
-Last verified commit: `e2b1509` (`main`)
+Current modernization verification: see [MODERNIZATION_VALIDATION](../testing/MODERNIZATION_VALIDATION.md), [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and the [API34 phone surface report](../testing/DEVICE_SURFACE_TEST_2026-10-19.md). All 663 app tests, 28 custom Lint tests, ktlint/detekt, debug/release Lint and debug/release/instrumentation APK assembly pass. Four automated phone UI tests and manual surface checks pass. Benchmark packaging and broader device/recovery/performance acceptance remain. Do not apply historical green CI to the current branch.
+
+Historical last verified feature commit: `e2b1509` (`main`)
 
 | Check | Status | Evidence |
 |---|---|---|

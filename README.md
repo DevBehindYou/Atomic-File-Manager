@@ -1,5 +1,7 @@
 # Atomic File Manager
 
+> **17 October 2026 modernization audit:** start with the [verified current architecture](docs/architecture/CURRENT_ARCHITECTURE.md), [audit findings](docs/architecture/PROJECT_AUDIT.md), [implementation roadmap](docs/roadmap/OPTIMIZATION_ROADMAP.md) and [live verification status](docs/roadmap/IMPLEMENTATION_PROGRESS.md). The September first-build notes below are historical: the UI is implemented, all three Gradle modules are enabled, Java 21 is required, and manual AppContainer wiring is active. Historical test counts do not certify the audit branch. Production signing and device acceptance remain open.
+
 > Formerly **Refract**. Renamed on 4 October 2026 (app name, `applicationId` and Kotlin package `com.devbehindyou.atomicfilemanager`). The repository keeps its old name. Part of the DevBehindYou Atomic family; see `docs/design/ATOMIC_DESIGN_SYSTEM.md`.
 
 A native Android file manager (Kotlin, Jetpack Compose, Hilt, coroutines). Built by an AI
