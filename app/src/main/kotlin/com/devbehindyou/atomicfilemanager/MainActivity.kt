@@ -7,11 +7,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.Settings
 import android.view.KeyEvent
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -73,6 +71,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSnac
 import com.devbehindyou.atomicfilemanager.core.navigation.AtomicRoute
 import com.devbehindyou.atomicfilemanager.core.navigation.RouteStack
 import com.devbehindyou.atomicfilemanager.data.operations.PendingConflict
+import com.devbehindyou.atomicfilemanager.data.volume.SharedStorageAccess
 import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
@@ -300,18 +299,7 @@ fun AtomicAppContent(
     }
 
     fun checkAccess(): Boolean {
-        return runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Environment.isExternalStorageManager()
-            } else {
-                val read =
-                    ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                    ) == PackageManager.PERMISSION_GRANTED
-                read
-            }
-        }.getOrDefault(false)
+        return runCatching { SharedStorageAccess.isGranted(context) }.getOrDefault(false)
     }
 
     // Volume enumeration calls StatFs and lists mount points, so it runs on IO
@@ -381,27 +369,7 @@ fun AtomicAppContent(
         }
 
     fun requestStorageAccess() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            try {
-                val intent =
-                    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                    }
-                context.startActivity(intent)
-            } catch (_: Exception) {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                    context.startActivity(intent)
-                } catch (_: Exception) {
-                    permissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        ),
-                    )
-                }
-            }
-        } else {
+        SharedStorageAccess.request(context) {
             permissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,

@@ -1,14 +1,11 @@
 package com.devbehindyou.atomicfilemanager.data.volume
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.os.storage.StorageManager
 import android.os.storage.StorageVolume
-import androidx.core.content.ContextCompat
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
@@ -98,19 +95,11 @@ object StorageVolumes {
             isRemovable = volume.isRemovable,
             isMounted = volume.state == Environment.MEDIA_MOUNTED,
             rootNodeId =
-                directory?.takeIf { hasSharedStorageAccess(context) && it.canRead() }
+                directory?.takeIf { SharedStorageAccess.isGranted(context) && it.canRead() }
                     ?.let { FileNodeId.file(it.absolutePath) },
-            requiresGrant = !hasSharedStorageAccess(context) || directory?.canRead() != true,
+            requiresGrant = !SharedStorageAccess.isGranted(context) || directory?.canRead() != true,
         )
     }
-
-    private fun hasSharedStorageAccess(context: Context): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
-                PackageManager.PERMISSION_GRANTED
-        }
 
     fun getAppCacheSize(context: Context): Long {
         return runCatching {
