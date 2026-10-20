@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugins_title">In-app plugins</string>
+    <string name="plugins_settings_summary">Built-in viewers and file tools</string>
+    <string name="plugins_included">Included with Atomic</string>
+    <string name="plugins_intro">These features are built into the app and updated with Atomic. No separate installation is needed.</string>
+    <string name="plugins_built_in">Built in</string>
+    <string name="plugins_back">Back to plugins</string>
+    <string name="plugins_features">Features</string>
+    <string name="plugins_limits">Current limitations</string>
+    <string name="plugins_usage">Open a matching file from Files to use this feature. Use Open with another app in the preview for other viewers.</string>
+    <string name="plugin_image">Image viewer</string>
+    <string name="plugin_image_features">Browse images, swipe through a gallery, zoom and pan. Photo orientation is applied automatically.</string>
+    <string name="plugin_image_limits">Format support depends on the decoder. Very large images use a reduced preview. Image editing is not included.</string>
+    <string name="plugin_video">Video player</string>
+    <string name="plugin_video_features">Play, pause, seek and adjust playback speed with the built-in media player.</string>
+    <string name="plugin_audio">Audio player</string>
+    <string name="plugin_audio_features">Play, pause and seek audio, with available track metadata.</string>
+    <string name="plugin_media_limits">Codec support depends on the device. Playback pauses when leaving the app. Remote preview copies are limited to 512 MiB.</string>
+    <string name="plugin_pdf">PDF reader</string>
+    <string name="plugin_pdf_features">Read PDF pages, zoom, jump to a page and retry a failed load.</string>
+    <string name="plugin_pdf_limits">Page images only. Text search, selection, forms, annotations and password unlocking are not included.</string>
+    <string name="plugin_document">Document reader</string>
+    <string name="plugin_document_features">Read DOCX text with headings and basic structure, select text, find words and adjust text size.</string>
+    <string name="plugin_document_limits">Read-only text preview. Original page layout, embedded drawings, document editing and legacy DOC files are not supported.</string>
+    <string name="plugin_code">Code and text editor</string>
+    <string name="plugin_code_features">Read and edit text with line numbers, wrapping, find and replace, and saves that preserve encoding and line endings.</string>
+    <string name="plugin_code_limits">File-size limits apply. Unsaved drafts survive screen recreation but not app process termination. Code execution and IDE tools are not included.</string>
+    <string name="plugin_markdown">Markdown viewer</string>
+    <string name="plugin_markdown_features">Switch between source and rendered text with headings, lists and code blocks.</string>
+    <string name="plugin_markdown_limits">Supports a basic Markdown subset. Complex extensions may display as plain text.</string>
+    <string name="plugin_archive">Archive manager</string>
+    <string name="plugin_archive_features">Browse supported archives, extract files and create ZIP archives with file-operation progress.</string>
+    <string name="plugin_archive_limits">Available actions and password support depend on the archive format. Damaged or unsafe archives may be rejected.</string>
+</resources>

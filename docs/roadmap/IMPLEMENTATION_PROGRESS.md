@@ -1,5 +1,7 @@
 # Implementation progress
 
+21 October addition: the expanded [feature upgrade plan](FEATURE_UPGRADE_PLAN.md) is complete as a planning deliverable. Its U01–U13 ledger is separate from the modernization percentage below. The bundled plugins inventory is implemented; see [increment validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md). This does not mark the new cloud/viewer/performance requirements complete.
+
 20 October 2026; baseline `7782660`. Weights/acceptance: [OPTIMIZATION_ROADMAP](OPTIMIZATION_ROADMAP.md).
 
 | Task | State | Evidence |

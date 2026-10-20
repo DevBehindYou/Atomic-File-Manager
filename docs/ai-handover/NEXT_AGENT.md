@@ -1,5 +1,9 @@
 # Next Agent
 
+## Latest direction — 21 October 2026
+
+Read [FEATURE_UPGRADE_PLAN](../roadmap/FEATURE_UPGRADE_PLAN.md) and [bundled plugin validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md) first. Planning is complete; execution remains staged. Preserve the new Settings inventory and the user's decision that all plugins stay built into Atomic and update with the app. Do not implement GitHub/Drive installers, a remote executable catalogue or fake install/remove controls. Next implementation slice is benchmark correctness (U02), followed by measured listing/index work; opening defaults (U06) can proceed when hardware is unavailable. The last ADB check found no phone. Do not apply the previous full-suite/device results to newer working-tree changes.
+
 Do not restart from scratch. The active modernization branch is `codex/architecture-audit`, based on `7782660`. Preserve uncommitted work and worktrees under ignored `build/audit-worktrees`. Read [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and the source-linked audit before the historical handover. Feature completion did not establish file-integrity acceptance.
 
 ## Active continuation (20 October 2026)

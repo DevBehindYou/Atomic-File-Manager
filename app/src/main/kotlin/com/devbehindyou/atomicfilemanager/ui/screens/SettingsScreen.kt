@@ -18,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -76,7 +78,7 @@ private val themeChoices =
         ThemeMode.DARK to "Dark",
     )
 
-private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, ABOUT }
+private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, PLUGINS, ABOUT }
 
 /**
  * Settings (ATOMIC_UI_PLAN.md §7.9, canvas "Settings"): sections under mono labels, toggle cards
@@ -161,6 +163,12 @@ fun SettingsScreen(
                 checked = settings.showHiddenFiles,
                 onCheckedChange = { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } },
             )
+            AtomicSettingsRow(
+                title = stringResource(R.string.plugins_title),
+                value = stringResource(R.string.plugins_settings_summary),
+                onClick = { sheet = SettingsSheet.PLUGINS },
+                modifier = Modifier.testTag("setting_plugins"),
+            )
         }
 
         SettingsSection("Trash") {
@@ -240,6 +248,7 @@ fun SettingsScreen(
     }
 
     when (sheet) {
+        SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->
             AtomicSheet(label = "Default hiding method", onDismiss = { sheet = null }) {
                 hideChoices.forEach { choice ->

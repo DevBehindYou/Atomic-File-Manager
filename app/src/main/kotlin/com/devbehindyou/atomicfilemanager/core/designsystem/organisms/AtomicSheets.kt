@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.core.designsystem.organisms
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +50,7 @@ private val HANDLE_HEIGHT = 4.dp
 fun AtomicSheet(
     label: String,
     onDismiss: () -> Unit,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = Atomic.colors
@@ -58,7 +60,7 @@ fun AtomicSheet(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = AtomicSpacing.s16)
                     .padding(bottom = AtomicSpacing.s24),
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
