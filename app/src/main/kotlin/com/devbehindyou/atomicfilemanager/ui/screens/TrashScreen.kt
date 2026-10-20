@@ -28,13 +28,16 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVa
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicActivityRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerZone
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
@@ -146,22 +149,22 @@ fun TrashScreen(
         AtomicSheet(label = "In Trash", onDismiss = { selected = null }) {
             AtomicText(entry.name, AtomicTextRole.NameLarge)
             AtomicText(TrashText.meta(entry, retentionDays, System.currentTimeMillis()), AtomicTextRole.MonoMeta)
-            AtomicButton(
-                "Restore",
-                onClick = {
-                    restore(listOf(entry))
-                    selected = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AtomicButton(
-                "Delete forever",
-                onClick = {
-                    confirmForever = listOf(entry)
-                    selected = null
-                },
-                variant = AtomicButtonVariant.Destructive,
-                modifier = Modifier.fillMaxWidth(),
+            AtomicCommandGrid(
+                listOf(
+                    AtomicMenuAction("Restore", AtomicIcons.Restore, {
+                        restore(listOf(entry))
+                        selected = null
+                    }),
+                    AtomicMenuAction(
+                        "Delete forever",
+                        AtomicIcons.Trash,
+                        onClick = {
+                            confirmForever = listOf(entry)
+                            selected = null
+                        },
+                        destructive = true,
+                    ),
+                ),
             )
         }
     }

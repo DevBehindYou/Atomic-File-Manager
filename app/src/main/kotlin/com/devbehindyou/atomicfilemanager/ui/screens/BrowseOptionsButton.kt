@@ -1,17 +1,19 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -114,7 +116,8 @@ internal fun BrowseOptionsButton(
             ) {
                 val colors = Atomic.colors
                 Column(
-                    Modifier.width(width).heightIn(max = height)
+                    Modifier.widthIn(min = minOf(AtomicSize.popupMinWidth, width), max = width)
+                        .width(IntrinsicSize.Max).heightIn(max = height)
                         .hardShadow(AtomicElevation.level3, colors.shadow, AtomicShape.md)
                         .background(colors.surfaceCard, AtomicShape.md)
                         .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
@@ -132,7 +135,8 @@ internal fun BrowseOptionsButton(
                         AtomicIconButton(AtomicIcons.Close, "Close file options", { expanded = false })
                     }
                     AtomicDivider()
-                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                    val scroll = remember(page) { ScrollState(0) }
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(scroll)) {
                         when (page) {
                             BrowseOptionsPage.MAIN -> {
                                 BrowseOptionRow("View", viewMode.label()) { page = BrowseOptionsPage.VIEW }
@@ -177,7 +181,8 @@ internal fun BrowseOptionsButton(
                                 AtomicText(
                                     "Folders stay visible in category filters so you can keep exploring.",
                                     AtomicTextRole.BodySecondary,
-                                    Modifier.padding(vertical = AtomicSpacing.s8),
+                                    Modifier.widthIn(max = AtomicSize.popupHelpMaxWidth)
+                                        .padding(vertical = AtomicSpacing.s8),
                                 )
                                 BrowseFileFilter.entries.forEach { option ->
                                     BrowseOptionChoice(option.label, filter == option) {

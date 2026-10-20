@@ -24,9 +24,9 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicTitleRow
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuSheet
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
@@ -69,19 +69,17 @@ internal fun BrowseTopBar(
     }
 
     if (showAddToBubbleMenu) {
-        AtomicSheet(label = "Add to bubble", onDismiss = { onShowAddToBubbleMenu(false) }) {
-            Column {
-                bubbles.forEach { bubble ->
-                    AtomicSettingsRow(
-                        title = bubble.displayName,
-                        onClick = {
-                            actions.onAddToBubble(bubble.id)
-                            onShowAddToBubbleMenu(false)
-                        },
-                    )
-                }
-            }
-        }
+        AtomicMenuSheet(
+            label = "Add to bubble",
+            onDismiss = { onShowAddToBubbleMenu(false) },
+            actions =
+                bubbles.map { bubble ->
+                    AtomicMenuAction(bubble.displayName, AtomicIcons.Bubble, {
+                        actions.onAddToBubble(bubble.id)
+                        onShowAddToBubbleMenu(false)
+                    })
+                },
+        )
     }
 }
 
@@ -95,22 +93,28 @@ internal fun SelectionHeader(
 ) {
     var showSelectMenu by remember { mutableStateOf(false) }
     if (showSelectMenu) {
-        AtomicSheet(label = "Select", onDismiss = { showSelectMenu = false }) {
-            AtomicText("Tip: long-press a second file to select everything between.", AtomicTextRole.BodySecondary)
-            listOf(
-                "Select all" to actions.onSelectAll,
-                "Invert selection" to actions.onInvertSelection,
-                "Select same type" to actions.onSelectSameType,
-            ).forEach { (label, action) ->
-                AtomicSettingsRow(
-                    title = label,
-                    onClick = {
+        AtomicMenuSheet(
+            label = "Select",
+            onDismiss = { showSelectMenu = false },
+            intro = {
+                AtomicText("Tip: long-press a second file to select everything between.", AtomicTextRole.BodySecondary)
+            },
+            actions =
+                listOf(
+                    AtomicMenuAction("Select all", AtomicIcons.SelectAll, {
                         showSelectMenu = false
-                        action()
-                    },
-                )
-            }
-        }
+                        actions.onSelectAll()
+                    }),
+                    AtomicMenuAction("Invert selection", AtomicIcons.InvertSelection, {
+                        showSelectMenu = false
+                        actions.onInvertSelection()
+                    }),
+                    AtomicMenuAction("Select same type", AtomicIcons.SelectSameType, {
+                        showSelectMenu = false
+                        actions.onSelectSameType()
+                    }),
+                ),
+        )
     }
     val selectedBytes =
         remember(uiState.rawItems, uiState.selectedIds) {

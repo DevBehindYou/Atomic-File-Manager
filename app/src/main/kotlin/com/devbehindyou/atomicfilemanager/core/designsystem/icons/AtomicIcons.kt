@@ -4,8 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.automirrored.outlined.TextSnippet
 import androidx.compose.material.icons.automirrored.outlined.WrapText
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AllInbox
@@ -23,9 +26,14 @@ import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.DriveFileRenameOutline
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FilterAlt
+import androidx.compose.material.icons.outlined.FlipToBack
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.Forward10
 import androidx.compose.material.icons.outlined.HideImage
 import androidx.compose.material.icons.outlined.Home
@@ -36,7 +44,9 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Preview
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
@@ -49,8 +59,12 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SyncAlt
+import androidx.compose.material.icons.outlined.TableChart
+import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Visibility
@@ -83,6 +97,10 @@ object AtomicIcons {
     val SelectAll: ImageVector = Icons.Outlined.SelectAll
     val Info: ImageVector = Icons.Outlined.Info
     val Tasks: ImageVector = Icons.Outlined.SyncAlt
+    val Download: ImageVector = Icons.Outlined.FileDownload
+    val Theme: ImageVector = Icons.Outlined.Palette
+    val InvertSelection: ImageVector = Icons.Outlined.FlipToBack
+    val SelectSameType: ImageVector = Icons.Outlined.FilterAlt
     val Refresh: ImageVector = Icons.Outlined.Refresh
     val Replay: ImageVector = Icons.Outlined.Replay
     val Restore: ImageVector = Icons.Outlined.Restore
@@ -97,6 +115,9 @@ object AtomicIcons {
     val Cut: ImageVector = Icons.Outlined.ContentCut
     val Paste: ImageVector = Icons.Outlined.ContentPaste
     val Move: ImageVector = Icons.AutoMirrored.Outlined.DriveFileMove
+    val Rename: ImageVector = Icons.Outlined.DriveFileRenameOutline
+    val Favourite: ImageVector = Icons.Outlined.StarBorder
+    val Extract: ImageVector = Icons.Outlined.Unarchive
     val Share: ImageVector = Icons.Outlined.Share
     val Trash: ImageVector = Icons.Outlined.Delete
     val Cleanup: ImageVector = Icons.Outlined.CleaningServices
@@ -109,6 +130,15 @@ object AtomicIcons {
     val Audio: ImageVector = Icons.Outlined.MusicNote
     val AudioFile: ImageVector = Icons.Outlined.AudioFile
     val Document: ImageVector = Icons.Outlined.Description
+    val Pdf: ImageVector = Icons.Outlined.PictureAsPdf
+    val Text: ImageVector = Icons.AutoMirrored.Outlined.TextSnippet
+    val TextFile: ImageVector = Text
+    val Ebook: ImageVector = Icons.AutoMirrored.Outlined.MenuBook
+    val Font: ImageVector = Icons.Outlined.FontDownload
+    val Spreadsheet: ImageVector = Icons.Outlined.TableChart
+    val Presentation: ImageVector = Icons.Outlined.Slideshow
+    val GenericFile: ImageVector = Icons.AutoMirrored.Outlined.InsertDriveFile
+    val UnknownFile: ImageVector = GenericFile
     val Archive: ImageVector = Icons.Outlined.FolderZip
     val Apk: ImageVector = Icons.Outlined.Android
 

@@ -68,7 +68,7 @@ class ThumbnailSourceTest {
         assertSame(AtomicIcons.AudioFile, iconFor(thumbnailNode(name = "song.mp3")))
         assertSame(AtomicIcons.Apk, iconFor(thumbnailNode(name = "package.apk")))
         assertSame(AtomicIcons.Archive, iconFor(thumbnailNode(name = "bundle.7z")))
-        assertSame(AtomicIcons.Document, iconFor(thumbnailNode(name = "photo.jpg", mime = "text/plain")))
+        assertSame(AtomicIcons.TextFile, iconFor(thumbnailNode(name = "photo.jpg", mime = "text/plain")))
     }
 
     @Test
@@ -84,7 +84,7 @@ class ThumbnailSourceTest {
         // A generic provider MIME cannot make the filename override the known video collection.
         assertEquals(ThumbnailKind.VIDEO, thumbnailKind(video.copy(name = "wrong.jpg")))
         assertNull(thumbnailKind(video.copy(mimeType = "text/plain")))
-        assertSame(AtomicIcons.Document, iconFor(video.copy(mimeType = "text/plain")))
+        assertSame(AtomicIcons.TextFile, iconFor(video.copy(mimeType = "text/plain")))
         assertNull(thumbnailKind(video.copy(id = FileNodeId.media("external", "video", -1))))
         assertNull(thumbnailKind(video.copy(id = FileNodeId("media:external:video:bad"))))
     }

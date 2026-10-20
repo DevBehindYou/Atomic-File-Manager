@@ -39,7 +39,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSiz
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.modifiers.hardShadow
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
 
 /**
  * Storage volume card: Display name (app-authored, e.g. "Phone · internal"), mono usage, meter,
@@ -242,14 +241,22 @@ fun AtomicActionStrip(
         }
     }
     if (overflowOpen && actions.size > 5) {
-        AtomicSheet(stringResource(R.string.selection_more_actions), onDismiss = { overflowOpen = false }) {
-            actions.drop(4).forEach { action ->
-                AtomicSettingsRow(action.label, onClick = {
-                    overflowOpen = false
-                    action.onClick()
-                })
-            }
-        }
+        AtomicMenuSheet(
+            stringResource(R.string.selection_more_actions),
+            onDismiss = { overflowOpen = false },
+            actions =
+                actions.drop(4).map { action ->
+                    AtomicMenuAction(
+                        action.label,
+                        action.icon,
+                        onClick = {
+                            overflowOpen = false
+                            action.onClick()
+                        },
+                        destructive = action.destructive,
+                    )
+                },
+        )
     }
 }
 

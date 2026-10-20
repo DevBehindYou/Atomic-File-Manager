@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -33,39 +32,13 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBor
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
-import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.data.preview.ThumbnailKind
-import com.devbehindyou.atomicfilemanager.data.preview.genericThumbnailMime
 import com.devbehindyou.atomicfilemanager.data.preview.thumbnailKind
-import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
 private const val HIDDEN_ALPHA = 0.62f
-
-/** Outlined type icon for a node (spec §10: one icon family, no per-type colours). */
-fun iconFor(node: FileNode): ImageVector {
-    val mime = node.mimeType.orEmpty().lowercase().substringBefore(';').trim()
-    val visualKind = thumbnailKind(node)
-    return when {
-        node.isDirectory -> AtomicIcons.Files
-        visualKind == ThumbnailKind.IMAGE -> AtomicIcons.Image
-        visualKind == ThumbnailKind.VIDEO -> AtomicIcons.Video
-        mime.startsWith("audio/") -> AtomicIcons.AudioFile
-        mime == "application/vnd.android.package-archive" -> AtomicIcons.Apk
-        mime.contains("zip") || mime.contains("compressed") || mime.contains("archive") -> AtomicIcons.Archive
-        genericThumbnailMime(mime) ->
-            when {
-                FileCollection.AUDIO.matches(node) -> AtomicIcons.AudioFile
-                FileCollection.APKS.matches(node) -> AtomicIcons.Apk
-                FileCollection.ARCHIVES.matches(node) -> AtomicIcons.Archive
-                else -> AtomicIcons.Document
-            }
-        else -> AtomicIcons.Document
-    }
-}
 
 /** Star state for accessible row actions; null omits the action. */
 class FavouriteToggle(

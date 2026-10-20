@@ -1,15 +1,20 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import android.app.Application
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import org.junit.Assert.assertEquals
@@ -19,9 +24,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BrowseOptionsComposeTest {
     @get:Rule val compose = createComposeRule()
 
@@ -31,6 +38,23 @@ class BrowseOptionsComposeTest {
     private val hidden = mutableStateOf(false)
     private var foldersCreated = 0
     private var hiddenOpened = 0
+
+    @Test
+    fun popupWrapsItsOptionsAndShrinksForTheShortViewPage() {
+        // Large text makes the main page exceed the minimum width even with host font metrics.
+        show(fontScale = 1.5f)
+        open()
+        val main = compose.onNodeWithTag("browse_options_popup").getUnclippedBoundsInRoot()
+        val mainWidth = main.right - main.left
+        assertTrue("Main options should not fill a phone window", mainWidth < 320.dp)
+        compose.onNodeWithText("View").performClick()
+        val view = compose.onNodeWithTag("browse_options_popup").getUnclippedBoundsInRoot()
+        assertTrue("Short submenu should use less width: main=$main, view=$view", view.right - view.left < mainWidth)
+        assertTrue("Short submenu should use less height", view.bottom - view.top < main.bottom - main.top)
+        compose.onNodeWithText("List").assertIsSelected()
+        compose.onNodeWithText("Grid").performClick()
+        compose.runOnIdle { assertEquals(FileViewMode.GRID, viewMode.value) }
+    }
 
     @Test
     fun choicesReportViewSortAndFilterThenDismiss() {
@@ -83,21 +107,24 @@ class BrowseOptionsComposeTest {
         compose.onNodeWithContentDescription("Close file options").performClick()
     }
 
-    private fun show() {
+    private fun show(fontScale: Float = 1f) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                BrowseOptionsButton(
-                    viewMode.value,
-                    { viewMode.value = it },
-                    sort.value,
-                    { sort.value = it },
-                    filter.value,
-                    { filter.value = it },
-                    hidden.value,
-                    { hidden.value = it },
-                    { foldersCreated++ },
-                    { hiddenOpened++ },
-                )
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                    BrowseOptionsButton(
+                        viewMode.value,
+                        { viewMode.value = it },
+                        sort.value,
+                        { sort.value = it },
+                        filter.value,
+                        { filter.value = it },
+                        hidden.value,
+                        { hidden.value = it },
+                        { foldersCreated++ },
+                        { hiddenOpened++ },
+                    )
+                }
             }
         }
     }

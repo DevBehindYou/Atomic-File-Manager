@@ -61,12 +61,12 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicHomeHeader
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicBottomBar
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDestination
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicInfoSheet
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicNavRail
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSnackbarHost
 import com.devbehindyou.atomicfilemanager.core.navigation.AtomicRoute
 import com.devbehindyou.atomicfilemanager.core.navigation.RouteStack
@@ -661,23 +661,34 @@ fun AtomicAppContent(
         null -> Unit
     }
     if (showMoreCategories) {
-        AtomicSheet(label = "More categories", onDismiss = { showMoreCategories = false }) {
-            listOf(
-                FileCollection.PDFS,
-                FileCollection.TEXT,
-                FileCollection.EBOOKS,
-                FileCollection.FONTS,
-                FileCollection.OTHER,
-            ).forEach { collection ->
-                AtomicSettingsRow(
-                    title = collection.title,
-                    onClick = {
-                        showMoreCategories = false
-                        push(AtomicRoute.Category(collection.name))
-                    },
-                )
-            }
-        }
+        AtomicMenuSheet(
+            label = "More categories",
+            onDismiss = { showMoreCategories = false },
+            actions =
+                listOf(
+                    FileCollection.PDFS,
+                    FileCollection.TEXT,
+                    FileCollection.EBOOKS,
+                    FileCollection.FONTS,
+                    FileCollection.OTHER,
+                ).map { collection ->
+                    AtomicMenuAction(
+                        label = collection.title,
+                        icon =
+                            when (collection) {
+                                FileCollection.PDFS -> AtomicIcons.Pdf
+                                FileCollection.TEXT -> AtomicIcons.Code
+                                FileCollection.EBOOKS -> AtomicIcons.Ebook
+                                FileCollection.FONTS -> AtomicIcons.Font
+                                else -> AtomicIcons.GenericFile
+                            },
+                        onClick = {
+                            showMoreCategories = false
+                            push(AtomicRoute.Category(collection.name))
+                        },
+                    )
+                },
+        )
     }
 
     val destinations =

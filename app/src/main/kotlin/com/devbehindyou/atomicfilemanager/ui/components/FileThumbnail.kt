@@ -1,6 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -23,7 +25,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicFileTypeColors
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -49,8 +52,24 @@ fun FileThumbnail(
     size: Dp = AtomicSize.iconTile,
 ) {
     val source = remember(node) { thumbnailSourceOf(node) }
+    val type = remember(node) { fileTypeFor(node) }
+    val typeColor = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark))
     Box(modifier.size(size).testTag("file_thumbnail_${node.id.raw}")) {
-        AtomicIconTile(iconFor(node), Modifier.size(size).testTag("file_type_icon_${node.id.raw}"))
+        Box(
+            modifier =
+                Modifier.size(size)
+                    .background(Atomic.colors.background, AtomicShape.sm)
+                    .border(AtomicBorder.structure, Atomic.colors.borderStrong, AtomicShape.sm)
+                    .testTag("file_type_icon_${node.id.raw}"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                iconFor(node),
+                contentDescription = null,
+                tint = typeColor,
+                modifier = Modifier.size(if (size > AtomicSize.iconTile) AtomicSpacing.s32 else AtomicSize.iconSmall),
+            )
+        }
         if (source != null) {
             ThumbnailImage(source, size)
         } else if (node.isDirectory && !node.isHidden && node.access.readable) {
@@ -71,7 +90,7 @@ fun FileThumbnail(
                     Icon(
                         iconFor(node),
                         contentDescription = null,
-                        tint = Atomic.colors.content,
+                        tint = typeColor,
                         modifier = Modifier.align(Alignment.TopStart).padding(AtomicSpacing.s4).size(AtomicSpacing.s16),
                     )
                     FolderMiniature(previews, Modifier.align(Alignment.BottomEnd).padding(AtomicSpacing.s4))

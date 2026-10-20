@@ -444,7 +444,7 @@ fun BrowseScreen(
                     actionState.rawItems.singleOrNull { it.id in actionState.selectedIds }?.let { selected ->
                         buildList {
                             add(
-                                AtomicStripAction(stringResource(R.string.selection_rename), AtomicIcons.Document, {
+                                AtomicStripAction(stringResource(R.string.selection_rename), AtomicIcons.Rename, {
                                     nodeToRename = selected
                                     actionViewModel.clearSelection()
                                 }),
@@ -467,7 +467,7 @@ fun BrowseScreen(
                             }
                             if (ArchiveFormats.kindOf(selected.name) != null) {
                                 add(
-                                    AtomicStripAction(stringResource(R.string.selection_extract), AtomicIcons.Archive, {
+                                    AtomicStripAction(stringResource(R.string.selection_extract), AtomicIcons.Extract, {
                                         actionViewModel.extractArchive(selected)
                                         actionViewModel.clearSelection()
                                     }),
@@ -486,7 +486,7 @@ fun BrowseScreen(
                                                 R.string.selection_favourite_add
                                             },
                                         ),
-                                        AtomicIcons.Home,
+                                        AtomicIcons.Favourite,
                                         {
                                             coroutineScope.launch {
                                                 try {

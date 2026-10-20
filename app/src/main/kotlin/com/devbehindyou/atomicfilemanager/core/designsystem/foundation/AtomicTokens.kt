@@ -90,7 +90,11 @@ object AtomicSize {
     val headerContent = 56.dp
     val meterHeight = 8.dp
     val popupMaxWidth = 360.dp
+    val popupMinWidth = 200.dp
+    val popupHelpMaxWidth = 260.dp
     val popupMaxHeight = 480.dp
+    val menuCardMinWidth = 136.dp
+    val menuIconTile = 32.dp
     val fileGridCellMin = 144.dp
     val fileGridCellHeight = 168.dp
     val gridThumbnail = 64.dp
