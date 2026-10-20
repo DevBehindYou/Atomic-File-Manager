@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.SyncAlt
 import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Visibility
@@ -81,6 +82,7 @@ object AtomicIcons {
     val Unchecked: ImageVector = Icons.Outlined.RadioButtonUnchecked
     val SelectAll: ImageVector = Icons.Outlined.SelectAll
     val Info: ImageVector = Icons.Outlined.Info
+    val Tasks: ImageVector = Icons.Outlined.SyncAlt
     val Refresh: ImageVector = Icons.Outlined.Refresh
     val Replay: ImageVector = Icons.Outlined.Replay
     val Restore: ImageVector = Icons.Outlined.Restore

@@ -28,6 +28,8 @@ internal class ShareUploads(private val checkActive: () -> Unit) {
         directory: File,
         name: String,
         length: Long,
+        onProgress: (Long) -> Unit = {},
+        checkRequestActive: () -> Unit = {},
         onBytes: () -> Unit,
     ) {
         val resolvedDirectory = directory.canonicalFile
@@ -36,12 +38,18 @@ internal class ShareUploads(private val checkActive: () -> Unit) {
         // Opening with CREATE_NEW establishes ownership without truncating a predictable path.
         val stage = Files.newOutputStream(part.toPath(), WRITE, CREATE_NEW)
         try {
-            stage.use { copyExactly(input, it, length, onBytes) }
+            stage.use {
+                copyExactly(input, it, length, checkRequestActive) { done ->
+                    onProgress(done)
+                    onBytes()
+                }
+            }
             checkActive()
+            checkRequestActive()
             // A second upload must not remove the first upload's visibility guard.
             if (!publishing.add(target)) throw FileAlreadyExistsException(target.path)
             try {
-                publish(part, target, length)
+                publish(part, target, length, checkRequestActive)
             } finally {
                 publishing.remove(target)
             }
@@ -54,13 +62,15 @@ internal class ShareUploads(private val checkActive: () -> Unit) {
         part: File,
         target: File,
         length: Long,
+        checkRequestActive: () -> Unit,
     ) {
         // Never delete on failure to open: that name belongs to someone else.
         val output = Files.newOutputStream(target.toPath(), WRITE, CREATE_NEW)
         try {
             output.use { sink ->
-                part.inputStream().use { copyExactly(it, sink, length) {} }
+                part.inputStream().use { copyExactly(it, sink, length, checkRequestActive) {} }
                 checkActive()
+                checkRequestActive()
             }
         } catch (error: Exception) {
             Files.deleteIfExists(target.toPath())
@@ -72,19 +82,22 @@ internal class ShareUploads(private val checkActive: () -> Unit) {
         input: InputStream,
         sink: OutputStream,
         length: Long,
-        onBytes: () -> Unit,
+        checkRequestActive: () -> Unit,
+        onBytes: (Long) -> Unit,
     ) {
         val buffer = ByteArray(BUFFER)
         var left = length
         while (left > 0) {
             checkActive()
+            checkRequestActive()
             val count = input.read(buffer, 0, minOf(left, buffer.size.toLong()).toInt())
             if (count < 0) throw IOException("Upload cut short")
             sink.write(buffer, 0, count)
             left -= count
-            onBytes()
+            onBytes(length - left)
         }
         checkActive()
+        checkRequestActive()
     }
 
     private companion object {

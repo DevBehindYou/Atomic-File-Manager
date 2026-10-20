@@ -53,6 +53,7 @@ class ShareServer(
     private val idleMs: Long = IDLE_MS,
     private val clock: () -> Long = System::currentTimeMillis,
     private val onStop: (ShareStopReason) -> Unit = {},
+    val transfers: ShareTransfers = ShareTransfers(),
 ) {
     private val rootCanonical: File = root.toPath().toRealPath().toFile()
     private val socket = ServerSocket(0, BACKLOG, address)
@@ -168,8 +169,8 @@ class ShareServer(
             request.method == "POST" && request.path == "/login" -> login(request, out)
             !signedIn -> page(out, ShareHtml.login(wrong = false))
             request.method == "GET" && request.path == "/" -> listing(request, out)
-            request.method == "GET" && request.path == "/dl" -> download(request, out)
-            request.method == "PUT" && request.path == "/up" -> upload(request, out)
+            request.method == "GET" && request.path == "/dl" -> download(request, out, client)
+            request.method == "PUT" && request.path == "/up" -> upload(request, out, client)
             else -> respond(out, 404, "Not found")
         }
     }
@@ -218,21 +219,39 @@ class ShareServer(
     private fun download(
         request: Request,
         out: OutputStream,
+        client: Socket,
     ) {
         val file = resolve(request.query["p"].orEmpty())?.takeIf { it.isFile } ?: return respond(out, 404, "Not found")
         if (uploadFiles.isPublishing(file)) return respond(out, 404, "Not found")
         val headers =
             header(200, "application/octet-stream", file.length()) +
                 "Content-Disposition: attachment; filename*=UTF-8''${encode(file.name)}\r\n\r\n"
-        out.write(headers.toByteArray(Charsets.UTF_8))
-        file.inputStream().use { it.copyTo(out, BUFFER) }
-        out.flush()
-        downloads.incrementAndGet()
+        val task = transfers.start(ShareTransferDirection.DOWNLOAD, file.name, file.length()) { client.close() }
+        try {
+            out.write(headers.toByteArray(Charsets.UTF_8))
+            file.inputStream().use { input ->
+                val buffer = ByteArray(BUFFER)
+                var done = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    out.write(buffer, 0, count)
+                    done += count
+                    transfers.progress(task, done)
+                    lastActivity.set(clock())
+                }
+            }
+            out.flush()
+            downloads.incrementAndGet()
+        } finally {
+            transfers.finish(task)
+        }
     }
 
     private fun upload(
         request: Request,
         out: OutputStream,
+        client: Socket,
     ) {
         if (!allowUpload) return respond(out, 403, "Uploads are off")
         val dir =
@@ -242,12 +261,23 @@ class ShareServer(
         if (!ShareHtml.isSafeName(name)) return respond(out, 400, "Bad name")
         val length = request.contentLength()
         if (length < 0) return respond(out, 411, "Length required")
+        val task = transfers.start(ShareTransferDirection.UPLOAD, name, length) { client.close() }
         try {
-            uploadFiles.receive(request.body, dir, name, length) { lastActivity.set(clock()) }
+            uploadFiles.receive(
+                request.body,
+                dir,
+                name,
+                length,
+                onProgress = { transfers.progress(task, it) },
+                checkRequestActive = { if (client.isClosed) throw IOException("Transfer cancelled") },
+                onBytes = { lastActivity.set(clock()) },
+            )
         } catch (_: FileAlreadyExistsException) {
             return respond(out, 409, "A file with that name is already there")
         } catch (e: IOException) {
             return respond(out, 500, "Upload failed")
+        } finally {
+            transfers.finish(task)
         }
         uploads.incrementAndGet()
         respond(out, 201, "Saved")

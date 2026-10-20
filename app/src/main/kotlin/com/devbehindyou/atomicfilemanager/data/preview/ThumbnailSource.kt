@@ -5,7 +5,6 @@ import android.content.Context
 import android.net.Uri
 import coil3.request.ImageRequest
 import coil3.size.Precision
-import coil3.video.VideoFrameDecoder
 import com.devbehindyou.atomicfilemanager.data.backend.toMediaRef
 import com.devbehindyou.atomicfilemanager.domain.model.FileCollection
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -85,14 +84,20 @@ fun buildThumbnailRequest(
     source: ThumbnailSource,
     pixels: Int,
 ): ImageRequest =
-    ImageRequest.Builder(context).data(source.data).size(pixels.coerceAtLeast(1)).precision(Precision.EXACT)
-        .memoryCacheKey("${source.cacheKey}:${pixels.coerceAtLeast(1)}").diskCacheKey(source.cacheKey)
-        .apply {
+    ImageRequest.Builder(context)
+        .data(
             if (source.kind == ThumbnailKind.VIDEO) {
-                // Force video decoding for content URIs or generic provider MIME types with no extension.
-                decoderFactory { result, options, _ -> VideoFrameDecoder(result.source, options) }
-            }
-        }.build()
+                ProviderVideoThumbnail(
+                    source.data,
+                    pixels.coerceAtLeast(1),
+                )
+            } else {
+                source.data
+            },
+        )
+        .size(pixels.coerceAtLeast(1)).precision(Precision.EXACT)
+        .memoryCacheKey("${source.cacheKey}:${source.kind}:${pixels.coerceAtLeast(1)}").diskCacheKey(source.cacheKey)
+        .build()
 
 private val GENERIC_MIMES =
     setOf("application/octet-stream", "binary/octet-stream", "application/unknown", "application/x-unknown")

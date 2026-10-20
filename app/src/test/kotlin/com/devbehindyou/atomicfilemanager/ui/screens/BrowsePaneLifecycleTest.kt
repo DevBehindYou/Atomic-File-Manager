@@ -119,6 +119,7 @@ class BrowsePaneLifecycleTest {
     }
 
     private fun awaitCondition(condition: () -> Boolean) {
+        compose.waitForIdle()
         compose.waitUntil(timeoutMillis = 5_000) {
             // ViewModel cancellation resumes on Android's main Handler. Compose's frame
             // clock does not execute messages on Robolectric's paused Android looper.

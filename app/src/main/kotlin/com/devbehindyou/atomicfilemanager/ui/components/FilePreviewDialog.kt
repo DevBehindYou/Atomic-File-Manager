@@ -135,6 +135,7 @@ fun FilePreviewPane(
     val openScope = rememberCoroutineScope()
     var openingExternal by remember(node.id) { mutableStateOf(false) }
     var externalFailed by remember(node.id) { mutableStateOf(false) }
+    val externalChooserTitle = stringResource(R.string.viewer_open_external)
     val openExternal: () -> Unit =
         onOpenExternal ?: {
             if (!openingExternal) {
@@ -151,7 +152,7 @@ fun FilePreviewPane(
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
                                 context.startActivity(
-                                    Intent.createChooser(view, context.getString(R.string.viewer_open_external))
+                                    Intent.createChooser(view, externalChooserTitle)
                                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                                 )
                             } is FileResult.Failure

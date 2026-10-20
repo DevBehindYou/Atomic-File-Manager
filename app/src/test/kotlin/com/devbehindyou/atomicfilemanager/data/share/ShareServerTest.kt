@@ -1,5 +1,8 @@
 package com.devbehindyou.atomicfilemanager.data.share
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -88,6 +91,36 @@ class ShareServerTest {
         assertEquals(303, r.status)
         return r.headers.getValue("set-cookie").substringBefore(';')
     }
+
+    @Test
+    fun `live upload cancellation closes only its request and cleans its owned staging`() =
+        runBlocking<Unit> {
+            val share = start(allowUpload = true)
+            val cookie = share.signIn()
+            Socket(loopback, share.port).use { client ->
+                client.getOutputStream().apply {
+                    write(
+                        (
+                            "PUT /up?p=&n=cancelled.bin HTTP/1.1\r\nHost: 127.0.0.1:${share.port}\r\n" +
+                                "Cookie: $cookie\r\nContent-Length: 1048576\r\n\r\n"
+                        ).toByteArray(),
+                    )
+                    write(ByteArray(65536))
+                    flush()
+                }
+                val active = withTimeout(5000) { share.transfers.active.first { it.isNotEmpty() }.single() }
+                assertEquals(ShareTransferDirection.UPLOAD, active.direction)
+                assertEquals("cancelled.bin", active.name)
+                assertEquals(1048576L, active.bytesTotal)
+                share.transfers.cancel(active.id)
+                withTimeout(5000) { share.transfers.active.first { it.isEmpty() } }
+            }
+            assertTrue(share.isRunning)
+            assertFalse(File(tmp, "shared/cancelled.bin").exists())
+            assertTrue(File(tmp, "shared").listFiles().orEmpty().none { it.name.endsWith(".part") })
+            assertEquals("hello", share.call("GET", "/dl?p=notes.txt", cookie).body)
+            assertTrue(share.transfers.active.value.isEmpty())
+        }
 
     @Test
     fun `nothing is shown before the PIN`() {

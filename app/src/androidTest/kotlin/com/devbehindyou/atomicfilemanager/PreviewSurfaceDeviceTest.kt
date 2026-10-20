@@ -17,13 +17,22 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import coil3.SingletonImageLoader
+import coil3.request.ErrorResult
+import coil3.request.SuccessResult
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.data.backend.FileSystemBackend
+import com.devbehindyou.atomicfilemanager.data.preview.FolderThumbnailReader
+import com.devbehindyou.atomicfilemanager.data.preview.buildThumbnailRequest
+import com.devbehindyou.atomicfilemanager.data.preview.thumbnailSourceOf
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewPane
 import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -41,9 +50,13 @@ class PreviewSurfaceDeviceTest {
 
     @Test
     fun nativeImageAndFolderMiniatureActuallyDisplayDecodedPixels() =
-        runBlocking {
+        runBlocking<Unit> {
             val context = compose.activity.applicationContext
-            val directory = Files.createTempDirectory(context.cacheDir.toPath(), "thumbnail-surface-").toFile()
+            val directory =
+                Files.createTempDirectory(
+                    context.cacheDir.toPath(),
+                    "thumbnail-surface-",
+                ).toFile().canonicalFile
             val source = File(directory, "green.png")
             val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.GREEN) }
             try {
@@ -51,6 +64,15 @@ class PreviewSurfaceDeviceTest {
                 val backend = FileSystemBackend(context)
                 val image = (backend.getNode(FileNodeId.file(source.absolutePath)) as FileResult.Success).value
                 val folder = (backend.getNode(FileNodeId.file(directory.absolutePath)) as FileResult.Success).value
+                assertTrue(
+                    "Generated canonical directory rejected by folder preview: ${directory.absolutePath}",
+                    FolderThumbnailReader().read(folder).isNotEmpty(),
+                )
+                val decoded =
+                    SingletonImageLoader.get(context).execute(
+                        buildThumbnailRequest(context, checkNotNull(thumbnailSourceOf(image)), 64),
+                    )
+                assertTrue("Generated PNG decode: ${(decoded as? ErrorResult)?.throwable}", decoded is SuccessResult)
                 compose.setContent {
                     AtomicTheme(darkTheme = true, wallpaperAccent = false) {
                         Column {
@@ -75,7 +97,7 @@ class PreviewSurfaceDeviceTest {
 
     @Test
     fun docxRoutesToDocumentReaderAndFindNavigatesItsText() =
-        runBlocking {
+        runBlocking<Unit> {
             val context = compose.activity.applicationContext
             val source = File.createTempFile("reader-surface-", ".docx", context.cacheDir)
             try {
@@ -110,7 +132,22 @@ class PreviewSurfaceDeviceTest {
                 compose.onNodeWithText(context.getString(R.string.docx_match_count, 2, 2)).assertIsDisplayed()
                 compose.onNodeWithTag("preview_open_external").assertIsDisplayed()
             } finally {
-                source.delete()
+                try {
+                    withContext(Dispatchers.IO) {
+                        val recents = (context as AtomicApp).container.recentsRepository
+                        recents.remove(FileNodeId.file(source.absolutePath))
+                        // Remove only this fixture family's private-cache shortcuts,
+                        // including remnants from an earlier interrupted test run.
+                        val prefixes =
+                            setOf(context.cacheDir.absolutePath, context.cacheDir.canonicalPath)
+                                .map { FileNodeId.file(File(it, "reader-surface-").path).raw }
+                        recents.observeOpened(100).first().filter { item ->
+                            item.name.endsWith(".docx") && prefixes.any { item.id.raw.startsWith(it) }
+                        }.forEach { recents.remove(it.id) }
+                    }
+                } finally {
+                    source.delete()
+                }
             }
         }
 

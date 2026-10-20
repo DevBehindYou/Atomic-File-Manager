@@ -80,6 +80,7 @@ fun VideoPreviewContent(
 }
 
 @Composable
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private fun VideoPlayerView(
     media: PreparedMedia,
     modifier: Modifier = Modifier,

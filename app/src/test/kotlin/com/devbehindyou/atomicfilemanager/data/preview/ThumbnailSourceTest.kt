@@ -12,9 +12,9 @@ import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -104,7 +104,9 @@ class ThumbnailSourceTest {
             assertNotEquals(source.cacheKey, thumbnailSourceOf(node.copy(size = 99))?.cacheKey)
             assertNotEquals(source.cacheKey, thumbnailSourceOf(node.copy(modifiedAt = 99))?.cacheKey)
             val video = checkNotNull(thumbnailSourceOf(node.copy(name = "no-extension", mimeType = "video/mp4")))
-            assertNotNull(buildThumbnailRequest(context, video, 22).decoderFactory)
+            val request = buildThumbnailRequest(context, video, 22)
+            assertTrue(request.data is ProviderVideoThumbnail)
+            assertNull(request.decoderFactory)
         }
 }
 

@@ -237,6 +237,7 @@ class FileThumbnailComposeTest {
     }
 
     private fun await(condition: () -> Boolean) {
+        compose.waitForIdle()
         compose.waitUntil(timeoutMillis = 5_000) {
             shadowOf(Looper.getMainLooper()).idle()
             condition()

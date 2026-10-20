@@ -7,7 +7,6 @@ import android.os.StrictMode
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.video.VideoFrameDecoder
 import com.devbehindyou.atomicfilemanager.data.archive.TempFileSpool
 import com.devbehindyou.atomicfilemanager.data.backend.FileSystemBackend
 import com.devbehindyou.atomicfilemanager.data.backend.MediaStoreBackend
@@ -34,6 +33,7 @@ import com.devbehindyou.atomicfilemanager.data.preview.ApkInfoReader
 import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.MediaPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.PdfPreviewHelper
+import com.devbehindyou.atomicfilemanager.data.preview.ProviderVideoThumbnailFetcher
 import com.devbehindyou.atomicfilemanager.data.recents.RecentMediaSource
 import com.devbehindyou.atomicfilemanager.data.repository.FolderSortPreferences
 import com.devbehindyou.atomicfilemanager.data.repository.HiddenFilesRepositoryImpl
@@ -397,7 +397,7 @@ class AtomicApp :
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader
             .Builder(context)
-            .components { add(VideoFrameDecoder.Factory()) }
+            .components { add(ProviderVideoThumbnailFetcher.Factory()) }
             .build()
 
     lateinit var container: AppContainer

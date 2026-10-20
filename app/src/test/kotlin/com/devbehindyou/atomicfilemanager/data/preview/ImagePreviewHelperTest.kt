@@ -26,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.util.concurrent.Executors
@@ -97,6 +98,7 @@ class ImagePreviewHelperTest {
         }
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun failedReadClosesItsStreamOnTheInjectedPhysicalWorker() {
         val caller = Thread.currentThread()
         var closed = false

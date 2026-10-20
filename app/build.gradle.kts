@@ -92,7 +92,6 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     // Thumbnails in file lists (ALL_IN_ONE_PLAN.md hotspot H7): images and video frames, memory + disk cache.
     implementation(libs.coil.compose)
-    implementation(libs.coil.video)
     implementation(libs.junrar)
     implementation(libs.zip4j)
     implementation(libs.sshj)

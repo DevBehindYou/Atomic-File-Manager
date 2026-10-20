@@ -91,6 +91,7 @@ import com.devbehindyou.atomicfilemanager.domain.repository.SettingsRepository
 import com.devbehindyou.atomicfilemanager.domain.usecase.FolderComparer
 import com.devbehindyou.atomicfilemanager.ui.components.ConflictSheet
 import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
+import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabStrip
@@ -755,11 +756,10 @@ fun AtomicAppContent(
                                 modifier = Modifier.testTag("home_search_button"),
                             )
                         }
-                        AtomicIconButton(
-                            icon = AtomicIcons.Info,
-                            contentDescription = "About Atomic File Manager",
-                            onClick = { showAboutDialog = true },
-                            modifier = Modifier.testTag("about_button"),
+                        TasksButton(
+                            queue = operationQueue,
+                            transfers = app.container.wifiShare.transfers,
+                            onOpenOperations = { push(AtomicRoute.Operations) },
                         )
                     },
                 )
