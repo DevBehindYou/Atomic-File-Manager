@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -35,14 +39,17 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicProgress
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicErrorState
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
+import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
 import com.devbehindyou.atomicfilemanager.ui.components.BreadcrumbBar
 import com.devbehindyou.atomicfilemanager.ui.components.FavouriteToggle
+import com.devbehindyou.atomicfilemanager.ui.components.FileItemPresentation
 import com.devbehindyou.atomicfilemanager.ui.components.FileListItem
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewPane
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.ActiveDropTarget
@@ -54,6 +61,7 @@ import com.devbehindyou.atomicfilemanager.ui.interaction.drag.fileDropTarget
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.QuickPeekController
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.mediaGestureArbiter
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.grid.items as gridItems
 
 // Browse's list, dual-pane and preview content, and the running-operation banner.
 // Split from BrowseScreen.kt (ALL_IN_ONE_PLAN.md §16.2 H9).
@@ -84,6 +92,7 @@ internal fun DualPaneBrowseContent(
     nodeForPreview: FileNode?,
     actions: DualPaneItemActions,
     previewGallery: List<FileNode> = uiState.filteredItems,
+    viewMode: FileViewMode = FileViewMode.LIST,
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -105,7 +114,6 @@ internal fun DualPaneBrowseContent(
         ) {
             FileListContent(
                 uiState = uiState,
-                isSelectionMode = uiState.selectedIds.isNotEmpty(),
                 viewModel = viewModel,
                 dragController = dragController,
                 quickPeekController = quickPeekController,
@@ -117,6 +125,7 @@ internal fun DualPaneBrowseContent(
                 onHide = actions.onHide,
                 onNewFolder = actions.onNewFolder,
                 onPaneActivated = actions.onPrimaryActivated,
+                viewMode = viewMode,
             )
         }
         Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(Atomic.colors.borderStrong))
@@ -145,7 +154,6 @@ internal fun DualPaneBrowseContent(
                 ) {
                     FileListContent(
                         uiState = secondaryUiState,
-                        isSelectionMode = secondaryUiState.selectedIds.isNotEmpty(),
                         viewModel = secondaryViewModel,
                         dragController = dragController,
                         quickPeekController = quickPeekController,
@@ -157,6 +165,7 @@ internal fun DualPaneBrowseContent(
                         onHide = actions.onHide,
                         onNewFolder = actions.onNewFolder,
                         onPaneActivated = actions.onSecondaryActivated,
+                        viewMode = viewMode,
                     )
                 }
             } else {
@@ -222,7 +231,6 @@ internal fun OperationBanner(
 @Composable
 internal fun FileListContent(
     uiState: BrowseUiState,
-    isSelectionMode: Boolean,
     viewModel: BrowseViewModel,
     dragController: FileDragController,
     quickPeekController: QuickPeekController,
@@ -235,7 +243,9 @@ internal fun FileListContent(
     onNewFolder: () -> Unit,
     modifier: Modifier = Modifier,
     onPaneActivated: () -> Unit = {},
+    viewMode: FileViewMode = FileViewMode.LIST,
 ) {
+    val isSelectionMode = uiState.selectedIds.isNotEmpty()
     val favourites = (LocalContext.current.applicationContext as AtomicApp).container.favouritesRepository
     val favouriteFlow = remember(favourites) { favourites.observe() }
     val favouriteList by favouriteFlow.collectAsState(initial = emptyList())
@@ -269,7 +279,14 @@ internal fun FileListContent(
                 )
             uiState.filteredItems.isEmpty() ->
                 Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(AtomicSpacing.s16)) {
-                    if (uiState.searchQuery.isNotEmpty()) {
+                    if (uiState.fileFilter != BrowseFileFilter.ALL && uiState.rawItems.isNotEmpty()) {
+                        AtomicEmptyState(
+                            message = "No items match this filter.",
+                            detail = "Show all files to explore the rest of this folder.",
+                            actionLabel = "Clear filter",
+                            onAction = { viewModel.setFileFilter(BrowseFileFilter.ALL) },
+                        )
+                    } else if (uiState.searchQuery.isNotEmpty()) {
                         AtomicEmptyState(
                             message = "Nothing here matches \"${uiState.searchQuery}\".",
                             detail = "Search looks at names in this folder only.",
@@ -286,7 +303,6 @@ internal fun FileListContent(
                     }
                 }
             else -> {
-                val lazyListState = rememberLazyListState()
                 // Resolved once per selection change, not once per visible row (which was O(rows x items)).
                 val allSelectedNodes =
                     remember(uiState.rawItems, uiState.selectedIds) {
@@ -296,123 +312,155 @@ internal fun FileListContent(
                             uiState.rawItems.filter { it.id in uiState.selectedIds }
                         }
                     }
-                LazyColumn(
-                    state = lazyListState,
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .edgeAutoScroll(dragController, lazyListState),
-                ) {
-                    items(uiState.filteredItems, key = { it.id.raw }) { node ->
-                        val isSelected = node.id in uiState.selectedIds
-                        val selectedNodes = if (isSelected) allSelectedNodes else listOf(node)
+                FileBrowserLayout(
+                    nodes = uiState.filteredItems,
+                    viewMode = viewMode,
+                    dragController = dragController,
+                ) { node ->
+                    val isSelected = node.id in uiState.selectedIds
+                    val selectedNodes = if (isSelected) allSelectedNodes else listOf(node)
 
-                        val isMedia =
-                            node.mimeType?.startsWith("image/") == true ||
-                                node.mimeType?.startsWith("video/") == true
-                        val dragOrPeekMod =
-                            if (isMedia && !isSelectionMode) {
-                                Modifier.mediaGestureArbiter(
-                                    node = node,
-                                    onTap = {
-                                        onPaneActivated()
-                                        if (onOpenFile != null) {
-                                            onOpenFile(node)
-                                        } else {
-                                            onPreviewNode(node)
-                                        }
-                                    },
-                                    onQuickPeek = { quickPeekController.startPeek(it) },
-                                    onDismissPeek = { quickPeekController.dismiss() },
-                                )
-                            } else {
-                                Modifier.fileDragSource(
-                                    controller = dragController,
-                                    node = node,
-                                    selectedNodes = selectedNodes,
-                                    originLocation = uiState.currentFolderId,
-                                )
-                            }
-
-                        val dropMod =
-                            if (node.isDirectory) {
-                                Modifier.fileDropTarget(
-                                    controller = dragController,
-                                    target =
-                                        ActiveDropTarget(
-                                            id = node.id.raw,
-                                            destinationId = node.id,
-                                            type = DropTargetType.FOLDER,
-                                            displayName = node.name,
-                                            isWritable = true,
-                                        ),
-                                    onHoverSpringOpen = { viewModel.navigateTo(node) },
-                                )
-                            } else {
-                                Modifier
-                            }
-
-                        FileListItem(
-                            node = node,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = isSelected,
-                            onToggleSelect = {
-                                onPaneActivated()
-                                viewModel.longPressSelect(node.id)
-                            },
-                            onClick = {
-                                onPaneActivated()
-                                if (isSelectionMode) {
-                                    viewModel.toggleSelection(node.id)
-                                } else if (node.isDirectory) {
-                                    viewModel.navigateTo(node)
-                                } else {
+                    val isMedia =
+                        node.mimeType?.startsWith("image/") == true ||
+                            node.mimeType?.startsWith("video/") == true
+                    val dragOrPeekMod =
+                        if (isMedia && !isSelectionMode) {
+                            Modifier.mediaGestureArbiter(
+                                node = node,
+                                onTap = {
+                                    onPaneActivated()
                                     if (onOpenFile != null) {
                                         onOpenFile(node)
                                     } else {
                                         onPreviewNode(node)
                                     }
-                                }
-                            },
-                            onShowDetails = {
-                                onPaneActivated()
-                                onShowDetails(node)
-                            },
-                            onRename = {
-                                onPaneActivated()
-                                onRename(node)
-                            },
-                            onDelete = {
-                                onPaneActivated()
-                                onDelete(node)
-                            },
-                            onExtract = { viewModel.extractArchive(node) },
-                            onCompress = { viewModel.compressSingle(node) },
-                            onQuickPeek = { quickPeekController.startPeek(node) },
-                            onHide = {
-                                onPaneActivated()
-                                onHide(node)
-                            },
-                            modifier =
-                                Modifier
-                                    .then(dragOrPeekMod)
-                                    .then(dropMod),
-                            favourite =
-                                FavouriteToggle(node.id in favouriteIds) {
-                                    favouriteScope.launch {
-                                        if (node.id in favouriteIds) {
-                                            favourites.remove(
-                                                node.id,
-                                            )
-                                        } else {
-                                            favourites.add(node)
-                                        }
-                                    }
                                 },
-                        )
-                    }
+                                onQuickPeek = { quickPeekController.startPeek(it) },
+                                onDismissPeek = { quickPeekController.dismiss() },
+                            )
+                        } else {
+                            Modifier.fileDragSource(
+                                controller = dragController,
+                                node = node,
+                                selectedNodes = selectedNodes,
+                                originLocation = uiState.currentFolderId,
+                            )
+                        }
+
+                    val dropMod =
+                        if (node.isDirectory) {
+                            Modifier.fileDropTarget(
+                                controller = dragController,
+                                target =
+                                    ActiveDropTarget(
+                                        id = node.id.raw,
+                                        destinationId = node.id,
+                                        type = DropTargetType.FOLDER,
+                                        displayName = node.name,
+                                        isWritable = true,
+                                    ),
+                                onHoverSpringOpen = { viewModel.navigateTo(node) },
+                            )
+                        } else {
+                            Modifier
+                        }
+
+                    FileListItem(
+                        node = node,
+                        isSelectionMode = isSelectionMode,
+                        isSelected = isSelected,
+                        onToggleSelect = {
+                            onPaneActivated()
+                            viewModel.longPressSelect(node.id)
+                        },
+                        onClick = {
+                            onPaneActivated()
+                            if (isSelectionMode) {
+                                viewModel.toggleSelection(node.id)
+                            } else if (node.isDirectory) {
+                                viewModel.navigateTo(node)
+                            } else {
+                                if (onOpenFile != null) {
+                                    onOpenFile(node)
+                                } else {
+                                    onPreviewNode(node)
+                                }
+                            }
+                        },
+                        onShowDetails = {
+                            onPaneActivated()
+                            onShowDetails(node)
+                        },
+                        onRename = {
+                            onPaneActivated()
+                            onRename(node)
+                        },
+                        onDelete = {
+                            onPaneActivated()
+                            onDelete(node)
+                        },
+                        onExtract = { viewModel.extractArchive(node) },
+                        onCompress = { viewModel.compressSingle(node) },
+                        onQuickPeek = { quickPeekController.startPeek(node) },
+                        onHide = {
+                            onPaneActivated()
+                            onHide(node)
+                        },
+                        modifier =
+                            Modifier
+                                .then(dragOrPeekMod)
+                                .then(dropMod),
+                        presentation =
+                            FileItemPresentation(
+                                viewMode = viewMode,
+                                favourite =
+                                    FavouriteToggle(node.id in favouriteIds) {
+                                        favouriteScope.launch {
+                                            if (node.id in favouriteIds) {
+                                                favourites.remove(
+                                                    node.id,
+                                                )
+                                            } else {
+                                                favourites.add(node)
+                                            }
+                                        }
+                                    },
+                            ),
+                    )
                 }
             }
+        }
+    }
+}
+
+/** Both layouts use stable node IDs and the same item gestures, actions and thumbnail lifecycle. */
+@Composable
+internal fun FileBrowserLayout(
+    nodes: List<FileNode>,
+    viewMode: FileViewMode,
+    dragController: FileDragController,
+    modifier: Modifier = Modifier,
+    itemContent: @Composable (FileNode) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+    if (viewMode == FileViewMode.GRID) {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(AtomicSize.fileGridCellMin),
+            state = gridState,
+            contentPadding = PaddingValues(AtomicSpacing.s12),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+            modifier = modifier.fillMaxSize().edgeAutoScroll(dragController, gridState).testTag("file_grid"),
+        ) {
+            gridItems(nodes, key = { it.id.raw }) { node -> itemContent(node) }
+        }
+    } else {
+        LazyColumn(
+            state = listState,
+            modifier = modifier.fillMaxSize().edgeAutoScroll(dragController, listState).testTag("file_list"),
+        ) {
+            items(nodes, key = { it.id.raw }) { node -> itemContent(node) }
         }
     }
 }

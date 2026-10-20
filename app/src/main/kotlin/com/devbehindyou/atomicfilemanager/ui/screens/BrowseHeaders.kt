@@ -23,7 +23,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextFiel
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicChoiceCard
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicTitleRow
@@ -56,39 +55,17 @@ internal fun BrowseTopBar(
     bubbles: List<TransferBubble>,
     isDualPane: Boolean,
     dualPaneMode: DualPaneMode,
-    showSortMenu: Boolean,
-    onShowSortMenu: (Boolean) -> Unit,
     showAddToBubbleMenu: Boolean,
     onShowAddToBubbleMenu: (Boolean) -> Unit,
     actions: BrowseTopBarActions,
+    tasksButton: @Composable () -> Unit = {},
+    optionsButton: @Composable () -> Unit = {},
+    storageSelector: @Composable () -> Unit = {},
 ) {
     when {
         isSelectionMode -> SelectionHeader(uiState, bubbles, onShowAddToBubbleMenu, actions)
         uiState.isSearching -> SearchHeader(uiState, actions)
-        else -> FolderHeader(uiState, isDualPane, dualPaneMode, onShowSortMenu, actions)
-    }
-
-    if (showSortMenu) {
-        AtomicSheet(label = "Sort by", onDismiss = { onShowSortMenu(false) }) {
-            SortOption.entries.forEach { option ->
-                AtomicChoiceCard(
-                    title = option.label,
-                    selected = uiState.sortOption == option,
-                    onSelect = {
-                        actions.onSetSortOption(option)
-                        onShowSortMenu(false)
-                    },
-                )
-            }
-            AtomicSettingsRow(
-                title = "Hidden files",
-                value = "Hidden, obscured and private files",
-                onClick = {
-                    onShowSortMenu(false)
-                    actions.onShowHiddenScreen()
-                },
-            )
-        }
+        else -> FolderHeader(uiState, isDualPane, dualPaneMode, actions, tasksButton, optionsButton, storageSelector)
     }
 
     if (showAddToBubbleMenu) {
@@ -215,8 +192,10 @@ internal fun FolderHeader(
     uiState: BrowseUiState,
     isDualPane: Boolean,
     dualPaneMode: DualPaneMode,
-    onShowSortMenu: (Boolean) -> Unit,
     actions: BrowseTopBarActions,
+    tasksButton: @Composable () -> Unit = {},
+    optionsButton: @Composable () -> Unit = {},
+    storageSelector: @Composable () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth()) {
         AtomicPushedHeader(
@@ -229,12 +208,7 @@ internal fun FolderHeader(
                     onClick = { actions.onToggleSearch(true) },
                     modifier = Modifier.testTag("search_icon_button"),
                 )
-                AtomicIconButton(
-                    AtomicIcons.Sort,
-                    "Sort by",
-                    onClick = { onShowSortMenu(true) },
-                    modifier = Modifier.testTag("sort_button"),
-                )
+                tasksButton()
                 if (isDualPane) {
                     AtomicIconButton(
                         if (dualPaneMode == DualPaneMode.DUAL_BROWSE) AtomicIcons.Preview else AtomicIcons.DualPane,
@@ -246,14 +220,10 @@ internal fun FolderHeader(
                         onClick = actions.onToggleDualPaneMode,
                     )
                 }
-                AtomicIconButton(
-                    AtomicIcons.NewFolder,
-                    "New folder",
-                    onClick = actions.onShowNewFolderDialog,
-                    modifier = Modifier.testTag("new_folder_button"),
-                )
+                optionsButton()
             },
         )
+        storageSelector()
         AtomicTitleRow(
             title = uiState.currentFolderName.ifEmpty { "Files" },
             counter = "${uiState.filteredItems.size} items · ${uiState.sortOption.label}",

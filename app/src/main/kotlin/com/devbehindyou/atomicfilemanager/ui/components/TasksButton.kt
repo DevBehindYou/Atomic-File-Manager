@@ -20,11 +20,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
@@ -95,6 +95,7 @@ fun TasksButton(
             )
         }
         if (expanded) {
+            val windowSize = LocalWindowInfo.current.containerSize
             val active by queue.active.collectAsState()
             val waiting by queue.queued.collectAsState()
             val network by transfers.active.collectAsState()
@@ -116,6 +117,7 @@ fun TasksButton(
                         expanded = false
                         onOpenOperations()
                     },
+                    windowSize = windowSize,
                 )
             }
         }
@@ -131,18 +133,25 @@ internal fun TasksPanel(
     onCancelTransfer: (String) -> Unit,
     onDismiss: () -> Unit,
     onOpenOperations: () -> Unit,
+    windowSize: IntSize = LocalWindowInfo.current.containerSize,
 ) {
     val colors = Atomic.colors
-    val configuration = LocalConfiguration.current
-    val width = minOf(360.dp, (configuration.screenWidthDp.dp - AtomicSpacing.s32).coerceAtLeast(1.dp))
-    val maxHeight = (configuration.screenHeightDp.dp * 0.7f).coerceAtMost(480.dp)
+    val density = LocalDensity.current
+    val width =
+        with(density) {
+            minOf(
+                AtomicSize.popupMaxWidth,
+                (windowSize.width.toDp() - AtomicSpacing.s32).coerceAtLeast(AtomicSpacing.s2),
+            )
+        }
+    val maxHeight = with(density) { (windowSize.height.toDp() * 0.7f).coerceAtMost(AtomicSize.popupMaxHeight) }
     val count = (if (active == null) 0 else 1) + waiting.size + transfers.size
     Column(
-        Modifier.width(width).heightIn(max = maxHeight)
+        Modifier.testTag("tasks_popup").width(width).heightIn(max = maxHeight)
             .hardShadow(AtomicElevation.level3, colors.shadow, AtomicShape.md)
             .background(colors.surfaceCard, AtomicShape.md)
             .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
-            .padding(AtomicSpacing.s12).testTag("tasks_popup"),
+            .padding(AtomicSpacing.s12),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -244,7 +253,7 @@ private fun TaskRow(
             AtomicIconButton(AtomicIcons.Close, "Cancel $title task", onCancel)
         }
         val fraction = progress?.let(TaskText::fraction)
-        if (fraction != null && progress != null) {
+        if (fraction != null) {
             AtomicProgressBar(fraction, "$title, ${(fraction * 100).toInt()} percent")
             AtomicText(TaskText.progress(progress), AtomicTextRole.MonoMeta)
         } else if (state == "Preparing" || state == "Transferring") {

@@ -46,12 +46,13 @@ fun FileThumbnail(
     node: FileNode,
     modifier: Modifier = Modifier,
     folderLoader: (suspend (FileNode) -> List<ThumbnailSource>)? = null,
+    size: Dp = AtomicSize.iconTile,
 ) {
     val source = remember(node) { thumbnailSourceOf(node) }
-    Box(modifier.size(AtomicSize.iconTile).testTag("file_thumbnail_${node.id.raw}")) {
-        AtomicIconTile(iconFor(node), Modifier.testTag("file_type_icon_${node.id.raw}"))
+    Box(modifier.size(size).testTag("file_thumbnail_${node.id.raw}")) {
+        AtomicIconTile(iconFor(node), Modifier.size(size).testTag("file_type_icon_${node.id.raw}"))
         if (source != null) {
-            ThumbnailImage(source, AtomicSize.iconTile)
+            ThumbnailImage(source, size)
         } else if (node.isDirectory && !node.isHidden && node.access.readable) {
             key(node, folderLoader) {
                 val reader = remember { FolderThumbnailReader() }

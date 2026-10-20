@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.data.repository
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.domain.model.AppSettings
+import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import com.devbehindyou.atomicfilemanager.domain.model.HideMode
 import com.devbehindyou.atomicfilemanager.domain.model.ThemeMode
 import org.junit.Assert.assertEquals
@@ -33,6 +34,7 @@ class SharedPreferencesSettingsRepositoryTest {
                 defaultHideMode = HideMode.PRIVATE_STORAGE,
                 requireAuthForHidden = true,
                 showHiddenFiles = false,
+                fileViewMode = FileViewMode.GRID,
                 hiddenFolder = "Vault/Photos",
             )
         }
@@ -44,6 +46,7 @@ class SharedPreferencesSettingsRepositoryTest {
         assertEquals(HideMode.PRIVATE_STORAGE, reloaded.defaultHideMode)
         assertEquals(true, reloaded.requireAuthForHidden)
         assertEquals(false, reloaded.showHiddenFiles)
+        assertEquals(FileViewMode.GRID, reloaded.fileViewMode)
         assertEquals("Vault/Photos", reloaded.hiddenFolder)
     }
 
@@ -62,12 +65,14 @@ class SharedPreferencesSettingsRepositoryTest {
             .edit()
             .putString("theme_mode", "SOLARIZED")
             .putString("default_hide_mode", "TELEPORT")
+            .putString("file_view_mode", "CAROUSEL")
             .putString("hidden_folder", "../escape")
             .commit()
 
         val settings = SharedPreferencesSettingsRepository(context).settings.value
 
         assertEquals(ThemeMode.SYSTEM, settings.themeMode)
+        assertEquals(FileViewMode.LIST, settings.fileViewMode)
         assertNull(settings.defaultHideMode)
         assertEquals("Atomic File Manager/Hidden", settings.hiddenFolder)
     }

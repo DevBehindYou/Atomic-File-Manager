@@ -53,6 +53,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.components.BatchRenameSheet
 import com.devbehindyou.atomicfilemanager.ui.components.CompareSheet
+import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.interaction.bubble.TransferBubbleRail
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.DragFloatingPreview
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.FileDragController
@@ -92,6 +93,7 @@ fun BrowseScreen(
     onOpenInNewTab: ((FileNode) -> Unit)? = null,
     /** Compares two folders (ALL_IN_ONE_PLAN.md 4.1); null hides the actions. */
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
+    storage: BrowseStorageAccess = BrowseStorageAccess(),
     viewModel: BrowseViewModel =
         run {
             val app = LocalContext.current.applicationContext as AtomicApp
@@ -115,6 +117,7 @@ fun BrowseScreen(
         },
 ) {
     val app = LocalContext.current.applicationContext as AtomicApp
+    val volumes = storage.volumes
     val uiState by viewModel.uiState.collectAsState()
     val settings by app.container.settingsRepository.settings.collectAsState()
 
@@ -126,7 +129,6 @@ fun BrowseScreen(
     var confirmMultiDelete by remember { mutableStateOf(false) }
     var batchRename by remember { mutableStateOf<List<FileNode>?>(null) }
     var comparePair by remember { mutableStateOf<Pair<FileNode, FileNode>?>(null) }
-    var showSortMenu by remember { mutableStateOf(false) }
 
     var useSecondary by rememberSaveable(tabKey, initialFolderId.raw) { mutableStateOf(false) }
     var previewFromSecondary by remember { mutableStateOf(false) }
@@ -153,6 +155,13 @@ fun BrowseScreen(
     val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
     val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
     val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
+    val currentStorage = currentStorageVolume(volumes, actionState.currentFolderId, actionState.breadcrumbs)
+    val displayFolderName =
+        if (currentStorage?.rootNodeId == actionState.currentFolderId) {
+            currentStorage.label
+        } else {
+            actionState.currentFolderName
+        }
     val isSelectionMode = actionState.selectedIds.isNotEmpty()
     LaunchedEffect(isDualPane) {
         if (!isDualPane) {
@@ -218,8 +227,11 @@ fun BrowseScreen(
         viewModel.onOpenRequest(openRequest)
     }
 
-    LaunchedEffect(uiState.currentFolderName) {
-        if (uiState.currentFolderName.isNotBlank()) onLocationChange(uiState.currentFolderName)
+    val primaryStorage = currentStorageVolume(volumes, uiState.currentFolderId, uiState.breadcrumbs)
+    val primaryFolderName =
+        if (primaryStorage?.rootNodeId == uiState.currentFolderId) primaryStorage.label else uiState.currentFolderName
+    LaunchedEffect(primaryFolderName) {
+        if (primaryFolderName.isNotBlank()) onLocationChange(primaryFolderName)
     }
 
     LaunchedEffect(Unit) {
@@ -285,13 +297,11 @@ fun BrowseScreen(
         Column(Modifier.fillMaxSize().background(Atomic.colors.background)) {
             tabStrip()
             BrowseTopBar(
-                uiState = actionState,
+                uiState = actionState.copy(currentFolderName = displayFolderName),
                 isSelectionMode = isSelectionMode,
                 bubbles = bubbles,
                 isDualPane = isDualPane,
                 dualPaneMode = dualPaneMode,
-                showSortMenu = showSortMenu,
-                onShowSortMenu = { showSortMenu = it },
                 showAddToBubbleMenu = showAddToBubbleMenu,
                 onShowAddToBubbleMenu = { showAddToBubbleMenu = it },
                 actions =
@@ -322,6 +332,38 @@ fun BrowseScreen(
                         onInvertSelection = { actionViewModel.invertSelection() },
                         onSelectSameType = { actionViewModel.selectSameType() },
                     ),
+                tasksButton = {
+                    TasksButton(app.container.operationQueue, app.container.wifiShare.transfers, onOpenOperations)
+                },
+                optionsButton = {
+                    BrowseOptionsButton(
+                        viewMode = settings.fileViewMode,
+                        onViewModeChange = { mode ->
+                            app.container.settingsRepository.update { it.copy(fileViewMode = mode) }
+                        },
+                        sortOption = actionState.sortOption,
+                        onSortChange = actionViewModel::setSortOption,
+                        filter = actionState.fileFilter,
+                        onFilterChange = actionViewModel::setFileFilter,
+                        showHidden = settings.showHiddenFiles,
+                        onShowHiddenChange = { show ->
+                            app.container.settingsRepository.update { it.copy(showHiddenFiles = show) }
+                        },
+                        onNewFolder = { showNewFolderDialog = true },
+                        onShowHiddenFilesScreen = { showHiddenScreen = true },
+                    )
+                },
+                storageSelector = {
+                    BrowseStorageShortcuts(volumes, currentStorage, actionState.currentFolderId) { volume ->
+                        when {
+                            !volume.isMounted -> onNotify("This storage isn't mounted.")
+                            volume.rootNodeId != null ->
+                                actionViewModel.navigateToStorage(volume.rootNodeId, volume.label)
+                            !storage.hasAccess -> storage.requestAccess()
+                            else -> onNotify("This storage is unavailable. Reconnect it and try again.")
+                        }
+                    }
+                },
             )
             OperationBanner(uiState.activeOperation, onOpen = onOpenOperations)
             val pullState = rememberPullToRefreshState()
@@ -333,6 +375,7 @@ fun BrowseScreen(
             ) {
                 if (isDualPane) {
                     DualPaneBrowseContent(
+                        viewMode = settings.fileViewMode,
                         uiState = uiState,
                         secondaryUiState = secondaryUiState,
                         dualPaneMode = dualPaneMode,
@@ -376,8 +419,8 @@ fun BrowseScreen(
                     )
                 } else {
                     FileListContent(
+                        viewMode = settings.fileViewMode,
                         uiState = uiState,
-                        isSelectionMode = isSelectionMode,
                         viewModel = viewModel,
                         dragController = dragController,
                         quickPeekController = quickPeekController,

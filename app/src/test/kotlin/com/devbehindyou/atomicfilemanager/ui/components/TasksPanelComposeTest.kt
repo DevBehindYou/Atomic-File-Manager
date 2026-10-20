@@ -2,11 +2,17 @@ package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.app.Application
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.IntSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.OperationId
@@ -23,9 +29,29 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], qualifiers = "w500dp-h800dp", application = Application::class)
 class TasksPanelComposeTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun popupFitsItsHostWindowWhenTheWindowChangesSize() {
+        val availableWidth = mutableStateOf(AtomicSize.popupMaxWidth)
+        compose.setContent {
+            AtomicTheme(darkTheme = false, wallpaperAccent = false) {
+                val size =
+                    with(LocalDensity.current) {
+                        IntSize(
+                            availableWidth.value.roundToPx(),
+                            (AtomicSize.popupMaxHeight + AtomicSpacing.s74).roundToPx(),
+                        )
+                    }
+                TasksPanel(null, emptyList(), emptyList(), {}, {}, {}, {}, windowSize = size)
+            }
+        }
+        compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth - AtomicSpacing.s32)
+        compose.runOnIdle { availableWidth.value += AtomicSpacing.s32 }
+        compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth)
+    }
 
     @Test
     fun liveProgressAndCancellationKeepTheirOperationIdentity() {

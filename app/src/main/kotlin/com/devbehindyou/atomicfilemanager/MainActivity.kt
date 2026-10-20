@@ -94,6 +94,7 @@ import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
 import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.BrowseStorageAccess
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabStrip
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabsState
 import com.devbehindyou.atomicfilemanager.ui.screens.CategoryScreen
@@ -703,7 +704,10 @@ fun AtomicAppContent(
                 ),
             )
         }
-    val selectTab: (AtomicDestination) -> Unit = { navigateTab(NavigationTab.valueOf(it.key)) }
+    val selectTab: (AtomicDestination) -> Unit = {
+        pendingVolumeId = null
+        navigateTab(NavigationTab.valueOf(it.key))
+    }
     val screen: @Composable () -> Unit = {
         MainScreenContent(
             currentTab = currentTab,
@@ -717,7 +721,10 @@ fun AtomicAppContent(
                 ShellCallbacks(
                     onFolderSelected = ::openInBrowse,
                     onNavigateBack = ::navigateBack,
-                    onRequestStorageAccess = { requestStorageAccess() },
+                    onRequestStorageAccess = {
+                        pendingVolumeId = null
+                        requestStorageAccess()
+                    },
                     onBrowseVolume = ::openVolume,
                     onCategorySelected = ::openCategory,
                     onOpenPrivateFiles = { push(AtomicRoute.PrivateFiles) },
@@ -867,6 +874,7 @@ private fun MainScreenContent(
             key(tab.id) {
                 BrowseScreen(
                     initialFolderId = FileNodeId(tab.folderRaw),
+                    storage = BrowseStorageAccess(volumes, hasStorageAccess, callbacks.onRequestStorageAccess),
                     onNavigateBack = callbacks.onNavigateBack,
                     openRequest = tab.openRequest,
                     onNotify = callbacks.onNotify,

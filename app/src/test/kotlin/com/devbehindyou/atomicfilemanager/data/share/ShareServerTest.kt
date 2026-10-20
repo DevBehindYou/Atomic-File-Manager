@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.io.IOException
+import java.net.ConnectException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -226,14 +227,9 @@ class ShareServerTest {
     fun `stop closes active and queued clients and excess admissions are rejected`() {
         val s = start()
         // None sends a request: four occupy workers, eight wait, and the rest must be closed.
-        val clients =
-            (1..20).map {
-                Socket().apply {
-                    connect(InetSocketAddress(loopback, s.port), 2_000)
-                    soTimeout = 100
-                }
-            }
+        val clients = mutableListOf<Socket>()
         try {
+            repeat(20) { clients += connectForAdmissionTest(s.port) }
             val rejected = clients.count { it.isClosedByPeer() }
             assertTrue(rejected >= 8, "Accepted connections must be bounded to twelve")
             s.stop()
@@ -243,6 +239,29 @@ class ShareServerTest {
             }
         } finally {
             clients.forEach(Socket::close)
+        }
+    }
+
+    private fun connectForAdmissionTest(port: Int): Socket {
+        val deadline = System.nanoTime() + 2_000_000_000L
+        while (true) {
+            val client = Socket()
+            try {
+                val remaining = ((deadline - System.nanoTime()) / 1_000_000).coerceIn(1, 2_000).toInt()
+                client.connect(InetSocketAddress(loopback, port), remaining)
+                client.soTimeout = 100
+                return client
+            } catch (error: ConnectException) {
+                client.close()
+                if (System.nanoTime() >= deadline) throw error
+                // The kernel's small listen backlog can refuse before application admission.
+                // Keep the original two-second deadline and still obtain all twenty clients
+                // before asserting that the application rejects at least eight of them.
+                Thread.sleep(10)
+            } catch (error: Exception) {
+                client.close()
+                throw error
+            }
         }
     }
 

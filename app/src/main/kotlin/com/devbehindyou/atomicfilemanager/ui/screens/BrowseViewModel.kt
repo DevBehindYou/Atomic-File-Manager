@@ -62,6 +62,7 @@ data class BrowseUiState(
     val isSearching: Boolean = false,
     val sortOption: SortOption = SortOption.NAME,
     val showHiddenFiles: Boolean = true,
+    val fileFilter: BrowseFileFilter = BrowseFileFilter.ALL,
     val clipboard: ClipboardState? = null,
     val activeOperation: OperationSnapshot? = null,
 )
@@ -106,6 +107,7 @@ class BrowseViewModel(
         knownBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     ) {
         listingJob?.cancel()
+        filterJob?.cancel()
         selectionAnchor = null
         val requestedSortRevision = sortRevision
         listingJob =
@@ -174,9 +176,10 @@ class BrowseViewModel(
         val query = _uiState.value.searchQuery
         val sort = _uiState.value.sortOption
         val showHidden = _uiState.value.showHiddenFiles
+        val fileFilter = _uiState.value.fileFilter
         val filtered =
             withContext(Dispatchers.Default) {
-                filterAndSort(items, query, sort, showHidden)
+                filterAndSort(items, query, sort, showHidden, fileFilter)
             }
         _uiState.update {
             it.copy(
@@ -187,7 +190,9 @@ class BrowseViewModel(
         }
         // The query or sort may have changed while the list was being sorted.
         val current = _uiState.value
-        if (current.searchQuery != query || current.sortOption != sort || current.showHiddenFiles != showHidden) {
+        if (current.searchQuery != query || current.sortOption != sort || current.showHiddenFiles != showHidden ||
+            current.fileFilter != fileFilter
+        ) {
             refilter()
         }
     }
@@ -208,13 +213,16 @@ class BrowseViewModel(
                             requested.searchQuery,
                             requested.sortOption,
                             requested.showHiddenFiles,
+                            requested.fileFilter,
                         )
                     }
                 _uiState.update { current ->
                     if (current.rawItems === requested.rawItems &&
+                        current.currentFolderId == requested.currentFolderId &&
                         current.searchQuery == requested.searchQuery &&
                         current.sortOption == requested.sortOption &&
-                        current.showHiddenFiles == requested.showHiddenFiles
+                        current.showHiddenFiles == requested.showHiddenFiles &&
+                        current.fileFilter == requested.fileFilter
                     ) {
                         current.copy(filteredItems = filtered)
                     } else {
@@ -229,8 +237,9 @@ class BrowseViewModel(
         query: String,
         sort: SortOption,
         showHidden: Boolean,
+        fileFilter: BrowseFileFilter,
     ): List<FileNode> {
-        val visible = if (showHidden) items else items.filterNot { it.isHidden }
+        val visible = items.filter { (showHidden || !it.isHidden) && fileFilter.matches(it) }
         val filtered =
             if (query.isBlank()) {
                 visible
@@ -273,6 +282,24 @@ class BrowseViewModel(
             folder.id,
             knownBreadcrumbs = current.breadcrumbs + BreadcrumbItem(folder.displayName, folder.id.raw),
         )
+    }
+
+    /** Switch within this model so the clipboard and pane ownership survive changing drives. */
+    fun navigateToStorage(
+        root: FileNodeId,
+        label: String,
+    ) {
+        val current = _uiState.value
+        if (root != current.currentFolderId) {
+            folderHistory.add(BrowseLocation(current.currentFolderId, current.breadcrumbs))
+        }
+        _uiState.update { it.copy(searchQuery = "", isSearching = false, fileFilter = BrowseFileFilter.ALL) }
+        loadDirectory(root, knownBreadcrumbs = listOf(BreadcrumbItem(label, root.raw)))
+    }
+
+    fun setFileFilter(filter: BrowseFileFilter) {
+        _uiState.update { it.copy(fileFilter = filter) }
+        refilter()
     }
 
     fun navigateBack(): Boolean {
