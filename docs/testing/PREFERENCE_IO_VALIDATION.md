@@ -23,8 +23,8 @@ Shared preference names, keys and encoded values are unchanged. Accepted changes
 
 The 32 added cases cover physical IO dispatch, persisted-format compatibility, delayed reads versus gestures/sort changes, pending writes across screen replacement, disposal before dispatch, failure delivery, concurrent store writers and existing capacity/fallback behavior. Release APK rebuilding and remote required checks remain separate gates.
 
-## Remaining scope
+## Subsequent implementation and remaining acceptance
 
-The FolderCompare route in `MainActivity` still constructs/reads `SyncPairStore` and saves modes synchronously. Its saved-mode initialization and save acknowledgement require a separate async UI change; this batch does not claim universal elimination of main-thread IO. Broader provider, process-kill, performance and production-signing acceptance remain separate roadmap work.
+The later [FolderCompare preference change](FOLDER_COMPARE_PREFERENCE_IO_VALIDATION.md) implements asynchronous initialization and save acknowledgement, and [settings startup](SETTINGS_STARTUP_VALIDATION.md) addresses the remaining startup warnings. Those changes have their own validation scope; the 695-test checkpoint above does not validate them. Broader provider, process-kill, performance and production-signing acceptance remain separate roadmap work.
 
-The isolated Kotlin plugin cleanup was not integrated: declaring only Kotlin at the root failed AGP class loading, and the Android-plus-Kotlin retry could not resolve an uncached plugin marker in offline mode. Preserve its three-file candidate and logs for a deliberate build-hygiene follow-up; the working toolchain is unchanged.
+The isolated Kotlin plugin cleanup was subsequently completed and integrated at `69b46ca`: root Android and Kotlin plugin aliases share their classloader, and the custom Lint module inherits the Kotlin plugin version. Configuration, app/benchmark compilation and 28 custom Lint tests passed in its focused check without the duplicate-plugin warning. Toolchain/dependency versions are unchanged. The earlier failed candidates are historical diagnostics, not the current source.

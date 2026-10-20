@@ -1,14 +1,14 @@
 protocol: AI-HANDOVER/V2
-updated: 2026-10-19
+updated: 2026-10-20
 project: atomic-file-manager   # repo DevBehindYou/Atomic-File-Manager
 objective: evidence-based architecture modernization; safety fixes and integrated validation
 
 repo:
   branch: codex/architecture-audit
-  commit: "4d19ae1" # source checkpoint; documentation updates follow
+  commit: "4792db8" # source checkpoint; 917 host and 13 selected device cases pass
   baseline: "7782660"
-  dirty: false
-  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58]
+  dirty: true # preserved user icon artwork; source checkpoint excludes the docs-only follow-up
+  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
 
 stack:
   - kotlin-2.2.10
@@ -19,10 +19,10 @@ stack:
   - manual DI (AppContainer), hilt declared but unused
 
 status:
-  build: PARTIAL           # tests/static/Lint/debug+release+instrumentation APKs pass; benchmark packaging remains
-  unit_tests: VERIFIED     # current source: 663 app tests + 28 custom Lint-rule tests
-  device_tests: PARTIAL    # API34 surface: four automated UI tests pass; broader suites remain
-  runtime: SURFACE_PASS    # 2026-10-19 phone surface; existing StrictMode disk reads found
+  build: PASS             # 4792db8 complete static/test/Lint/debug/release/benchmark packaging run, exit 0
+  unit_tests: PASS        # 917 app + 28 custom-rule cases; zero failures/errors/skips
+  device_tests: PARTIAL   # all 13 selected surface cases pass; broader hardware/recovery acceptance remains
+  runtime: PARTIAL        # current 13-case log clean; prior InsetsSourceControl diagnostic retained
   release_signing: BROKEN  # debug-signed (ISS-001)
   plan_phases_0_4: IMPLEMENTED
   plan_16_optimization: PARTIAL
@@ -30,10 +30,12 @@ status:
 progress:
   implemented_weight: "47/60 (~78%) of modernization roadmap; 26/26 first batch"
   source: docs/roadmap/IMPLEMENTATION_PROGRESS.md
-  remaining: benchmark packaging, main-thread preference reads, M12 hygiene, broader device/performance acceptance, current-head CI and human/owner gates
+  remaining: Startup access/volume loading-state polish, retained historical Android resource diagnostic, M12 hygiene, broader device/performance acceptance, current-head CI and human/owner gates
 
 done:
   - "M01 source-linked audit, architecture, decisions, roadmap and performance methodology"
+  - "Startup and comparison preference IO, plugin-loading cleanup and storage-access adapter integrated"
+  - "Thumbnails/viewers, live Tasks, Files controls, adaptive menus and typed icons implemented; 917 host and 13 selected phone cases pass"
   - plan phases 0-4 (PRs #1-#37)
   - "§16: H1 H2 H3 H7 H8 H10, StrictMode, JankStats, monkey job (#38 #39)"
   - "§16 partial: H4 H5 H6 H9 (#39 #40 #41)"
@@ -60,9 +62,9 @@ critical_files:
 
 next:
   - inspect preserved worktree changes and build/audit-tools log plus exit markers
-  - read docs/testing/DEVICE_SURFACE_TEST_2026-10-19.md; four UI tests and manual surface pass
-  - address device-confirmed main-thread preference reads without changing persisted formats
-  - finish benchmark packaging and review focused draft PRs at their exact heads
+  - read docs/testing/MENU_REFINEMENT_VALIDATION.md and latest menu-refinement-complete logs; interrupted runs are not passes
+  - retain passing native fixture and physical popup/row-action evidence; broaden hardware tests only within authorization
+  - review focused draft PRs at their exact heads; run benchmark/profile measurements only within authorized hardware scope
   - TASK-001..005 device, baseline profile and hardware checks when environment exists
 
-confidence: source and host gates verified; API34 surface pass; broader device, recovery and performance acceptance open
+confidence: 4792db8 host/static/package and selected phone gates pass; broader device, recovery and performance acceptance open

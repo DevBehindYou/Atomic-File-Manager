@@ -1,8 +1,21 @@
-# Modernization validation — 19 October 2026
+# Modernization validation — 20 October 2026
 
 Baseline: `7782660`. Integration branch: `codex/architecture-audit`. Read the current [progress record](../roadmap/IMPLEMENTATION_PROGRESS.md) for final gate status. Historical feature CI is separate evidence.
 
-## Recorded checks
+## Current UI integration at `4792db8`
+
+All 917 app host cases, 28 custom Lint-rule cases, ktlint/detekt and debug/test
+packaging pass. All 13 selected API34 phone cases pass, including decoded preview
+pixels, DOCX find, recreation, Tasks and Files controls. Manual content-sized top
+options and bottom icon-card menus pass; type classification and light/dark
+contrast checks pass. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete 14m36s Gradle run, exit 0.
+See [menu/icon evidence](MENU_REFINEMENT_VALIDATION.md) for exact APK hashes,
+scope, earlier fixture failures and current limitations.
+
+## Historical integration checks at `4d19ae1`
+
+The following ledger records that checkpoint only. Later preference/startup and viewer
+changes have separate evidence in the [progress record](../roadmap/IMPLEMENTATION_PROGRESS.md).
 
 | Check | Result and scope |
 |---|---|
@@ -34,7 +47,7 @@ Search fixtures verify that category matches after more than 2,000 matching fold
 
 ## Required remaining acceptance
 
-1. Complete benchmark APK packaging; the other listed host/static/package gates have passed across the recorded runs.
+1. Run macrobenchmarks and generate a baseline profile on approved hardware, including assembly/installation of the tested app variant; benchmark test-APK packaging alone is not measured performance.
 2. Check the PR head revisions independently in CI; the integration branch's results do not prove every isolated or stacked review branch by themselves.
 3. Run actual API 27/36 provider, USB, network, process-kill and performance acceptance on generated test data; record device/build/dataset/thermal conditions.
 4. Keep filesystem/provider/protocol changes for human review and production signing for the owner.

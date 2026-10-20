@@ -1,6 +1,6 @@
 # Modernization review branches
 
-19 October 2026. All PRs below are drafts; none has been merged. Sources were integrated and checked together on `codex/architecture-audit`; each isolated PR still needs its own current-head CI and review. All created PRs are attached to the current Codex chat.
+20 October 2026. All PRs below are drafts; none has been merged. Sources were integrated on `codex/architecture-audit`; validation evidence is checkpoint-specific and each isolated PR still needs its own current-head CI and review. All created PRs are attached to the current Codex chat.
 
 | Scope | Base | Draft PR |
 |---|---|---|
@@ -15,6 +15,8 @@
 | Archive staging, recursion guards and network root compatibility | codex/review-provider-ancestry | [#52](https://github.com/DevBehindYou/Atomic-File-Manager/pull/52) |
 | Actual progress emission throttling | codex/review-provider-ancestry | [#53](https://github.com/DevBehindYou/Atomic-File-Manager/pull/53) |
 | Actual-ID breadcrumbs and navigation history | main | [#54](https://github.com/DevBehindYou/Atomic-File-Manager/pull/54) |
+| Screen preference IO and ordered accepted metadata saves | codex/review-breadcrumb-identity | [#59](https://github.com/DevBehindYou/Atomic-File-Manager/pull/59) |
+| Settings startup readiness, retry and pending-intent restoration | codex/review-preference-io | [#60](https://github.com/DevBehindYou/Atomic-File-Manager/pull/60) |
 | FTPS TLS, transfer status and bounded FTP metadata | main | [#55](https://github.com/DevBehindYou/Atomic-File-Manager/pull/55) |
 | Bounded DAV metadata, conditional mutations and URI identity | main | [#56](https://github.com/DevBehindYou/Atomic-File-Manager/pull/56) |
 | Portable Android storage fixtures on Windows | main | [#57](https://github.com/DevBehindYou/Atomic-File-Manager/pull/57) |

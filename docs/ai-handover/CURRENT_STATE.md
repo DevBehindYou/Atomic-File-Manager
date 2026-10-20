@@ -1,12 +1,16 @@
 # Current State
 
-Last updated: 2026-10-19
+## Current validation — 20 October 2026
+
+Current source `4792db8` includes Files storage shortcuts, persisted List/Grid views, content-sized top options, responsive icon-card action menus and distinct theme-aware icons/colours for 15 file families. All 917 app JVM/Robolectric cases, 28 custom Lint-rule cases, ktlint/detekt and debug/instrumentation packaging pass. All 13 selected API34 phone cases pass; manual popup sizing, Commands/Select grids and coloured folder icons are verified. The installed debug APK matches the recorded build hash, and the settled app is back on Home. The current selected log contains no StrictMode or fatal errors; a prior InsetsSourceControl warning remains historical evidence. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete Gradle run (exit 0). See [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader provider, hardware, recovery, performance and owner-signing acceptance remains open.
+
+Last updated: 2026-10-20
 
 ## Active modernization work
 
 The 17–18 October audit found correctness gaps beyond the historical feature-completion claims below. Current source baseline is `7782660`; integration branch is `codex/architecture-audit`. Read [implementation progress](../roadmap/IMPLEMENTATION_PROGRESS.md), [audit](../architecture/PROJECT_AUDIT.md), and [current architecture](../architecture/CURRENT_ARCHITECTURE.md) first. The roadmap uses verified weighted acceptance, not the historical ~99% feature estimate.
 
-Integrated work covers archive staging, durable admission, upload safety, browse lifecycle, IO dispatch, progress throttling, trash recovery, filtered search, SAF ancestry, actual-ID breadcrumbs and FTP/WebDAV hardening: about 78% of the weighted implementation roadmap. All 663 app JVM/Robolectric tests, 28 custom Lint-rule tests, ktlint, detekt, debug/release Android Lint and debug/release/instrumentation APK assembly pass. Benchmark packaging remains. The connected API34 phone passed manual surface checks and four automated UI tests; [device report](../testing/DEVICE_SURFACE_TEST_2026-10-19.md) records existing main-thread disk reads requiring follow-up. Broader device/performance acceptance and production signing remain open. Fifteen draft PRs are listed in [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md); none is merged. Historical green CI must not be applied to these changes.
+Integrated work covers archive/queue/upload safety, browse ownership, IO dispatch, trash/search, provider identity and FTP/WebDAV hardening: about 78% of the weighted roadmap. Before the current validation above, the complete host checkpoint was `5705606` (712 app tests, 28 custom Lint-rule tests); earlier Lint/release evidence is checkpoint-specific. Startup preference IO now passes a manual API34 surface run with zero StrictMode disk warnings. Earlier checkpoint `c09ec88` added comparison preference IO, shared-storage access, plugin-loading cleanup, thumbnails/folder miniatures, contextual actions and PDF/DOCX/media/image/editor improvements; those changes are included in the current validation above. See the [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader device/performance acceptance and production signing remain open. Seventeen draft PRs are listed in [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md); none is merged. Historical green CI must not be applied to these changes.
 
 The remainder is the preserved 8 October feature handover, not current validation evidence.
 Verified against commit: `e2b1509` (`main`)
