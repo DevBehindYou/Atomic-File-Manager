@@ -1,5 +1,7 @@
 # Current State
 
+21 October execution: [feature progress](../roadmap/FEATURE_UPGRADE_PROGRESS.md) is the current U01–U13 ledger: 8% host verified and 8% accepted. PRs #61/#62 merged into the feature integration branch, not main. Benchmark draft [PR #63](https://github.com/DevBehindYou/Atomic-File-Manager/pull/63), head `8e4c679`, has APK-build and two non-mutating API34 contract passes; draft CI and full performance runs remain open. File-opening defaults draft [PR #64](https://github.com/DevBehindYou/Atomic-File-Manager/pull/64), head `40f5add`, passes formatting/static checks; compilation/tests/Lint remain in progress. Primary browse visibility is active on `codex/browse-visibility-lifecycle`. Consult exact logs and active agents before running another build; local Gradle is serialized. Historical validation below remains checkpoint-specific.
+
 ## Feature planning and bundled plugins — 21 October 2026
 
 The [feature upgrade plan](../roadmap/FEATURE_UPGRADE_PLAN.md) is complete, with ordered increments, dependencies and acceptance checks. The user chose bundled viewers/tools listed in Settings → In-app plugins; no remote executable installation or independent plugin updates. That inventory is implemented in the working tree. Its [focused validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md) is separate from the full-suite checkpoint below. Direct cloud accounts, opening defaults, advanced viewer capabilities and measured performance improvements remain planned. The existing 78% modernization figure does not describe this expanded scope.
