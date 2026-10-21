@@ -22,7 +22,7 @@ Source regression coverage prepared:
 - Home Compose regression: loading/failure does not offer Grant access, Retry and existing volume navigation still dispatch correctly, and a confirmed denial restores the permission action.
 - Existing Home and Settings Compose cases remain applicable.
 
-Root coordinates serialized Gradle on this host. No local build/test result is claimed until the parent records its run. Suggested focused tasks:
+Root completed serialized host validation: `build/audit-tools/startup-storage-complete-validation.log` and its exit marker record success in 7m 45s. The 13 focused cases (loader 5, Home 4, Settings 4), ktlint, detekt, debug APK and debug Lint passed. Tasks:
 
 ```text
 ktlintFormat ktlintCheck detekt :app:testDebugUnitTest
@@ -32,4 +32,8 @@ ktlintFormat ktlintCheck detekt :app:testDebugUnitTest
 :app:assembleDebug :app:lintDebug
 ```
 
-Physical startup, permission return, media mount/unmount and recreation checks remain pending. The broader U04 primary-tab ownership/refactor work is deliberately separate; this first slice addresses loading-state truthfulness.
+The debug APK SHA-256 was `d1fbe0825b71307db16244974e3d1e5190ac9f135ea5e75e809e4eece347279e`. The authorized API34 phone passed cold launch → Home → Settings (visible Granted status) → Home, with its existing all-files grant preserved. Captures are under `build/audit-tools/device-preview-tools/startup-storage-*`; the captured runtime-error log was empty. No real user files were changed. This is a surface check, not a comparable performance baseline.
+
+PR #62 at `963a96b` passed full current-head CI, independent review and a clean trial merge, then merged into `codex/feature-upgrade-base` as `08541851c0ab7f8c32ed768e89558a791a93f321`. This is feature integration, not main/release acceptance.
+
+Permission revocation/return, media mount/unmount and recreation checks remain pending. The broader U04 primary-tab ownership/refactor work is separate; this first slice addresses loading-state truthfulness.

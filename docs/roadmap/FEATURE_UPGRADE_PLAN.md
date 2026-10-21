@@ -33,7 +33,7 @@ Each row is a deliverable, potentially split into small reviewable changes. Comp
 
 | ID | Priority / state | Deliverable | Dependencies | Exit evidence |
 | --- | --- | --- | --- | --- |
-| U01 | P0 / host verified; phone pending | Bundled In-app plugins inventory with eight real feature entries, details, Back/Close and limitations | Existing viewers | 10 focused tests, debug APK, ktlint/detekt and debug Lint pass; no phone connected at check |
+| U01 | P0 / accepted into feature integration | Bundled In-app plugins inventory with eight real feature entries, details, Back/Close and limitations | Existing viewers | Focused host checks, full CI, API34 surface, independent review and PR #61 merge pass; release acceptance remains separate |
 | U02 | P0 / planned | Trustworthy benchmark setup and fixtures | Existing benchmark module; available test device for runs | Setup fails on missing destination/items; known corpus; trace boundaries; baseline with device/build metadata |
 | U03 | P0 / planned | Folder listing responsiveness and explicit partial state | U02 measurements | First-content/full-list/frame/allocation comparison; correct final sort, cancellation, selection and clipboard |
 | U04 | P0 / planned | Startup access state and screen ownership | Existing M05/M12 work | No false denied banner while access is resolving; no redundant hidden-pane work; recreation/navigation tests |

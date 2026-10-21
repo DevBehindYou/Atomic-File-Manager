@@ -6,16 +6,16 @@ Updated 21 October 2026. Scope: [FEATURE_UPGRADE_PLAN](FEATURE_UPGRADE_PLAN.md),
 
 Report two figures using 13 equally weighted milestones. Host-verified delivery = milestones whose complete planned implementation and applicable host checks passed / 13. Accepted delivery = milestones with their required device/provider evidence, resolved review concerns and merged PR / 13. Partial slices do not count as a complete milestone. Round percentages to the nearest whole percent. These are coarse milestone indicators, not effort or release-readiness estimates.
 
-Starting point: **8% host verified (1/13), 0% accepted (0/13)**. U01 is implemented and host verified. Do not credit U02/U04/U06 merely for work starting or PR creation.
+Current: **8% host verified (1/13), 8% accepted (1/13)**. U01 passed its focused host checks, full GitHub CI, physical API34 surface flow, independent review and clean merge. Do not credit U02/U04/U06 merely for partial slices, work starting or PR creation.
 
 | Milestone | Current state | Evidence / next gate |
 | --- | --- | --- |
-| U01 Bundled plugins | Host verified; PR checks and phone acceptance pending | [PR #61](https://github.com/DevBehindYou/Atomic-File-Manager/pull/61), source `12f007d`; [10-case validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md) |
-| U02 Benchmark correctness/baseline | Implementing deterministic harness in parallel | Branch `codex/benchmark-fixtures`; real baseline remains required |
+| U01 Bundled plugins | Accepted into feature integration branch | [PR #61](https://github.com/DevBehindYou/Atomic-File-Manager/pull/61), tested head `88bb8d0`, merge `742d473`; physical API34 flow passed; main/release acceptance remains separate |
+| U02 Benchmark correctness/baseline | Harness APK builds; 2 non-mutating API34 contract cases pass | Branch `codex/benchmark-fixtures`; real baseline and trace boundaries remain required |
 | U03 Listing responsiveness | Planned | Requires U02 measurements |
-| U04 Startup access/ownership | Implementing storage-state slice in parallel | Branch `codex/startup-storage-state`; broad tab ownership remains separate |
+| U04 Startup access/ownership | Storage-state slice merged; host/static/Lint, CI and granted-phone surface pass | [PR #62](https://github.com/DevBehindYou/Atomic-File-Manager/pull/62), merge `0854185`; broad tab ownership and conditional device cases remain separate |
 | U05 Index/cache consistency | Planned | Baseline/schema and restart tests |
-| U06 Opening defaults | Implementing routed preference slice in parallel | Branch `codex/file-opening-defaults`; verify actual scope before credit |
+| U06 Opening defaults | Routed preference slice integrated for host validation | Branch `codex/file-opening-defaults`; verify actual scope before credit |
 | U07 Storage-account contracts | Planned | Preserve real system-provider/network behavior |
 | U08 First direct cloud connector | Planned | Provider/scope registration and real test account |
 | U09 Media/images | Planned | Bundled feature improvements and hardware acceptance |
@@ -39,6 +39,9 @@ Automatic continuation: active thread heartbeat `continue-atomic-implementation`
 ## Batch 1
 
 - Preserved the previously validated bundled-plugin source and upgrade plan as `12f007d`.
-- Published and attached PR #61; its static and full test/package jobs are running on GitHub Actions.
+- Published and attached PR #61. Initial full CI caught a cancelled-job teardown race; fixed by joining the ViewModel job before resetMain. New-head CI passed static analysis and the full unit/APK job. Physical API34 plugin navigation and independent review passed. A clean trial merge preceded automatic merge `742d473` into `codex/feature-upgrade-base`.
 - Started U02, U04 and U06 implementations in parallel worktrees. Local Gradle is not run concurrently.
-- ADB now sees the authorized API34 phone; a brief U01 surface check is being prepared. No real user-file mutation is part of that check.
+- ADB sees the authorized API34 phone; U01 Settings/list/PDF-details/Back/archive-details/Close surface check passed, then the app returned Home. No real user-file mutation was performed.
+- PR #62 merged the startup-readiness slice after 13 focused host tests, static analysis, Lint, current-head CI, independent review, a granted-phone surface flow and clean trial merge. Broader U04 ownership and revocation/mount/recreation checks remain open.
+- The deterministic benchmark APK compiled after explicitly declaring its existing AndroidX test runner dependency. Both non-mutating contract cases passed on API34; no corpus baseline or speed improvement is claimed.
+- File-opening policy, persisted rules, actual external handler selection and displayed-gallery identity changes are integrated for serialized host validation. No whole U06 acceptance is claimed yet.
