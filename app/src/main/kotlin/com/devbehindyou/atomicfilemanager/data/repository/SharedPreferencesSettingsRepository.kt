@@ -33,6 +33,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
 
     private fun read(): AppSettings =
         AppSettings(
+            fileOpening = FileOpeningPreferencesCodec.decode(prefs.getString(KEY_FILE_OPENING, null)),
             themeMode = prefs.getString(KEY_THEME, null).toEnumOrNull<ThemeMode>() ?: ThemeMode.SYSTEM,
             dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, false),
             defaultHideMode = prefs.getString(KEY_DEFAULT_HIDE_MODE, null).toEnumOrNull<HideMode>(),
@@ -50,6 +51,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     private fun write(settings: AppSettings) {
         val editor =
             prefs.edit()
+                .putString(KEY_FILE_OPENING, FileOpeningPreferencesCodec.encode(settings.fileOpening))
                 .putString(KEY_THEME, settings.themeMode.name)
                 .putBoolean(KEY_DYNAMIC_COLOR, settings.dynamicColor)
                 .putBoolean(KEY_REQUIRE_AUTH, settings.requireAuthForHidden)
@@ -73,6 +75,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     private companion object {
         const val PREFS_NAME = "atomic_settings"
         const val KEY_THEME = "theme_mode"
+        const val KEY_FILE_OPENING = "file_opening_v1"
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
         const val KEY_DEFAULT_HIDE_MODE = "default_hide_mode"
         const val KEY_REQUIRE_AUTH = "require_auth_for_hidden"

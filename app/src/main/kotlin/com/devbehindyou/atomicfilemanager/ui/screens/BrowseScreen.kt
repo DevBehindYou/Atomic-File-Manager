@@ -111,6 +111,7 @@ fun BrowseScreen(
                         operationQueue = app.container.operationQueue,
                         transferBubbleRepository = app.container.transferBubbleRepository,
                         folderSorts = app.container.folderSortMemory,
+                        startVisible = false,
                     ),
                 )["browse:$tabKey${initialFolderId.raw}", BrowseViewModel::class.java]
             }
@@ -223,9 +224,7 @@ fun BrowseScreen(
         if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
-    LaunchedEffect(viewModel, openRequest) {
-        viewModel.onOpenRequest(openRequest)
-    }
+    PrimaryBrowseVisibility(viewModel, openRequest)
 
     val primaryStorage = currentStorageVolume(volumes, uiState.currentFolderId, uiState.breadcrumbs)
     val primaryFolderName =
