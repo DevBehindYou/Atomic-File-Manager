@@ -59,8 +59,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicHomeHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicBottomBar
@@ -124,12 +124,10 @@ import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessLoader
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 import com.devbehindyou.atomicfilemanager.ui.util.DebugJank
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 enum class NavigationTab(val title: String) {
     HOME("Home"),
@@ -295,12 +293,13 @@ fun AtomicAppContent(
     var pendingVolumeId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
-    val storageLoader = remember(context, scope) {
-        StorageReadinessLoader(scope) {
-            val access = SharedStorageAccess.isGranted(context)
-            StorageSnapshot(access, loadVolumes(context, access))
+    val storageLoader =
+        remember(context, scope) {
+            StorageReadinessLoader(scope) {
+                val access = SharedStorageAccess.isGranted(context)
+                StorageSnapshot(access, loadVolumes(context, access))
+            }
         }
-    }
     val storageReadiness by storageLoader.state.collectAsState()
     val volumes = storageReadiness.snapshot?.volumes.orEmpty()
     val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
@@ -942,16 +941,18 @@ private fun MainScreenContent(
             SettingsScreen(
                 settingsRepository = settingsRepository,
                 hasStorageAccess = hasStorageAccess,
-                storageAccessStatus = when (storageReadiness) {
-                    is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
-                    is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
-                    is StorageReadinessState.Ready -> null
-                },
-                onRequestStorageAccess = if (storageReadiness is StorageReadinessState.Ready) {
-                    callbacks.onRequestStorageAccess
-                } else {
-                    onRetryStorage
-                },
+                storageAccessStatus =
+                    when (storageReadiness) {
+                        is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
+                        is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
+                        is StorageReadinessState.Ready -> null
+                    },
+                onRequestStorageAccess =
+                    if (storageReadiness is StorageReadinessState.Ready) {
+                        callbacks.onRequestStorageAccess
+                    } else {
+                        onRetryStorage
+                    },
                 onClearScanCache = callbacks.onClearScanCache,
                 onNotify = callbacks.onNotify,
             )

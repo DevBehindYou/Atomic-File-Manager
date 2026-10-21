@@ -43,7 +43,10 @@ class HomeScreenComposeTest {
 
     private val events = mutableListOf<String>()
 
-    private fun show(hasAccess: Boolean = true, readiness: MutableState<StorageReadinessState>? = null) {
+    private fun show(
+        hasAccess: Boolean = true,
+        readiness: MutableState<StorageReadinessState>? = null,
+    ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 HomeScreen(
@@ -55,7 +58,8 @@ class HomeScreenComposeTest {
                     onRequestStorageAccess = { events += "grant" },
                     onOpenPrivateFiles = { events += "private" },
                     onOpenStorageDetails = { events += "details" },
-                    storageReadiness = readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
+                    storageReadiness =
+                        readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
                     onRetryStorage = { events += "retry" },
                 )
             }
@@ -64,7 +68,8 @@ class HomeScreenComposeTest {
 
     @Test
     fun unresolvedCheckAndFailureNeverOfferPermissionGrantAndRetryKeepsVolumeNavigation() {
-        val readiness = mutableStateOf<StorageReadinessState>(StorageReadinessState.Loading(StorageSnapshot(false, listOf(phone))))
+        val readiness =
+            mutableStateOf<StorageReadinessState>(StorageReadinessState.Loading(StorageSnapshot(false, listOf(phone))))
         show(hasAccess = false, readiness = readiness)
         compose.onNodeWithTag("permission_warning_card").assertDoesNotExist()
         compose.onNodeWithTag("storage_readiness_loading").assertExists()

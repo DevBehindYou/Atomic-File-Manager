@@ -26,16 +26,25 @@ fun StorageReadinessContent(
         if (state is StorageReadinessState.Loading) {
             AtomicText(
                 stringResource(
-                    if (state.snapshot == null) R.string.storage_readiness_loading else R.string.storage_readiness_refreshing,
+                    if (state.snapshot == null) {
+                        R.string.storage_readiness_loading
+                    } else {
+                        R.string.storage_readiness_refreshing
+                    },
                 ),
                 AtomicTextRole.BodySecondary,
                 modifier = Modifier.testTag("storage_readiness_loading"),
             )
         } else {
             AtomicWarningBox(
-                title = stringResource(
-                    if (state.snapshot == null) R.string.storage_readiness_failed else R.string.storage_readiness_refresh_failed,
-                ),
+                title =
+                    stringResource(
+                        if (state.snapshot == null) {
+                            R.string.storage_readiness_failed
+                        } else {
+                            R.string.storage_readiness_refresh_failed
+                        },
+                    ),
                 body = stringResource(R.string.storage_readiness_failed_detail),
                 modifier = Modifier.testTag("storage_readiness_failed"),
             )

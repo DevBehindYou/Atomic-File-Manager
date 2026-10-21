@@ -47,10 +47,11 @@ class StorageReadinessLoaderTest {
     @Test
     fun `failed check never becomes denial and retry can return actual denial`() {
         var attempts = 0
-        val loader = StorageReadinessLoader(owner, dispatcher) {
-            if (++attempts == 1) throw IOException("check unavailable")
-            denied
-        }
+        val loader =
+            StorageReadinessLoader(owner, dispatcher) {
+                if (++attempts == 1) throw IOException("check unavailable")
+                denied
+            }
         try {
             loader.refresh()
             scheduler.advanceUntilIdle()
@@ -67,15 +68,19 @@ class StorageReadinessLoaderTest {
     @Test
     fun `refresh and failure retain the last successful volumes without pretending readiness`() {
         var attempts = 0
-        val loader = StorageReadinessLoader(owner, dispatcher) {
-            if (++attempts > 1) throw IOException("drive unavailable")
-            granted
-        }
+        val loader =
+            StorageReadinessLoader(owner, dispatcher) {
+                if (++attempts > 1) throw IOException("drive unavailable")
+                granted
+            }
         try {
             loader.refresh()
             scheduler.advanceUntilIdle()
             loader.refresh()
-            assertSame(granted, assertInstanceOf(StorageReadinessState.Loading::class.java, loader.state.value).snapshot)
+            assertSame(
+                granted,
+                assertInstanceOf(StorageReadinessState.Loading::class.java, loader.state.value).snapshot,
+            )
             scheduler.advanceUntilIdle()
             assertSame(granted, assertInstanceOf(StorageReadinessState.Failed::class.java, loader.state.value).snapshot)
         } finally {
@@ -86,7 +91,11 @@ class StorageReadinessLoaderTest {
     @Test
     fun `new refresh cancels an older queued read and owner destruction cancels pending work`() {
         var calls = 0
-        val loader = StorageReadinessLoader(owner, dispatcher) { calls++; granted }
+        val loader =
+            StorageReadinessLoader(owner, dispatcher) {
+                calls++
+                granted
+            }
         loader.refresh()
         loader.refresh()
         scheduler.advanceUntilIdle()
@@ -107,16 +116,17 @@ class StorageReadinessLoaderTest {
         var readThread: Thread? = null
         Executors.newSingleThreadExecutor().use { worker ->
             worker.asCoroutineDispatcher().use { io ->
-                val loader = StorageReadinessLoader(owner, io) {
-                    readThread = Thread.currentThread()
-                    if (++attempts == 1) {
-                        firstStarted.countDown()
-                        check(releaseFirst.await(5, TimeUnit.SECONDS))
-                        granted
-                    } else {
-                        denied
+                val loader =
+                    StorageReadinessLoader(owner, io) {
+                        readThread = Thread.currentThread()
+                        if (++attempts == 1) {
+                            firstStarted.countDown()
+                            check(releaseFirst.await(5, TimeUnit.SECONDS))
+                            granted
+                        } else {
+                            denied
+                        }
                     }
-                }
                 try {
                     loader.refresh()
                     scheduler.runCurrent()
@@ -128,7 +138,10 @@ class StorageReadinessLoaderTest {
                     releaseFirst.countDown()
                     worker.submit {}.get(5, TimeUnit.SECONDS)
                     scheduler.runCurrent()
-                    assertSame(denied, assertInstanceOf(StorageReadinessState.Ready::class.java, loader.state.value).snapshot)
+                    assertSame(
+                        denied,
+                        assertInstanceOf(StorageReadinessState.Ready::class.java, loader.state.value).snapshot,
+                    )
                 } finally {
                     releaseFirst.countDown()
                     owner.cancel()
@@ -137,15 +150,16 @@ class StorageReadinessLoaderTest {
         }
     }
 
-    private fun volume() = StorageVolumeInfo(
-        id = "test",
-        label = "Test volume",
-        type = StorageType.INTERNAL_SHARED,
-        totalBytes = 100L,
-        freeBytes = 50L,
-        isRemovable = false,
-        isMounted = true,
-        rootNodeId = FileNodeId.file("/test"),
-        requiresGrant = false,
-    )
+    private fun volume() =
+        StorageVolumeInfo(
+            id = "test",
+            label = "Test volume",
+            type = StorageType.INTERNAL_SHARED,
+            totalBytes = 100L,
+            freeBytes = 50L,
+            isRemovable = false,
+            isMounted = true,
+            rootNodeId = FileNodeId.file("/test"),
+            requiresGrant = false,
+        )
 }
