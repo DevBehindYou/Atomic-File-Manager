@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +65,8 @@ fun FilePreviewPane(
     val context = LocalContext.current
     val app = context.applicationContext as? AtomicApp ?: return
     val repository = app.container.settingsRepository
-    val preferred = remember(node.id) { repository.settings.value.fileOpening.targetFor(node) }
+    val settings by repository.settings.collectAsState()
+    val preferred = remember(node.id) { settings.fileOpening.targetFor(node) }
     var displayed by remember(node.id) { mutableStateOf(node) }
     var useBuiltIn by rememberSaveable(node.id.raw) { mutableStateOf(preferred.mode == FileOpenMode.BUILT_IN) }
     var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
@@ -90,8 +92,8 @@ fun FilePreviewPane(
     val canSaveRule =
         rule != null &&
             (
-                repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES ||
-                    rule in repository.settings.value.fileOpening.rules
+                settings.fileOpening.rules.size < MAX_FILE_OPENING_RULES ||
+                    rule in settings.fileOpening.rules
             )
 
     fun choose(
