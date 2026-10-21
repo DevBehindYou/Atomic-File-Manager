@@ -1,5 +1,9 @@
 # Current State
 
+## Feature planning and bundled plugins — 21 October 2026
+
+The [feature upgrade plan](../roadmap/FEATURE_UPGRADE_PLAN.md) is complete, with ordered increments, dependencies and acceptance checks. The user chose bundled viewers/tools listed in Settings → In-app plugins; no remote executable installation or independent plugin updates. That inventory is implemented in the working tree. Its [focused validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md) is separate from the full-suite checkpoint below. Direct cloud accounts, opening defaults, advanced viewer capabilities and measured performance improvements remain planned. The existing 78% modernization figure does not describe this expanded scope.
+
 ## Current validation — 20 October 2026
 
 Current source `4792db8` includes Files storage shortcuts, persisted List/Grid views, content-sized top options, responsive icon-card action menus and distinct theme-aware icons/colours for 15 file families. All 917 app JVM/Robolectric cases, 28 custom Lint-rule cases, ktlint/detekt and debug/instrumentation packaging pass. All 13 selected API34 phone cases pass; manual popup sizing, Commands/Select grids and coloured folder icons are verified. The installed debug APK matches the recorded build hash, and the settled app is back on Home. The current selected log contains no StrictMode or fatal errors; a prior InsetsSourceControl warning remains historical evidence. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete Gradle run (exit 0). See [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader provider, hardware, recovery, performance and owner-signing acceptance remains open.

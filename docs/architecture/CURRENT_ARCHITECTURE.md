@@ -15,6 +15,7 @@ Source directories under `app/src/main/kotlin/com/devbehindyou/atomicfilemanager
 | Presentation | `ui/screens`, `ui/components`, `ui/interaction`, `ui/shortcuts`; Browse uses `BrowseViewModel`, many other screens orchestrate work inside Compose |
 | Files workspace | Mounted-volume shortcuts navigate the active BrowseViewModel, preserving its clipboard/history; type filtering runs off-main; shared row interactions render List or adaptive Grid from a persisted app setting |
 | Adaptive presentation | Files top options wraps its measured content within window bounds; action-only bottom menu sections share AtomicCommandGrid; file fallback icons use metadata-only family classification and theme-aware colours while retaining actual preview pixels |
+| Bundled feature inventory | Settings → In-app plugins lists eight existing viewers/tools with their current features and limitations; all code stays bundled and updates with the app; no remote executable installation |
 | Live tasks | Home/Files anchored popups observe OperationQueue and process-local Wi-Fi HTTP transfers; cancellation targets the existing job/request owner; the popup does not create or own work |
 | Domain | `domain/model`, `domain/repository`, `domain/usecase`: storage IDs/results/capabilities, transfers, archive, trash, analysis, compare/sync, editing |
 | Storage | `data/backend`: local File, SAF/USB, MediaStore, FTP/FTPS, SFTP, SMB, WebDAV, read-only Shizuku; selected by `StorageBackendSelector` |

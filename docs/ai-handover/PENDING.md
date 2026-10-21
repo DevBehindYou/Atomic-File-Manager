@@ -1,5 +1,9 @@
 # Pending
 
+## Expanded feature backlog — 21 October 2026
+
+The [feature upgrade plan](../roadmap/FEATURE_UPGRADE_PLAN.md) now defines U01–U13 with dependencies and exit checks. The built-in plugins inventory has its [own validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md). Remaining implementation starts with benchmark correctness and measured optimization; file-opening defaults, direct cloud accounts, deeper viewer improvements and recovery/release acceptance remain open. Remote plugin downloads were explicitly rejected by the user; keep features bundled.
+
 ## Current validation — 20 October 2026
 
 Current source `4792db8` includes Files storage shortcuts, persisted List/Grid views, content-sized top options, responsive icon-card action menus and distinct theme-aware icons/colours for 15 file families. All 917 app JVM/Robolectric cases, 28 custom Lint-rule cases, ktlint/detekt and debug/instrumentation packaging pass. All 13 selected API34 phone cases pass; manual popup sizing, Commands/Select grids and coloured folder icons are verified. The installed debug APK matches the recorded build hash, and the settled app is back on Home. The current selected log contains no StrictMode or fatal errors; a prior InsetsSourceControl warning remains historical evidence. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete Gradle run (exit 0). See [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader provider, hardware, recovery, performance and owner-signing acceptance remains open.
