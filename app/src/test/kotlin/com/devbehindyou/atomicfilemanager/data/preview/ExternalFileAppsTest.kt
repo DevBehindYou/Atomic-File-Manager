@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.domain.model.FileOpenMode
@@ -36,14 +35,7 @@ class ExternalFileAppsTest {
             handler("private.app", "Private", exported = false),
             handler("disabled.app", "Disabled", enabled = false),
         ).forEach { activity ->
-            manager.installPackage(
-                PackageInfo().apply {
-                    packageName = activity.packageName
-                    applicationInfo = activity.applicationInfo
-                    activities = arrayOf(activity)
-                },
-            )
-            // installPackage alone does not create the shadow's component-filter registry.
+            // Register through the component API so its filter table is created with the activity.
             manager.addOrUpdateActivity(activity)
             manager.addIntentFilterForActivity(ComponentName(activity.packageName, activity.name), pdfFilter())
         }
