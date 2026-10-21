@@ -44,7 +44,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmpt
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicStatTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicToggleCard
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
@@ -57,7 +56,6 @@ import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkProtocol
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkServerConfig
-import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.CancellationException
@@ -120,7 +118,6 @@ fun StorageScreen(
     val cacheSize by produceState(initialValue = 0L) {
         value = withContext(Dispatchers.IO) { StorageVolumes.getAppCacheSize(context) }
     }
-    val primary = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED } ?: volumes.firstOrNull()
 
     Column(
         modifier =
@@ -133,14 +130,7 @@ fun StorageScreen(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
             AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
-            if (primary != null) {
-                AtomicStatTile(
-                    value = FileUtils.formatBytes(primary.freeBytes),
-                    caption = "Free on ${primary.label} of ${FileUtils.formatBytes(primary.totalBytes)}",
-                    featured = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            if (app != null) StorageUsageDashboard(volumes, app.container.storageUsageRepository, app.container.operationQueue.finished)
             volumes.forEach { volume -> StorageVolumeCard(volume, onBrowse = { onBrowseVolume(volume) }) }
         }
 
@@ -262,7 +252,7 @@ fun StorageScreen(
         ShizukuLabsSection(onBrowseFolder = onBrowseFolder)
 
         AtomicText(
-            "Android keeps some system partitions private. Free and total space cover shared storage only.",
+            "Capacity covers mounted filesystems. The file breakdown covers readable shared folders; Android keeps some system and app data private.",
             AtomicTextRole.BodySecondary,
         )
     }

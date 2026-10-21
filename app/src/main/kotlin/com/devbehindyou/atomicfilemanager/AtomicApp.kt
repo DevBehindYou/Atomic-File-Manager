@@ -46,6 +46,9 @@ import com.devbehindyou.atomicfilemanager.data.share.WifiShareController
 import com.devbehindyou.atomicfilemanager.data.vault.VaultFiles
 import com.devbehindyou.atomicfilemanager.data.vault.VaultKeys
 import com.devbehindyou.atomicfilemanager.data.volume.PhoneFileIndex
+import com.devbehindyou.atomicfilemanager.data.volume.LocalStorageUsageSource
+import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
+import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.toNode
 import com.devbehindyou.atomicfilemanager.domain.repository.BackendType
@@ -107,6 +110,9 @@ interface AppContainer {
     /** Process-wide so the phone-wide category scan survives Activity recreation (rotation). */
     val phoneFileIndex: PhoneFileIndex
 
+    /** Bounded metadata-only dashboard; no work starts until a visible screen collects it. */
+    val storageUsageRepository: StorageUsageRepository
+
     /** Durable record of every file operation (ALL_IN_ONE_PLAN.md Phase 0.1). */
     val operationJournal: OperationJournalDao
 
@@ -138,6 +144,15 @@ interface AppContainer {
 }
 
 class DefaultAppContainer(private val application: Application) : AppContainer {
+    override val storageUsageRepository: StorageUsageRepository by lazy {
+        StorageUsageRepository(
+            LocalStorageUsageSource(
+                volumesNow = { StorageVolumes.enumerate(application) },
+                primaryPath = { application.filesDir.absolutePath },
+            ),
+        )
+    }
+
     /** Lives as long as the process; used for start-up loads that must not block the main thread. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

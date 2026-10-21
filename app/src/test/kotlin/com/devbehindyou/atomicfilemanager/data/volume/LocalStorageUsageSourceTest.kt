@@ -107,6 +107,19 @@ class LocalStorageUsageSourceTest {
         assertEquals(listOf(temporary.toFile().canonicalPath), plan.roots)
     }
 
+    @Test
+    fun `unrepresentable physical capacity remains unknown rather than fabricating zero used space`() = runTest {
+        val first = Files.createDirectory(temporary.resolve("first"))
+        val second = Files.createDirectory(temporary.resolve("second"))
+        val source = LocalStorageUsageSource(primaryPath = { first.toString() }, space = { Long.MAX_VALUE to 10L })
+        val plan = source.plan(listOf(volume("first", first), volume("second", second)))
+        assertEquals(2, plan.capacity.mountedVolumes)
+        assertEquals(1, plan.capacity.unknownVolumes)
+        assertEquals(Long.MAX_VALUE, plan.capacity.totalBytes)
+        assertEquals(10L, plan.capacity.freeBytes)
+        assertEquals(Long.MAX_VALUE - 10L, plan.capacity.usedBytes)
+    }
+
     private fun source() = LocalStorageUsageSource(primaryPath = { temporary.toString() }, space = { 1_000L to 250L })
 
     private fun volume(id: String, root: Path?) = StorageVolumeInfo(

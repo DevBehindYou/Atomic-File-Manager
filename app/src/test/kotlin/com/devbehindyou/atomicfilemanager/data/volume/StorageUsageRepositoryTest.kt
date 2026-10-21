@@ -192,6 +192,23 @@ class StorageUsageRepositoryTest {
     }
 
     @Test
+    fun `directory and depth budgets stop traversal without declaring a complete empty scan`() = runTest {
+        for (limits in listOf(StorageUsageLimits(directories = 1), StorageUsageLimits(depth = 0))) {
+            val source = FakeSource().apply {
+                entries = { folder ->
+                    if (folder == rootPath) success(StorageUsageEntry(nestedPath, "nested", 0, true, false))
+                    else success(file("nested/missed.pdf", 20))
+                }
+            }
+            val update = repository(source, limits).scan(volumes).last()
+            assertEquals(StorageUsagePhase.PARTIAL, update.phase)
+            assertTrue(checkNotNull(update.current).limitReached)
+            assertEquals(listOf(rootPath), source.listCalls)
+            assertFalse(update.cached)
+        }
+    }
+
+    @Test
     fun `nested and duplicate roots or repeated file entries never duplicate byte totals`() = runTest {
         val source = FakeSource().apply {
             planValue = planValue.copy(roots = listOf(rootPath, nestedPath, rootPath))
