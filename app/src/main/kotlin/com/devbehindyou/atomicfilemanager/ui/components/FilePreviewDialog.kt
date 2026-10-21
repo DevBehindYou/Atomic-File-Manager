@@ -100,7 +100,7 @@ import kotlinx.coroutines.withContext
  * then the viewer for the file type. Viewers keep their loading, error and paging states.
  */
 @Composable
-fun FilePreviewPane(
+internal fun BuiltInFilePreviewPane(
     node: FileNode,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,

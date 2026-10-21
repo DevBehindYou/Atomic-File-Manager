@@ -27,6 +27,7 @@ fun normalizeHiddenFolder(raw: String): String? {
  * hiding a file uses that method straight away.
  */
 data class AppSettings(
+    val fileOpening: FileOpeningPreferences = FileOpeningPreferences(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** WALLPAPER COLOURS: swaps only the accent, with guard rails (ATOMIC_UI_PLAN.md §4.5). */
     val dynamicColor: Boolean = false,

@@ -1,0 +1,212 @@
+package com.devbehindyou.atomicfilemanager.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicToggleCard
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalFileApp
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalFileApps
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalPreviewHelper
+import com.devbehindyou.atomicfilemanager.data.preview.externalMimeType
+import com.devbehindyou.atomicfilemanager.domain.model.FileNode
+import com.devbehindyou.atomicfilemanager.domain.model.FileOpenMode
+import com.devbehindyou.atomicfilemanager.domain.model.FileOpenRuleScope
+import com.devbehindyou.atomicfilemanager.domain.model.FileOpenTarget
+import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.MAX_FILE_OPENING_RULES
+import com.devbehindyou.atomicfilemanager.domain.model.keyFor
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** All existing preview entry points share the same app-specific routing policy. */
+@Composable
+fun FilePreviewPane(
+    node: FileNode,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    onShare: (() -> Unit)? = null,
+    onOpenExternal: (() -> Unit)? = null,
+    gallery: List<FileNode> = emptyList(),
+) {
+    val context = LocalContext.current
+    val app = context.applicationContext as? AtomicApp ?: return
+    val repository = app.container.settingsRepository
+    val preferred = remember(node.id) { repository.settings.value.fileOpening.targetFor(node) }
+    var useBuiltIn by rememberSaveable(node.id.raw) { mutableStateOf(preferred.mode == FileOpenMode.BUILT_IN) }
+    var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
+    var apps by remember(node.id) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
+    var loading by remember(node.id) { mutableStateOf(true) }
+    var busy by remember(node.id) { mutableStateOf(false) }
+    var problem by rememberSaveable(node.id.raw) { mutableStateOf<OpeningProblem?>(null) }
+    val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
+    val exporter = remember(app) {
+        ExternalPreviewHelper(context.applicationContext) { app.container.storageBackendSelector.forNode(it) }
+    }
+    val scope = rememberCoroutineScope()
+    val chooserTitle = stringResource(R.string.viewer_open_external)
+    val rule = remember(node) {
+        keyFor(node, FileOpenRuleScope.EXTENSION) ?: keyFor(node, FileOpenRuleScope.MIME)
+            ?: keyFor(node, FileOpenRuleScope.FAMILY)
+    }
+    val canSaveRule = rule != null &&
+        (repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES || rule in repository.settings.value.fileOpening.rules)
+
+    fun choose(target: FileOpenTarget, always: Boolean) {
+        if (busy) return
+        if (target.mode == FileOpenMode.BUILT_IN) {
+            if (always && rule != null) repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+            useBuiltIn = true
+            problem = null
+            return
+        }
+        scope.launch {
+            busy = true
+            problem = null
+            try {
+                val result = exporter.open(node) { file -> launcher.launch(file, node.name, target, chooserTitle) }
+                if (result is FileResult.Success) {
+                    // Save an app-specific rule only after a real explicit component launches successfully.
+                    if (always && rule != null) repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+                    onClose()
+                } else {
+                    problem = OpeningProblem.FAILED
+                }
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    LaunchedEffect(node.id, useBuiltIn) {
+        if (useBuiltIn) return@LaunchedEffect
+        loading = true
+        try {
+            apps = withContext(Dispatchers.IO) { launcher.list(externalMimeType(node)) }
+            if (!automaticAttempted && preferred.mode == FileOpenMode.EXTERNAL) {
+                automaticAttempted = true
+                when {
+                    preferred.component != null && apps.none { it.component == preferred.component } ->
+                        problem = OpeningProblem.MISSING_APP
+                    apps.isEmpty() -> problem = OpeningProblem.NO_HANDLER
+                    else -> choose(preferred, false)
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            problem = OpeningProblem.FAILED
+        } finally {
+            loading = false
+        }
+    }
+
+    if (useBuiltIn) {
+        BuiltInFilePreviewPane(
+            node, onClose, modifier, onShare,
+            onOpenExternal ?: { useBuiltIn = false },
+            gallery,
+        )
+    } else {
+        FileOpeningChoicePanel(
+            name = node.name,
+            apps = apps,
+            loading = loading,
+            busy = busy,
+            problem = problem,
+            builtInAvailable = resolvePreviewType(node) != PreviewType.GENERIC,
+            ruleLabel = rule?.takeIf { canSaveRule }?.let { if (it.scope == FileOpenRuleScope.EXTENSION) ".${it.value}" else it.value },
+            onChoose = ::choose,
+            onClose = onClose,
+            modifier = modifier,
+        )
+    }
+}
+
+internal enum class OpeningProblem { MISSING_APP, NO_HANDLER, FAILED }
+
+@Composable
+internal fun FileOpeningChoicePanel(
+    name: String,
+    apps: List<ExternalFileApp>,
+    loading: Boolean,
+    busy: Boolean,
+    problem: OpeningProblem?,
+    builtInAvailable: Boolean,
+    ruleLabel: String?,
+    onChoose: (FileOpenTarget, Boolean) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var always by rememberSaveable(name) { mutableStateOf(false) }
+    Column(
+        modifier.fillMaxSize().background(Atomic.colors.background)
+            .verticalScroll(rememberScrollState()).padding(AtomicSpacing.s16).testTag("file_opening_choices"),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            AtomicText(name, AtomicTextRole.Name, modifier = Modifier.weight(1f))
+            AtomicIconButton(AtomicIcons.Close, stringResource(R.string.action_close), onClick = onClose)
+        }
+        AtomicText(stringResource(R.string.file_open_title), AtomicTextRole.MonoLabel)
+        val message = when {
+            busy -> R.string.viewer_external_loading
+            loading -> R.string.file_open_loading_apps
+            problem == OpeningProblem.MISSING_APP -> R.string.file_open_missing_app
+            problem == OpeningProblem.FAILED -> R.string.viewer_external_failed
+            problem == OpeningProblem.NO_HANDLER || apps.isEmpty() -> R.string.file_open_no_apps
+            else -> R.string.file_open_read_only
+        }
+        AtomicText(stringResource(message), AtomicTextRole.BodySecondary)
+        if (ruleLabel != null) {
+            AtomicToggleCard(
+                title = stringResource(R.string.file_open_always, ruleLabel),
+                description = stringResource(R.string.file_open_app_only),
+                checked = always,
+                onCheckedChange = { always = it },
+                enabled = !busy && !loading,
+            )
+        }
+        val builtIn = AtomicMenuAction(
+            stringResource(if (builtInAvailable) R.string.file_open_built_in else R.string.file_open_details),
+            AtomicIcons.Document,
+            { onChoose(FileOpenTarget(FileOpenMode.BUILT_IN), always) },
+            enabled = !busy,
+        )
+        AtomicCommandGrid(
+            listOf(builtIn) + apps.map { handler ->
+                AtomicMenuAction(handler.label, AtomicIcons.OpenExternally, { onChoose(handler.target(), always) }, enabled = !busy)
+            },
+        )
+    }
+}

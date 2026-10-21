@@ -78,7 +78,7 @@ private val themeChoices =
         ThemeMode.DARK to "Dark",
     )
 
-private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, PLUGINS, ABOUT }
+private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, PLUGINS, OPENING, ABOUT }
 
 /**
  * Settings (ATOMIC_UI_PLAN.md §7.9, canvas "Settings"): sections under mono labels, toggle cards
@@ -157,6 +157,11 @@ fun SettingsScreen(
         }
 
         SettingsSection("Files") {
+            AtomicSettingsRow(
+                title = stringResource(R.string.file_open_settings),
+                value = stringResource(openingModeLabel(settings.fileOpening.defaultMode)),
+                onClick = { sheet = SettingsSheet.OPENING },
+            )
             AtomicToggleCard(
                 title = "Show hidden files",
                 description = "Names that start with a dot appear faded.",
@@ -248,6 +253,7 @@ fun SettingsScreen(
     }
 
     when (sheet) {
+        SettingsSheet.OPENING -> FileOpeningSettingsSheet(settingsRepository, onDismiss = { sheet = null })
         SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->
             AtomicSheet(label = "Default hiding method", onDismiss = { sheet = null }) {

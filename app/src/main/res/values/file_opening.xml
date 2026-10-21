@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="file_open_title">Open with</string>
+    <string name="file_open_settings">File opening</string>
+    <string name="file_open_settings_summary">Built-in viewers and default apps</string>
+    <string name="file_open_loading_apps">Finding compatible apps…</string>
+    <string name="file_open_missing_app">The saved app is unavailable for this file. Choose another app or use Atomic.</string>
+    <string name="file_open_no_apps">No compatible external app was found. You can use Atomic or view file details.</string>
+    <string name="file_open_read_only">Other apps receive temporary read-only access. Changes made there may be saved as a separate copy.</string>
+    <string name="file_open_always">Always use this choice for %1$s</string>
+    <string name="file_open_app_only">Applies inside Atomic File Manager only.</string>
+    <string name="file_open_built_in">Use Atomic viewer</string>
+    <string name="file_open_details">View file details</string>
+    <string name="file_open_ask">Ask every time</string>
+    <string name="file_open_prefer_built_in">Prefer built-in viewer</string>
+    <string name="file_open_prefer_external">Prefer external app</string>
+    <string name="file_open_default">When opening a file</string>
+    <string name="file_open_policy_detail">External preference uses Android’s chooser unless you saved a specific app for that file type. Files without a built-in viewer still have file details.</string>
+    <string name="file_open_inherit">Use default</string>
+    <string name="file_open_rules">File-type rules</string>
+    <string name="file_open_rule_priority">Extension rules take priority over exact MIME rules, then file-family rules and the default.</string>
+    <string name="file_open_add_rule">Add a rule</string>
+    <string name="file_open_extension">Extension</string>
+    <string name="file_open_mime">MIME type</string>
+    <string name="file_open_rule_value">File type</string>
+    <string name="file_open_rule_hint">For example pdf or application/pdf</string>
+    <string name="file_open_invalid_rule">Enter a valid extension or exact MIME type.</string>
+    <string name="file_open_rule_limit">Up to 128 file-type rules can be saved. Reset an existing rule to add another.</string>
+    <string name="file_open_edit_rule">Change rule</string>
+    <string name="file_open_reset_rule">Reset this rule</string>
+    <string name="file_open_reset_all">Reset all file-opening rules</string>
+    <string name="file_open_reset_title">Reset file opening?</string>
+    <string name="file_open_reset_body">Saved app choices and type rules will be removed. Atomic will prefer built-in viewers again.</string>
+    <string name="file_open_reset_confirm">Reset rules</string>
+    <string name="file_open_back">Back to file opening</string>
+    <string name="file_open_selected">Current choice: %1$s</string>
+    <string name="file_open_saved_app">%1$s · saved app</string>
+    <string name="file_open_family_image">Images</string>
+    <string name="file_open_family_video">Videos</string>
+    <string name="file_open_family_audio">Audio</string>
+    <string name="file_open_family_pdf">PDFs</string>
+    <string name="file_open_family_document">Documents</string>
+    <string name="file_open_family_archive">Archives</string>
+    <string name="file_open_family_code">Code</string>
+    <string name="file_open_family_text">Text</string>
+    <string name="file_open_family_other">Other files</string>
+</resources>
