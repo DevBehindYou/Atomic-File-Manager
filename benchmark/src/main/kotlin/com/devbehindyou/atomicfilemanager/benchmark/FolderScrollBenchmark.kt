@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import androidx.annotation.RequiresApi
+import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.MacrobenchmarkScope
@@ -39,7 +40,7 @@ class FolderScrollBenchmark(private val entries: Int) {
             metrics = listOf(FrameTimingMetric()),
             iterations = ITERATIONS,
             startupMode = StartupMode.WARM,
-            compilationMode = CompilationMode.Partial(),
+            compilationMode = CompilationMode.Partial(BaselineProfileMode.Disable, warmupIterations = 3),
             setupBlock = {
                 openReset(corpus)
                 startActivityAndWait(folderIntent(corpus.folderPath))
@@ -67,7 +68,7 @@ class FolderScrollBenchmark(private val entries: Int) {
             metrics = listOf(FrameTimingMetric()),
             iterations = ITERATIONS,
             startupMode = StartupMode.WARM,
-            compilationMode = CompilationMode.Partial(),
+            compilationMode = CompilationMode.Partial(BaselineProfileMode.Disable, warmupIterations = 3),
             setupBlock = {
                 openReset(corpus)
                 assertListView()

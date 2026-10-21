@@ -39,7 +39,7 @@ internal class BenchmarkEvidence(context: Context, entries: Int, images: Int) {
                 .put("versionCode", info.longVersionCode)
                 .put("baseApkSha256", hash(File(source)))
                 .put("startupMode", "WARM")
-                .put("compilationMode", "Partial(default)")
+                .put("compilationMode", "Partial(baselineProfileMode=Disable,warmupIterations=3)")
                 .put("viewMode", "List (asserted)")
                 .put("cacheState", "OS/app caches retained; reset folder opened before each sample")
                 .put("thermalStatusBefore", manager.currentThermalStatus)
