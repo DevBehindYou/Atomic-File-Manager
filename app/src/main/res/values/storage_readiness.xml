@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_readiness_loading">Checking storage…</string>
+    <string name="storage_readiness_refreshing">Refreshing storage…</string>
+    <string name="storage_readiness_failed">Storage unavailable</string>
+    <string name="storage_readiness_refresh_failed">Storage could not be refreshed</string>
+    <string name="storage_readiness_failed_detail">Could not check storage access or load volumes. Try again.</string>
+    <string name="storage_readiness_access_loading">Checking access…</string>
+    <string name="storage_readiness_access_failed">Access check unavailable. Tap to retry.</string>
+</resources>

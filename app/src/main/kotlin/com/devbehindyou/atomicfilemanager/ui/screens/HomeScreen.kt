@@ -31,6 +31,9 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStor
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessContent
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
 private const val LARGE_FONT_SCALE = 1.5f
@@ -64,6 +67,8 @@ fun HomeScreen(
     onOpenPrivateFiles: () -> Unit = {},
     onOpenStorageDetails: () -> Unit = {},
     privateLocked: Boolean = false,
+    storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
+    onRetryStorage: () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -74,7 +79,8 @@ fun HomeScreen(
                 .testTag("home_screen"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24),
     ) {
-        if (!hasStorageAccess) {
+        StorageReadinessContent(storageReadiness, onRetryStorage)
+        if (storageReadiness is StorageReadinessState.Ready && !hasStorageAccess) {
             Column(
                 Modifier.testTag("permission_warning_card"),
                 verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),

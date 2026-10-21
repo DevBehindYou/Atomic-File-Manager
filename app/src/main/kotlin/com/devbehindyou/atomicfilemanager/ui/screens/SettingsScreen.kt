@@ -93,6 +93,7 @@ fun SettingsScreen(
     onClearScanCache: () -> Unit,
     onNotify: (String) -> Unit,
     modifier: Modifier = Modifier,
+    storageAccessStatus: String? = null,
 ) {
     val settings by settingsRepository.settings.collectAsState()
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
@@ -226,7 +227,7 @@ fun SettingsScreen(
             AtomicSettingsRow(
                 title = "All files access",
                 value =
-                    if (hasStorageAccess) {
+                    storageAccessStatus ?: if (hasStorageAccess) {
                         "Granted"
                     } else {
                         "Not granted. Shared storage can't be browsed without it."
