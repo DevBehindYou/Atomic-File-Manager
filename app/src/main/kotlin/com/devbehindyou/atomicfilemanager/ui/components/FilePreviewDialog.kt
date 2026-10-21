@@ -107,6 +107,7 @@ internal fun BuiltInFilePreviewPane(
     onShare: (() -> Unit)? = null,
     onOpenExternal: (() -> Unit)? = null,
     gallery: List<FileNode> = emptyList(),
+    onOpenExternalForNode: ((FileNode) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? AtomicApp
@@ -199,15 +200,14 @@ internal fun BuiltInFilePreviewPane(
                     modifier = Modifier.testTag("preview_share"),
                 )
             }
-            if (onOpenExternal == null || actsOnShown) {
-                AtomicIconButton(
-                    AtomicIcons.OpenExternally,
-                    "Open with another app",
-                    onClick = openExternal,
-                    enabled = !openingExternal,
-                    modifier = Modifier.testTag("preview_open_external"),
-                )
-            }
+            PreviewExternalAction(
+                original = node,
+                shown = shown,
+                onOpenOriginal = onOpenExternal,
+                onOpenShown = onOpenExternalForNode,
+                onOpenDefault = openExternal,
+                busy = openingExternal,
+            )
         }
         AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
         if (openingExternal || externalFailed) {
@@ -236,6 +236,32 @@ internal fun BuiltInFilePreviewPane(
                 }
             }
         }
+    }
+}
+
+/** A caller's original-file callback must never act on a different gallery image. */
+@Composable
+internal fun PreviewExternalAction(
+    original: FileNode,
+    shown: FileNode,
+    onOpenOriginal: (() -> Unit)?,
+    onOpenShown: ((FileNode) -> Unit)?,
+    onOpenDefault: () -> Unit,
+    busy: Boolean,
+) {
+    val open = when {
+        onOpenOriginal != null -> onOpenOriginal.takeIf { original.id == shown.id }
+        onOpenShown != null -> { { onOpenShown(shown) } }
+        else -> onOpenDefault
+    }
+    if (open != null) {
+        AtomicIconButton(
+            AtomicIcons.OpenExternally,
+            stringResource(R.string.file_open_another_app),
+            onClick = open,
+            enabled = !busy,
+            modifier = Modifier.testTag("preview_open_external"),
+        )
     }
 }
 

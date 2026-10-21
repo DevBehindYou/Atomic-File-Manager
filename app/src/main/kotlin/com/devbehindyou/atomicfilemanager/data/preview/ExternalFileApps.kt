@@ -21,7 +21,8 @@ internal data class ExternalFileApp(val component: String, val label: String) {
 /** Representative MIME for a settings rule, not a claim that every format in a family shares handlers. */
 internal fun mimeForOpeningRule(key: FileOpenRuleKey): String = when (key.scope) {
     FileOpenRuleScope.MIME -> key.value
-    FileOpenRuleScope.EXTENSION -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(key.value) ?: "application/octet-stream"
+    FileOpenRuleScope.EXTENSION ->
+        MimeTypeMap.getSingleton().getMimeTypeFromExtension(key.value) ?: "application/octet-stream"
     FileOpenRuleScope.FAMILY -> when (FileOpenFamily.valueOf(key.value)) {
         FileOpenFamily.IMAGE -> "image/jpeg"
         FileOpenFamily.VIDEO -> "video/mp4"
@@ -37,7 +38,8 @@ internal fun mimeForOpeningRule(key: FileOpenRuleKey): String = when (key.scope)
 /** Metadata-only app discovery; actual bytes are exported only after an explicit/saved open action. */
 internal class ExternalFileApps(private val context: Context) {
     fun list(mimeType: String): List<ExternalFileApp> {
-        val probe = Uri.Builder().scheme("content").authority("${context.packageName}.fileprovider").appendPath("open").build()
+        val probe =
+            Uri.Builder().scheme("content").authority("${context.packageName}.fileprovider").appendPath("open").build()
         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(probe, mimeType)
         // The flags overload remains available on API27; ResolveInfoFlags requires API33.
         return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)

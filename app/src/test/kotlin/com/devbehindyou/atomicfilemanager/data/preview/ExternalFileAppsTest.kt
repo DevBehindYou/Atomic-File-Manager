@@ -25,7 +25,9 @@ class ExternalFileAppsTest {
 
     @Test
     fun onlyEnabledExportedDistinctExternalComponentsAreOffered() {
-        val probe = Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse("content://${app.packageName}.fileprovider/open"), "application/pdf")
+        val probe = Intent(Intent.ACTION_VIEW).setDataAndType(
+            Uri.parse("content://${app.packageName}.fileprovider/open"), "application/pdf",
+        )
         val valid = handler("reader.app", "Reader")
         shadowOf(app.packageManager).addResolveInfoForIntent(probe, listOf(
             valid,
@@ -34,7 +36,10 @@ class ExternalFileAppsTest {
             handler("private.app", "Private", exported = false),
             handler("disabled.app", "Disabled", enabled = false),
         ))
-        assertEquals(listOf(ExternalFileApp("reader.app/reader.app.View", "Reader")), ExternalFileApps(app).list("application/pdf"))
+        assertEquals(
+            listOf(ExternalFileApp("reader.app/reader.app.View", "Reader")),
+            ExternalFileApps(app).list("application/pdf"),
+        )
         assertTrue(ExternalFileApps(app).list("video/mp4").isEmpty())
     }
 
@@ -57,7 +62,10 @@ class ExternalFileAppsTest {
     @Test
     fun genericExternalPreferenceUsesARealSystemChooserWithoutInventingAnAppIdentity() {
         val uri = Uri.parse("content://fixture/document/report")
-        ExternalFileApps(app).launch(ExternalPreviewFile(uri, "application/pdf"), "report.pdf", FileOpenTarget(FileOpenMode.EXTERNAL), "Open with")
+        ExternalFileApps(app).launch(
+            ExternalPreviewFile(uri, "application/pdf"), "report.pdf",
+            FileOpenTarget(FileOpenMode.EXTERNAL), "Open with",
+        )
         val chooser = shadowOf(app).nextStartedActivity
         assertEquals(Intent.ACTION_CHOOSER, chooser.action)
         @Suppress("DEPRECATION") // Typed getParcelableExtra needs API33; this fixture also runs API27.
@@ -67,7 +75,12 @@ class ExternalFileAppsTest {
         assertEquals(0, actual.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
     }
 
-    private fun handler(packageName: String, label: String, enabled: Boolean = true, exported: Boolean = true) = ResolveInfo().apply {
+    private fun handler(
+        packageName: String,
+        label: String,
+        enabled: Boolean = true,
+        exported: Boolean = true,
+    ) = ResolveInfo().apply {
         nonLocalizedLabel = label
         activityInfo = ActivityInfo().apply {
             this.packageName = packageName

@@ -24,11 +24,14 @@ internal object FileOpeningPreferencesCodec {
             val rules = buildMap {
                 for (i in 0 until minOf(rows.length(), MAX_FILE_OPENING_RULES)) {
                     val row = rows.optJSONObject(i) ?: continue
-                    val scope = enumValues<FileOpenRuleScope>().firstOrNull { it.name == row.optString("scope") } ?: continue
+                    val scope =
+                        enumValues<FileOpenRuleScope>().firstOrNull { it.name == row.optString("scope") } ?: continue
                     val key = normalizedKey(scope, row.optString("key")) ?: continue
                     val mode = enumValues<FileOpenMode>().firstOrNull { it.name == row.optString("mode") } ?: continue
                     val component = row.optString("component").takeIf { it.isNotBlank() }
-                    if (component != null && (mode != FileOpenMode.EXTERNAL || component.length !in 3..512 || '/' !in component)) continue
+                    if (component != null &&
+                        (mode != FileOpenMode.EXTERNAL || component.length !in 3..512 || '/' !in component)
+                    ) continue
                     val label = row.optString("label").takeIf { it.isNotBlank() }?.take(128)
                     put(FileOpenRuleKey(scope, key), FileOpenTarget(mode, component, label))
                 }

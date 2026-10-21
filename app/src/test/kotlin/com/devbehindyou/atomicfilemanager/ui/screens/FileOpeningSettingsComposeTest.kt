@@ -35,7 +35,7 @@ class FileOpeningSettingsComposeTest {
 
     @Test
     fun familyRuleCanBeChangedAndResetWithoutChangingAppearance() {
-        compose.setContent { AtomicTheme(darkTheme = false, wallpaperAccent = false) { FileOpeningSettingsSheet(repository, {}) } }
+        show()
         val key = FileOpenRuleKey(FileOpenRuleScope.FAMILY, FileOpenFamily.PDF.name)
         compose.onNodeWithContentDescription("PDFs").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Ask every time").performClick()
@@ -49,10 +49,18 @@ class FileOpeningSettingsComposeTest {
     @Test
     fun resetAllRequiresConfirmation() {
         repository.update { it.copy(fileOpening = it.fileOpening.copy(defaultMode = FileOpenMode.ASK)) }
-        compose.setContent { AtomicTheme(darkTheme = false, wallpaperAccent = false) { FileOpeningSettingsSheet(repository, {}) } }
+        show()
         compose.onNodeWithContentDescription("Reset all file-opening rules").performScrollTo().performClick()
         assertEquals(FileOpenMode.ASK, repository.settings.value.fileOpening.defaultMode)
         compose.onNodeWithContentDescription("Reset rules").performScrollTo().performClick()
         assertEquals(FileOpenMode.BUILT_IN, repository.settings.value.fileOpening.defaultMode)
+    }
+
+    private fun show() {
+        compose.setContent {
+            AtomicTheme(darkTheme = false, wallpaperAccent = false) {
+                FileOpeningSettingsSheet(repository, {})
+            }
+        }
     }
 }

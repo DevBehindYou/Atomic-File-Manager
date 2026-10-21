@@ -10,6 +10,7 @@ Implementation slice for U06, based on `12f007d`. Validation remains pending unt
 - The per-file chooser lists actual exported/enabled Android `ACTION_VIEW` components, with once/always consent. App-specific saved rules record a real component and label, never infer an app from an opaque system chooser result.
 - Generic “Prefer external app” remains a policy that invokes Android's chooser. It does not claim to save whichever application the user picks there.
 - A missing/incompatible saved component returns to visible choices and the built-in/file-details fallback. Failed launch/preparation does not save the selected app as a default.
+- Gallery opening passes the currently displayed image into choices/export/rule saving. Legacy callbacks tied to the originally opened file retain their original visibility guard, and share callbacks are not reused for another image. Per-file asynchronous handoff is cancelled when the preview source changes.
 - The existing external exporter still supplies content URIs and temporary read access. Remote export remains capped at 64 MiB; media preview staging remains capped at 512 MiB. No writable editing or automatic remote write-back is advertised.
 - Installed-app discovery is performed on IO. Activity launch remains on Main after export. Visibility is scoped to content-URI view handlers; no all-packages permission is added.
 - Versioned rule persistence tolerates corrupt, unsupported and oversized stored data. Rules are bounded to 128 and add controls disclose the limit. Existing settings and user files are preserved.
@@ -26,6 +27,7 @@ No new dependency, downloaded module, minimum-SDK change, native code or user-fi
 - `FileOpeningPreferencesTest` on API27/34: persisted real component, corrupt/oversized/versioned data, malformed-row isolation and reset preservation.
 - `ExternalFileAppsTest` on API27/34: handler filtering, actual component launch, read-only URI/ClipData grants and generic chooser identity.
 - `FileOpeningSettingsComposeTest`: real rule change/reset and reset-all confirmation using native graphics.
+- `PreviewExternalActionTest`: the real external-action button stays available for a newly displayed gallery image, passes its identity, and preserves original-file callback restrictions.
 - Existing Settings, PreviewType, ExternalPreviewHelper and startup preferences regressions.
 - ktlint, detekt, debug/instrumentation compilation and Android Lint.
 

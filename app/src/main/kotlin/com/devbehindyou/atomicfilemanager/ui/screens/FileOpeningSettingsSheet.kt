@@ -58,7 +58,10 @@ internal fun FileOpeningSettingsSheet(repository: SettingsRepository, onDismiss:
     AtomicSheet(stringResource(R.string.file_open_settings), onDismiss, scrollState = scroll) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             if (selected != null || reset) {
-                AtomicIconButton(AtomicIcons.Back, stringResource(R.string.file_open_back), onClick = { selected = null; reset = false })
+                AtomicIconButton(
+                    AtomicIcons.Back, stringResource(R.string.file_open_back),
+                    onClick = { selected = null; reset = false },
+                )
             }
             AtomicText(
                 selected?.let { ruleName(it) } ?: stringResource(R.string.file_open_settings),
@@ -91,9 +94,12 @@ internal fun FileOpeningSettingsSheet(repository: SettingsRepository, onDismiss:
                 AtomicText(stringResource(R.string.file_open_default), AtomicTextRole.MonoLabel)
                 AtomicChipRow {
                     FileOpenMode.entries.forEach { mode ->
-                        AtomicChip(stringResource(openingModeLabel(mode)), selected = policy.defaultMode == mode, onSelectedChange = {
-                            repository.update { it.copy(fileOpening = it.fileOpening.copy(defaultMode = mode)) }
-                        })
+                        AtomicChip(
+                            stringResource(openingModeLabel(mode)), selected = policy.defaultMode == mode,
+                            onSelectedChange = {
+                                repository.update { it.copy(fileOpening = it.fileOpening.copy(defaultMode = mode)) }
+                            },
+                        )
                     }
                 }
                 AtomicText(stringResource(R.string.file_open_policy_detail), AtomicTextRole.BodySecondary)
@@ -111,20 +117,30 @@ internal fun FileOpeningSettingsSheet(repository: SettingsRepository, onDismiss:
                     AtomicSettingsRow(title = ruleName(rule), value = targetName(target), onClick = { selected = rule })
                 }
                 AddOpeningRule(policy) { selected = it }
-                AtomicButton(stringResource(R.string.file_open_reset_all), onClick = { reset = true }, variant = AtomicButtonVariant.Ghost)
+                AtomicButton(
+                    stringResource(R.string.file_open_reset_all), onClick = { reset = true },
+                    variant = AtomicButtonVariant.Ghost,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FileOpeningRuleEditor(key: FileOpenRuleKey, current: FileOpenTarget?, onChoose: (FileOpenTarget) -> Unit, onReset: () -> Unit) {
+private fun FileOpeningRuleEditor(
+    key: FileOpenRuleKey,
+    current: FileOpenTarget?,
+    onChoose: (FileOpenTarget) -> Unit,
+    onReset: () -> Unit,
+) {
     val context = LocalContext.current
     var apps by remember(key) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
     var loading by remember(key) { mutableStateOf(true) }
     LaunchedEffect(key) {
         try {
-            apps = withContext(Dispatchers.IO) { ExternalFileApps(context.applicationContext).list(mimeForOpeningRule(key)) }
+            apps = withContext(Dispatchers.IO) {
+                ExternalFileApps(context.applicationContext).list(mimeForOpeningRule(key))
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
@@ -139,12 +155,24 @@ private fun FileOpeningRuleEditor(key: FileOpenRuleKey, current: FileOpenTarget?
     }
     AtomicCommandGrid(
         listOf(
-            AtomicMenuAction(stringResource(R.string.file_open_prefer_built_in), AtomicIcons.Document, { onChoose(FileOpenTarget(FileOpenMode.BUILT_IN)) }),
-            AtomicMenuAction(stringResource(R.string.file_open_ask), AtomicIcons.Info, { onChoose(FileOpenTarget(FileOpenMode.ASK)) }),
-            AtomicMenuAction(stringResource(R.string.file_open_prefer_external), AtomicIcons.OpenExternally, { onChoose(FileOpenTarget(FileOpenMode.EXTERNAL)) }),
+            AtomicMenuAction(
+                stringResource(R.string.file_open_prefer_built_in), AtomicIcons.Document,
+                { onChoose(FileOpenTarget(FileOpenMode.BUILT_IN)) },
+            ),
+            AtomicMenuAction(
+                stringResource(R.string.file_open_ask), AtomicIcons.Info,
+                { onChoose(FileOpenTarget(FileOpenMode.ASK)) },
+            ),
+            AtomicMenuAction(
+                stringResource(R.string.file_open_prefer_external), AtomicIcons.OpenExternally,
+                { onChoose(FileOpenTarget(FileOpenMode.EXTERNAL)) },
+            ),
         ) + apps.map { app -> AtomicMenuAction(app.label, AtomicIcons.OpenExternally, { onChoose(app.target()) }) },
     )
-    AtomicText(stringResource(if (loading) R.string.file_open_loading_apps else R.string.file_open_read_only), AtomicTextRole.BodySecondary)
+    AtomicText(
+        stringResource(if (loading) R.string.file_open_loading_apps else R.string.file_open_read_only),
+        AtomicTextRole.BodySecondary,
+    )
     AtomicButton(stringResource(R.string.file_open_reset_rule), onClick = onReset, variant = AtomicButtonVariant.Ghost)
 }
 
@@ -157,8 +185,13 @@ private fun AddOpeningRule(policy: FileOpeningPreferences, onAdd: (FileOpenRuleK
     AtomicText(stringResource(R.string.file_open_add_rule), AtomicTextRole.MonoLabel)
     AtomicChipRow {
         listOf(FileOpenRuleScope.EXTENSION, FileOpenRuleScope.MIME).forEach { candidate ->
+            val label = if (candidate == FileOpenRuleScope.EXTENSION) {
+                R.string.file_open_extension
+            } else {
+                R.string.file_open_mime
+            }
             AtomicChip(
-                stringResource(if (candidate == FileOpenRuleScope.EXTENSION) R.string.file_open_extension else R.string.file_open_mime),
+                stringResource(label),
                 selected = scope == candidate,
                 onSelectedChange = { scope = candidate; text = "" },
             )
@@ -176,7 +209,10 @@ private fun AddOpeningRule(policy: FileOpeningPreferences, onAdd: (FileOpenRuleK
         },
         modifier = Modifier.fillMaxWidth(),
     )
-    AtomicButton(stringResource(R.string.file_open_edit_rule), onClick = { key?.let(onAdd) }, enabled = key != null && !full)
+    AtomicButton(
+        stringResource(R.string.file_open_edit_rule), onClick = { key?.let(onAdd) },
+        enabled = key != null && !full,
+    )
 }
 
 @Composable

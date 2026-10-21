@@ -41,7 +41,10 @@ class FileOpeningTest {
 
     @Test
     fun `invalid or ambiguous keys are not silently normalized into another rule`() {
-        assertEquals(FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "pdf"), parseFileOpenRuleKey(FileOpenRuleScope.EXTENSION, " .PDF "))
+        assertEquals(
+            FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "pdf"),
+            parseFileOpenRuleKey(FileOpenRuleScope.EXTENSION, " .PDF "),
+        )
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.EXTENSION, "tar.gz"))
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.EXTENSION, "../pdf"))
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.MIME, "image/*"))

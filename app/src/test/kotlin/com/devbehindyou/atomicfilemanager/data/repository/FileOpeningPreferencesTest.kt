@@ -26,7 +26,12 @@ class FileOpeningPreferencesTest {
         val key = FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "pdf")
         val target = FileOpenTarget(FileOpenMode.EXTERNAL, "reader.app/reader.app.View", "Reader")
         val repository = SharedPreferencesSettingsRepository(context)
-        repository.update { it.copy(themeMode = ThemeMode.DARK, fileOpening = FileOpeningPreferences(FileOpenMode.ASK).withRule(key, target)) }
+        repository.update {
+            it.copy(
+                themeMode = ThemeMode.DARK,
+                fileOpening = FileOpeningPreferences(FileOpenMode.ASK).withRule(key, target),
+            )
+        }
         val restored = SharedPreferencesSettingsRepository(context).settings.value
         assertEquals(ThemeMode.DARK, restored.themeMode)
         assertEquals(FileOpenMode.ASK, restored.fileOpening.defaultMode)
@@ -51,13 +56,22 @@ class FileOpeningPreferencesTest {
         ]}"""
         val restored = FileOpeningPreferencesCodec.decode(raw)
         assertEquals(FileOpenMode.ASK, restored.defaultMode)
-        assertEquals(mapOf(FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "pdf") to FileOpenTarget(FileOpenMode.BUILT_IN)), restored.rules)
+        assertEquals(
+            mapOf(FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "pdf") to FileOpenTarget(FileOpenMode.BUILT_IN)),
+            restored.rules,
+        )
     }
 
     @Test
     fun resettingOnlyOpeningPreferencesKeepsExistingFilesAndAppearanceOptions() {
         val repository = SharedPreferencesSettingsRepository(context)
-        repository.update { it.copy(themeMode = ThemeMode.DARK, showHiddenFiles = false, fileOpening = FileOpeningPreferences(FileOpenMode.EXTERNAL)) }
+        repository.update {
+            it.copy(
+                themeMode = ThemeMode.DARK,
+                showHiddenFiles = false,
+                fileOpening = FileOpeningPreferences(FileOpenMode.EXTERNAL),
+            )
+        }
         repository.update { it.copy(fileOpening = FileOpeningPreferences()) }
         val restored = SharedPreferencesSettingsRepository(context).settings.value
         assertEquals(FileOpeningPreferences(), restored.fileOpening)

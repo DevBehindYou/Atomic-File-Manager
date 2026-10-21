@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="file_open_title">Open with</string>
+    <string name="file_open_another_app">Open with another app</string>
     <string name="file_open_settings">File opening</string>
     <string name="file_open_settings_summary">Built-in viewers and default apps</string>
     <string name="file_open_loading_apps">Finding compatible apps…</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.MAX_FILE_OPENING_RULES
 import com.devbehindyou.atomicfilemanager.domain.model.keyFor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -63,29 +65,36 @@ fun FilePreviewPane(
     val app = context.applicationContext as? AtomicApp ?: return
     val repository = app.container.settingsRepository
     val preferred = remember(node.id) { repository.settings.value.fileOpening.targetFor(node) }
+    var displayed by remember(node.id) { mutableStateOf(node) }
     var useBuiltIn by rememberSaveable(node.id.raw) { mutableStateOf(preferred.mode == FileOpenMode.BUILT_IN) }
     var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
-    var apps by remember(node.id) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
-    var loading by remember(node.id) { mutableStateOf(true) }
-    var busy by remember(node.id) { mutableStateOf(false) }
-    var problem by rememberSaveable(node.id.raw) { mutableStateOf<OpeningProblem?>(null) }
+    var apps by remember(displayed.id) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
+    var loading by remember(displayed.id) { mutableStateOf(true) }
+    var busy by remember(displayed.id) { mutableStateOf(false) }
+    var problem by rememberSaveable(displayed.id.raw) { mutableStateOf<OpeningProblem?>(null) }
     val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
     val exporter = remember(app) {
         ExternalPreviewHelper(context.applicationContext) { app.container.storageBackendSelector.forNode(it) }
     }
     val scope = rememberCoroutineScope()
+    DisposableEffect(node.id) {
+        onDispose { scope.coroutineContext.cancelChildren() }
+    }
     val chooserTitle = stringResource(R.string.viewer_open_external)
-    val rule = remember(node) {
-        keyFor(node, FileOpenRuleScope.EXTENSION) ?: keyFor(node, FileOpenRuleScope.MIME)
-            ?: keyFor(node, FileOpenRuleScope.FAMILY)
+    val rule = remember(displayed) {
+        keyFor(displayed, FileOpenRuleScope.EXTENSION) ?: keyFor(displayed, FileOpenRuleScope.MIME)
+            ?: keyFor(displayed, FileOpenRuleScope.FAMILY)
     }
     val canSaveRule = rule != null &&
-        (repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES || rule in repository.settings.value.fileOpening.rules)
+        (repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES ||
+            rule in repository.settings.value.fileOpening.rules)
 
     fun choose(target: FileOpenTarget, always: Boolean) {
         if (busy) return
         if (target.mode == FileOpenMode.BUILT_IN) {
-            if (always && rule != null) repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+            if (always && rule != null) {
+                repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+            }
             useBuiltIn = true
             problem = null
             return
@@ -94,12 +103,16 @@ fun FilePreviewPane(
             busy = true
             problem = null
             try {
-                val result = exporter.open(node) { file -> launcher.launch(file, node.name, target, chooserTitle) }
+                val result = exporter.open(displayed) { file ->
+                    launcher.launch(file, displayed.name, target, chooserTitle)
+                }
                 if (result is FileResult.Success) {
                     // Save an app-specific rule only after a real explicit component launches successfully.
-                    if (always && rule != null) repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+                    if (always && rule != null) {
+                        repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+                    }
                     try {
-                        withContext(Dispatchers.IO) { app.container.recentsRepository.recordOpened(node) }
+                        withContext(Dispatchers.IO) { app.container.recentsRepository.recordOpened(displayed) }
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
@@ -115,11 +128,11 @@ fun FilePreviewPane(
         }
     }
 
-    LaunchedEffect(node.id, useBuiltIn) {
+    LaunchedEffect(displayed.id, useBuiltIn) {
         if (useBuiltIn) return@LaunchedEffect
         loading = true
         try {
-            apps = withContext(Dispatchers.IO) { launcher.list(externalMimeType(node)) }
+            apps = withContext(Dispatchers.IO) { launcher.list(externalMimeType(displayed)) }
             if (!automaticAttempted && preferred.mode == FileOpenMode.EXTERNAL) {
                 automaticAttempted = true
                 when {
@@ -140,19 +153,29 @@ fun FilePreviewPane(
 
     if (useBuiltIn) {
         BuiltInFilePreviewPane(
-            node, onClose, modifier, onShare,
-            onOpenExternal ?: { useBuiltIn = false },
-            gallery,
+            node = displayed,
+            onClose = onClose,
+            modifier = modifier,
+            onShare = onShare.takeIf { displayed.id == node.id },
+            onOpenExternal = onOpenExternal.takeIf { displayed.id == node.id },
+            gallery = gallery,
+            onOpenExternalForNode = { shown ->
+                displayed = shown
+                useBuiltIn = false
+            },
         )
     } else {
         FileOpeningChoicePanel(
-            name = node.name,
+            name = displayed.name,
             apps = apps,
             loading = loading,
             busy = busy,
             problem = problem,
-            builtInAvailable = resolvePreviewType(node) != PreviewType.GENERIC,
-            ruleLabel = rule?.takeIf { canSaveRule }?.let { if (it.scope == FileOpenRuleScope.EXTENSION) ".${it.value}" else it.value },
+            builtInAvailable = resolvePreviewType(displayed) != PreviewType.GENERIC,
+            ruleLabel =
+                rule?.takeIf { canSaveRule }?.let {
+                    if (it.scope == FileOpenRuleScope.EXTENSION) ".${it.value}" else it.value
+                },
             onChoose = ::choose,
             onClose = onClose,
             modifier = modifier,
@@ -212,7 +235,10 @@ internal fun FileOpeningChoicePanel(
         )
         AtomicCommandGrid(
             listOf(builtIn) + apps.map { handler ->
-                AtomicMenuAction(handler.label, AtomicIcons.OpenExternally, { onChoose(handler.target(), always) }, enabled = !busy)
+                AtomicMenuAction(
+                    handler.label, AtomicIcons.OpenExternally,
+                    { onChoose(handler.target(), always) }, enabled = !busy,
+                )
             },
         )
     }

@@ -89,7 +89,8 @@ fun fileOpenFamily(node: FileNode): FileOpenFamily {
         mime.startsWith("audio/") -> FileOpenFamily.AUDIO
         mime == "application/pdf" -> FileOpenFamily.PDF
         mime.contains("wordprocessing") || mime.startsWith("application/vnd.ms-") || mime == "application/msword" ||
-            mime.contains("spreadsheet") || mime.contains("presentation") || mime.startsWith("application/vnd.oasis.") ->
+            mime.contains("spreadsheet") || mime.contains("presentation") ||
+            mime.startsWith("application/vnd.oasis.") ->
             FileOpenFamily.DOCUMENT
         mime in ARCHIVE_MIMES -> FileOpenFamily.ARCHIVE
         mime in CODE_MIMES || mime.endsWith("+json") || mime.endsWith("+xml") -> FileOpenFamily.CODE
@@ -113,8 +114,17 @@ private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm", "avi", "mov", "3gp", 
 private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "opus")
 private val DOCUMENT_EXTENSIONS = setOf("doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf")
 private val ARCHIVE_EXTENSIONS = setOf("zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst", "tgz", "iso")
-private val TEXT_EXTENSIONS = setOf("txt", "md", "markdown", "log", "ini", "conf", "cfg", "properties", "toml", "csv", "srt", "vtt")
+private val TEXT_EXTENSIONS =
+    setOf("txt", "md", "markdown", "log", "ini", "conf", "cfg", "properties", "toml", "csv", "srt", "vtt")
 private val CODE_EXTENSIONS =
-    setOf("kt", "kts", "java", "py", "js", "jsx", "ts", "tsx", "html", "htm", "css", "json", "xml", "yaml", "yml", "sh", "bash", "c", "cpp", "h", "hpp", "rs", "go", "sql")
-private val CODE_MIMES = setOf("application/json", "application/xml", "application/javascript", "application/sql", "application/x-sh")
-private val ARCHIVE_MIMES = setOf("application/zip", "application/x-zip-compressed", "application/x-7z-compressed", "application/vnd.rar", "application/x-rar-compressed", "application/x-tar", "application/gzip")
+    setOf(
+        "kt", "kts", "java", "py", "js", "jsx", "ts", "tsx", "html", "htm", "css", "json", "xml", "yaml", "yml",
+        "sh", "bash", "c", "cpp", "h", "hpp", "rs", "go", "sql",
+    )
+private val CODE_MIMES =
+    setOf("application/json", "application/xml", "application/javascript", "application/sql", "application/x-sh")
+private val ARCHIVE_MIMES =
+    setOf(
+        "application/zip", "application/x-zip-compressed", "application/x-7z-compressed", "application/vnd.rar",
+        "application/x-rar-compressed", "application/x-tar", "application/gzip",
+    )
