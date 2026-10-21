@@ -111,6 +111,28 @@ class StorageUsageRepositoryTest {
     }
 
     @Test
+    fun `a suspended plan times out retains last good and forces recovery before TTL`() = runTest {
+        val source = FakeSource().apply { entries = { success(file("old.pdf", 10)) } }
+        val repository = repository(source, StorageUsageLimits(millis = 25))
+        val previous = repository.scan(volumes).last().current
+        val cancelled = CompletableDeferred<Unit>()
+        source.beforePlan = { try { awaitCancellation() } finally { cancelled.complete(Unit) } }
+        val failed = repository.scan(volumes).last()
+        assertEquals(25L, testScheduler.currentTime)
+        assertTrue(cancelled.isCompleted)
+        assertEquals(StorageUsagePhase.FAILED, failed.phase)
+        assertEquals(previous, failed.lastGood)
+        assertNull(failed.current)
+        source.beforePlan = {}
+        source.entries = { success(file("new.pdf", 20)) }
+        val recovered = repository.scan(volumes).last()
+        assertEquals(StorageUsagePhase.COMPLETE, recovered.phase)
+        assertFalse(recovered.cached)
+        assertEquals(20L, recovered.current!!.readableBytes)
+        assertEquals(2, source.listCalls.size)
+    }
+
+    @Test
     fun `cancelling a live listing publishes no completion and the next collection rescans`() = runTest {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
@@ -274,10 +296,12 @@ class StorageUsageRepositoryTest {
     private class FakeSource : StorageUsageSource {
         var planValue = StorageUsagePlan("plan", listOf(rootPath), StorageCapacity(1_000, 400, 1), 0)
         var failPlan = false
+        var beforePlan: suspend () -> Unit = {}
         val listCalls = mutableListOf<String>()
         var entries: (String) -> Flow<FileResult<List<StorageUsageEntry>>> = { flowOf(FileResult.Success(emptyList())) }
 
         override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
+            beforePlan()
             if (failPlan) throw IOException("capacity temporarily unavailable")
             return planValue
         }
