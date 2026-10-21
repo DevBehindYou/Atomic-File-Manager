@@ -56,4 +56,30 @@ class BenchmarkFixtureContractTest {
         assertFalse(BenchmarkCorpus.ownsRow(owner, path, name, owner, path, "user.txt"))
         assertFalse(BenchmarkCorpus.ownsRow(owner, path, name, null, path, name))
     }
+
+    @Test
+    fun fixtureMimeMatchesEachRequestedExtension() {
+        val plan = FixturePlan(100)
+        assertEquals("image/png", plan.mime(0))
+        assertEquals("application/json", plan.mime(10))
+        assertEquals("text/markdown", plan.mime(11))
+        assertEquals("text/plain", plan.mime(12))
+        assertThrows(IllegalArgumentException::class.java) { plan.mime(100) }
+    }
+
+    @Test
+    fun frozenProviderTupleRejectsLaterIdentityChanges() {
+        val owner = "benchmark.package"
+        val path = "Download/AtomicBenchmark-owned/"
+        // Captured immediately after insertion: cleanup can remove this normalized fixture,
+        // but setup still rejects its mismatch with the requested bench_00010.json name.
+        val captured = BenchmarkProviderIdentity(owner, path, "bench_00010.json.txt", "text/plain")
+        assertTrue(BenchmarkOwnedMedia.canDelete(owner, path, captured, captured))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, path, captured, captured.copy(name = "user.txt")))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, path, captured, captured.copy(path = "Download/user/")))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, path, captured, captured.copy(owner = "another.package")))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, path, captured, captured.copy(mime = "application/json")))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, "Download/other/", captured, captured))
+        assertFalse(BenchmarkOwnedMedia.canDelete(owner, path, captured.copy(owner = null), captured))
+    }
 }
