@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.data.operations
 import com.devbehindyou.atomicfilemanager.data.database.room.OperationJournalDao
 import com.devbehindyou.atomicfilemanager.data.database.room.OperationJournalEntity
 import com.devbehindyou.atomicfilemanager.data.database.room.OperationJournalState
+import com.devbehindyou.atomicfilemanager.data.database.room.toJournalEntry
 import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -18,16 +19,23 @@ import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
 import com.devbehindyou.atomicfilemanager.domain.usecase.FileOperationsEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -48,8 +56,8 @@ class ProcessKillTest {
     private val executor = Executors.newSingleThreadExecutor()
     private val dispatcher = executor.asCoroutineDispatcher()
 
-    // Several copy buffers long, so the mid-write kill (at half) lands after progress was recorded,
-    // whatever the buffer size.
+    // Several copy buffers long, so the mid-write kill lands before the complete payload is written.
+    // The fixture's journal handshake, not payload size or thread timing, establishes RUNNING first.
     private val payload = ByteArray(FileOperationsEngine.BUFFER_SIZE * 4 + 1_234) { (it * 31 % 251).toByte() }
 
     @AfterEach
@@ -197,12 +205,63 @@ class ProcessKillTest {
         assertArrayEquals(payload, bytes(names(to).getValue("movie.mp4")))
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `delayed running journal delivery gates the first output write`() =
+        runTest {
+            val (from, to) = setUpFolders()
+            val operation = copyOf(names(from).getValue("movie.mp4").id, to)
+            journal.upsert(operation.toJournalEntry())
+            val allowRunningWrite = CompletableDeferred<Unit>()
+            val dead = DeadProcess(KillAt.MID_WRITE) { allowRunningWrite.await() }
+            val stagingName = ".atomic-journal-barrier.partial"
+            val runningWrite =
+                launch {
+                    dead.journal.updateProgress(
+                        id = operation.id.raw,
+                        state = OperationJournalState.RUNNING,
+                        itemsDone = 0,
+                        itemsTotal = 1,
+                        bytesDone = 0,
+                        bytesTotal = payload.size.toLong(),
+                        errorMessage = null,
+                        updatedAt = 0,
+                    )
+                }
+            val outputWrite =
+                async {
+                    val output = (dead.backend.openOutput(to, stagingName, null) as FileResult.Success).value
+                    output.stream().use { it.write(payload, 0, payload.size / 2) }
+                }
+
+            runCurrent()
+
+            assertTrue(runningWrite.isActive, "RUNNING delivery is suspended at the controlled gate")
+            assertFalse(outputWrite.isCompleted, "the first storage write must wait for persisted RUNNING")
+            assertFalse(dead.killed.isCompleted)
+            assertTrue(names(to).isEmpty())
+            assertEquals(OperationJournalState.QUEUED, journal.rows.getValue(operation.id.raw).state)
+
+            allowRunningWrite.complete(Unit)
+            advanceUntilIdle()
+            runningWrite.join()
+            outputWrite.await()
+
+            assertTrue(dead.killed.isCompleted, "the original mid-write kill point still fires")
+            assertEquals(OperationJournalState.RUNNING, journal.rows.getValue(operation.id.raw).state)
+            assertArrayEquals(payload.copyOfRange(0, payload.size / 2), bytes(names(to).getValue(stagingName)))
+        }
+
     /**
      * The storage and journal as a dying process sees them: normal until [killAt], then every
      * change is silently lost.
      */
-    private inner class DeadProcess(private val killAt: KillAt) {
+    private inner class DeadProcess(
+        private val killAt: KillAt,
+        private val beforeRunningWrite: suspend () -> Unit = {},
+    ) {
         val killed = CompletableDeferred<Unit>()
+        private val runningPersisted = CompletableDeferred<Unit>()
         private val isDead get() = killed.isCompleted
 
         private fun kill() {
@@ -226,6 +285,8 @@ class ProcessKillTest {
                     updatedAt: Long,
                 ) {
                     if (!isDead) {
+                        if (state == OperationJournalState.RUNNING) beforeRunningWrite()
+                        if (isDead) return
                         this@ProcessKillTest.journal.updateProgress(
                             id,
                             state,
@@ -236,6 +297,7 @@ class ProcessKillTest {
                             errorMessage,
                             updatedAt,
                         )
+                        if (state == OperationJournalState.RUNNING) runningPersisted.complete(Unit)
                     }
                 }
             }
@@ -247,6 +309,10 @@ class ProcessKillTest {
                     name: String,
                     mime: String?,
                 ): FileResult<OutputTarget> {
+                    if (isDead) return lost()
+                    // flowOn buffers progress: receipt by the collector need not mean durable delivery.
+                    // These scenarios intentionally kill a running operation after its journal write.
+                    runningPersisted.await()
                     if (isDead) return lost()
                     val real = (disk.openOutput(parent, name, mime) as FileResult.Success).value
                     return FileResult.Success(DyingTarget(real, parent, name))

@@ -2,13 +2,22 @@ package com.devbehindyou.atomicfilemanager.data.search
 
 import com.devbehindyou.atomicfilemanager.data.database.room.SearchIndexDao
 import com.devbehindyou.atomicfilemanager.data.database.room.SearchIndexEntity
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
+import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.SearchFilter
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -17,6 +26,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomSearchIndexTest {
@@ -96,10 +106,10 @@ class RoomSearchIndexTest {
     private val stamp = Stamp()
     private var now = 1_000L
 
-    private fun TestScope.index() =
+    private fun TestScope.index(listing: (FileNodeId) -> Flow<FileResult<List<FileNode>>> = backend::listChildren) =
         RoomSearchIndex(
             dao = dao,
-            listChildren = backend::listChildren,
+            listChildren = listing,
             scope = backgroundScope,
             // In-memory ids are not paths; give every node a unique path under one root.
             canonicalPath = { id -> if (id == backend.rootId) "/r" else "/r/${id.raw}" },
@@ -309,6 +319,206 @@ class RoomSearchIndexTest {
             assertTrue(index.search("report", 0).isEmpty())
             assertTrue(index.search("report", -1).isEmpty())
             assertTrue(dao.searchPages.isEmpty())
+        }
+
+    @Test
+    fun `incomplete folder listings preserve rows but explicit empty success clears them`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            val before = dao.rows.toMap()
+            val denied = FileResult.Failure(FileError.AccessDenied(null))
+            val incomplete: List<Flow<FileResult<List<FileNode>>>> =
+                listOf(
+                    emptyFlow(),
+                    flowOf(denied),
+                    flowOf(FileResult.Success(emptyList<FileNode>()), denied),
+                )
+            for (listing in incomplete) {
+                index { listing }.refreshFolders(listOf(backend.rootId))
+                assertEquals(before, dao.rows)
+            }
+            index { flowOf(FileResult.Success(emptyList())) }.refreshFolders(listOf(backend.rootId))
+            assertTrue(dao.rows.isEmpty())
+        }
+
+    @Test
+    fun `cancelling a partially listed folder never commits its rows`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            val before = dao.rows.toMap()
+            val newId = backend.putFile(backend.rootId, "new.txt", byteArrayOf(2))
+            val newNode = (backend.getNode(newId) as FileResult.Success).value
+            val started = CompletableDeferred<Unit>()
+            val partial =
+                index {
+                    flow {
+                        emit(FileResult.Success(listOf(newNode)))
+                        started.complete(Unit)
+                        awaitCancellation()
+                    }
+                }
+            val refresh = launch { partial.refreshFolders(listOf(backend.rootId)) }
+            started.await()
+            refresh.cancelAndJoin()
+            assertEquals(before, dao.rows)
+        }
+
+    @Test
+    fun `incomplete full builds retain prior evidence and successful build time`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            val before = dao.rows.toMap()
+            now = 2_000L
+            val denied = FileResult.Failure(FileError.AccessDenied(null))
+            val listings: List<Flow<FileResult<List<FileNode>>>> =
+                listOf(emptyFlow(), flowOf(denied), flowOf(FileResult.Success(emptyList()), denied))
+            for (listing in listings) {
+                val incomplete = index { listing }
+                incomplete.build(listOf(backend.rootId))
+                assertEquals(before, dao.rows)
+                assertEquals(1_000L, stamp.value)
+                assertEquals(1_000L, incomplete.state.value.builtAt)
+                assertEquals(1, incomplete.state.value.unreadable)
+            }
+            index { flowOf(FileResult.Success(emptyList())) }.build(listOf(backend.rootId))
+            assertTrue(dao.rows.isEmpty())
+            assertEquals(2_000L, stamp.value)
+        }
+
+    @Test
+    fun `partial full build keeps denied descendants alongside new readable evidence`() =
+        runTest {
+            val docs = folder(backend.rootId, "Docs")
+            backend.putFile(docs, "old.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            backend.putFile(backend.rootId, "new.txt", byteArrayOf(2))
+            now = 2_000L
+            val partial =
+                index { id ->
+                    if (id == docs) {
+                        flowOf(
+                            FileResult.Failure(FileError.AccessDenied(null)),
+                        )
+                    } else {
+                        backend.listChildren(id)
+                    }
+                }
+
+            partial.build(listOf(backend.rootId))
+
+            assertEquals(setOf("Docs", "old.txt", "new.txt"), dao.rows.values.map { it.name }.toSet())
+            assertEquals(setOf(1_000L, 2_000L), dao.rows.values.map { it.generation }.toSet())
+            assertEquals(1_000L, stamp.value)
+            assertEquals(1, partial.state.value.unreadable)
+        }
+
+    @Test
+    fun `folder refresh waits for the full build writer`() =
+        runTest {
+            val docs = folder(backend.rootId, "Docs")
+            index().build(listOf(backend.rootId))
+            val building = CompletableDeferred<Unit>()
+            val release = CompletableDeferred<Unit>()
+            val calls = mutableListOf<FileNodeId>()
+            val serial =
+                index { id ->
+                    flow {
+                        calls += id
+                        if (id == backend.rootId) {
+                            building.complete(Unit)
+                            release.await()
+                        }
+                        backend.listChildren(id).collect { emit(it) }
+                    }
+                }
+            val build = launch { serial.build(listOf(backend.rootId)) }
+            building.await()
+            val refresh = launch { serial.refreshFolders(listOf(docs)) }
+            runCurrent()
+            assertEquals(listOf(backend.rootId), calls)
+            release.complete(Unit)
+            build.join()
+            refresh.join()
+            assertEquals(listOf(backend.rootId, docs, docs), calls)
+        }
+
+    @Test
+    fun `missing build roots cannot prune a previous index`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            val index = index()
+            index.build(listOf(backend.rootId))
+            val before = dao.rows.toMap()
+            now = 2_000L
+
+            index.build(emptyList())
+
+            assertEquals(before, dao.rows)
+            assertEquals(1_000L, stamp.value)
+            assertEquals(1, index.state.value.unreadable)
+        }
+
+    @Test
+    fun `known incomplete walk retries within the previous successful freshness window`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            now = 2_000L
+            var denied = true
+            var attempts = 0
+            val retrying =
+                index { id ->
+                    attempts++
+                    if (denied) flowOf(FileResult.Failure(FileError.AccessDenied(null))) else backend.listChildren(id)
+                }
+            retrying.build(listOf(backend.rootId))
+            assertEquals(1, retrying.state.value.unreadable)
+            assertEquals(1_000L, stamp.value)
+
+            denied = false
+            retrying.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+
+            assertEquals(2, attempts)
+            assertEquals(0, retrying.state.value.unreadable)
+            assertEquals(2_000L, stamp.value)
+        }
+
+    @Test
+    fun `exceptional public rebuild retries before TTL and clears retry after recovery`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            now = 2_000L
+            var fail = true
+            var attempts = 0
+            val retrying =
+                index { id ->
+                    flow {
+                        attempts++
+                        if (fail) throw IOException("listing unavailable")
+                        backend.listChildren(id).collect { emit(it) }
+                    }
+                }
+            retrying.rebuild(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(1, attempts)
+            assertFalse(retrying.state.value.building)
+            assertEquals(1_000L, stamp.value)
+
+            fail = false
+            retrying.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(2, attempts)
+            assertEquals(2_000L, stamp.value)
+            assertFalse(retrying.state.value.building)
+
+            retrying.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(2, attempts)
         }
 
     private fun searchRow(

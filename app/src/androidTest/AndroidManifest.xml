@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test APK only: a real external UID receives the production FileProvider handoff. -->
+        <activity
+            android:name="com.devbehindyou.atomicfilemanager.data.preview.ExternalPngReceiverActivity"
+            android:exported="true"
+            android:label="Atomic test PNG receiver"
+            android:process=":external_png_receiver"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" android:mimeType="image/png" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

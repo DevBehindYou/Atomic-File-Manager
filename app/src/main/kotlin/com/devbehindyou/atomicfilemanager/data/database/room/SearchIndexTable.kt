@@ -7,6 +7,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Transaction
 
 /**
  * Table `search_index` (ALL_IN_ONE_PLAN.md 1.4). [nameLower] is matched with LIKE for substring
@@ -54,6 +55,21 @@ interface SearchIndexDao {
 
     @Query("SELECT id FROM search_index WHERE parentId = :parentId")
     suspend fun idsIn(parentId: String): List<String>
+
+    /** Commits one fully enumerated folder as one durable unit; callers enumerate before entering. */
+    @Transaction
+    suspend fun reconcileFolder(
+        parentId: String,
+        rows: List<SearchIndexEntity>,
+    ) {
+        require(rows.all { it.parentId == parentId }) { "Folder rows must belong to the listed parent" }
+        val present = rows.mapTo(HashSet()) { it.id }
+        upsert(rows)
+        idsIn(parentId).filterNot { it in present }.forEach { gone ->
+            val escaped = gone.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            deleteTree(gone, "$escaped/%")
+        }
+    }
 
     /** Removes [id] and, for a folder, everything below it (ids of local files are paths). */
     @Query("DELETE FROM search_index WHERE id = :id OR id LIKE :descendants ESCAPE '\\'")
