@@ -93,9 +93,10 @@ class StorageUsageLifecycleTest {
                 ).fetchSemanticsNodes().isNotEmpty()
             }
             compose.runOnIdle {
-                volumes.value = listOf(
-                    volumes.value.single().copy(id = "second", rootNodeId = FileNodeId.file("/second")),
-                )
+                volumes.value =
+                    listOf(
+                        volumes.value.single().copy(id = "second", rootNodeId = FileNodeId.file("/second")),
+                    )
             }
             compose.waitUntil(5_000) { plans.get() == 2 }
             compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()

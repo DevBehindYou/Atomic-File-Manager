@@ -127,14 +127,16 @@ class StorageUsageRepository(
                     walk(plan, hit?.snapshot, requestedRevision) { update ->
                         currentCoroutineContext().ensureActive()
                         if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
-                            cache = Cache(
-                                inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
-                            )
+                            cache =
+                                Cache(
+                                    inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
+                                )
                         }
                         if (update.phase == StorageUsagePhase.PARTIAL || update.phase == StorageUsagePhase.COMPLETE) {
-                            observed = Cache(
-                                inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
-                            )
+                            observed =
+                                Cache(
+                                    inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
+                                )
                         }
                         emit(update.copy(previousObserved = observedHit?.snapshot))
                     }
@@ -215,10 +217,11 @@ class StorageUsageRepository(
                                             } else if (seenFiles.add(entry.path)) {
                                                 val category = storageUsageCategory(entry.name)
                                                 val before = categories.getValue(category)
-                                                categories[category] = CategoryUsage(
-                                                    storageUsageAdd(before.bytes, entry.size),
-                                                    storageUsageAdd(before.files, 1),
-                                                )
+                                                categories[category] =
+                                                    CategoryUsage(
+                                                        storageUsageAdd(before.bytes, entry.size),
+                                                        storageUsageAdd(before.files, 1),
+                                                    )
                                                 files = storageUsageAdd(files, 1)
                                             }
                                         }
@@ -232,8 +235,6 @@ class StorageUsageRepository(
                             }
                         } catch (_: ScanLimitReached) {
                             bounded = true
-                        } catch (cancelled: CancellationException) {
-                            throw cancelled
                         }
                         if (!success || failed) unreadable++
                     }
