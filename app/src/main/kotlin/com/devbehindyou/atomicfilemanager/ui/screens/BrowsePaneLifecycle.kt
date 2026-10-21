@@ -10,7 +10,10 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 
 /** The Activity retains primary state; its listing and observers belong to the visible screen. */
 @Composable
-internal fun PrimaryBrowseVisibility(viewModel: BrowseViewModel, openRequest: Int) {
+internal fun PrimaryBrowseVisibility(
+    viewModel: BrowseViewModel,
+    openRequest: Int,
+) {
     DisposableEffect(viewModel, openRequest) {
         viewModel.onVisible(openRequest)
         onDispose { viewModel.onHidden() }

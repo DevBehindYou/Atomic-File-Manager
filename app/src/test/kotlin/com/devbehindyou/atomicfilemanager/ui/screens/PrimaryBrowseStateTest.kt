@@ -40,87 +40,96 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PrimaryBrowseStateTest {
     @Test
-    fun returningRetainsClipboardLocationAndBackHistoryWhileExplicitReopenResetsOnlyNavigation() = runTest {
-        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val memory = InMemoryBackend()
-        val child = checkNotNull(memory.createDirectory(memory.rootId, "Child").getOrNull())
-        val inside = checkNotNull(memory.createDirectory(child.id, "Inside").getOrNull())
-        val source = checkNotNull(memory.createDirectory(memory.rootId, "Source").getOrNull())
-        val reads = mutableListOf<FileNodeId>()
-        val backend = object : StorageBackend by memory {
-            override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> = flow {
-                synchronized(reads) { reads += id }
-                emitAll(memory.listChildren(id))
+    fun returningRetainsClipboardLocationAndBackHistoryWhileExplicitReopenResetsOnlyNavigation() =
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            val memory = InMemoryBackend()
+            val child = checkNotNull(memory.createDirectory(memory.rootId, "Child").getOrNull())
+            val inside = checkNotNull(memory.createDirectory(child.id, "Inside").getOrNull())
+            val source = checkNotNull(memory.createDirectory(memory.rootId, "Source").getOrNull())
+            val reads = mutableListOf<FileNodeId>()
+            val backend =
+                object : StorageBackend by memory {
+                    override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
+                        flow {
+                            synchronized(reads) { reads += id }
+                            emitAll(memory.listChildren(id))
+                        }
+                }
+            val queue =
+                OperationQueue(
+                    engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
+                    journal = null,
+                    scope = backgroundScope,
+                )
+            val model =
+                BrowseViewModel(
+                    memory.rootId,
+                    GetDirectoryListingUseCase { backend },
+                    GetNodeUseCase { backend },
+                    CreateDirectoryUseCase { backend },
+                    RenameFileUseCase { backend },
+                    DeleteFileUseCase { backend },
+                    queue,
+                    StateBubbles(),
+                    startVisible = false,
+                )
+
+            suspend fun awaitFolder(id: FileNodeId) =
+                model.uiState.first {
+                    it.currentFolderId == id && !it.isLoading && !it.isRefreshing
+                }
+
+            fun count() = synchronized(reads) { reads.size }
+
+            try {
+                assertEquals(0, count())
+                model.onVisible(0)
+                testScheduler.runCurrent()
+                awaitFolder(memory.rootId)
+                model.toggleSelection(source.id)
+                model.copySelected()
+                val clipboard = checkNotNull(model.uiState.value.clipboard)
+                model.navigateTo(child)
+                awaitFolder(child.id)
+                model.toggleSelection(inside.id)
+                model.onHidden()
+                val before = count()
+                // A late accepted action may ask for a refresh after the screen was removed.
+                model.refresh()
+                assertEquals(before, count())
+                model.onVisible(0)
+                testScheduler.runCurrent()
+                awaitFolder(child.id)
+                assertEquals(before + 1, count())
+                assertSame(clipboard, model.uiState.value.clipboard)
+                assertEquals(setOf(inside.id), model.uiState.value.selectedIds)
+                model.onHidden()
+                memory.delete(inside.id)
+                model.onVisible(0)
+                testScheduler.runCurrent()
+                awaitFolder(child.id)
+                assertTrue(model.uiState.value.selectedIds.isEmpty())
+                assertSame(clipboard, model.uiState.value.clipboard)
+                assertTrue(model.navigateBack())
+                awaitFolder(memory.rootId)
+                model.navigateTo(child)
+                awaitFolder(child.id)
+                model.onHidden()
+                val beforeReopen = count()
+                model.refresh()
+                model.onVisible(1)
+                awaitFolder(memory.rootId)
+                assertEquals(beforeReopen + 1, count())
+                assertSame(clipboard, model.uiState.value.clipboard)
+                assertFalse(model.navigateBack())
+            } finally {
+                val owner = model.viewModelScope.coroutineContext.job
+                model.viewModelScope.cancel()
+                owner.join()
+                Dispatchers.resetMain()
             }
         }
-        val queue = OperationQueue(
-            engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
-            journal = null,
-            scope = backgroundScope,
-        )
-        val model = BrowseViewModel(
-            memory.rootId,
-            GetDirectoryListingUseCase { backend },
-            GetNodeUseCase { backend },
-            CreateDirectoryUseCase { backend },
-            RenameFileUseCase { backend },
-            DeleteFileUseCase { backend },
-            queue,
-            StateBubbles(),
-            startVisible = false,
-        )
-        suspend fun awaitFolder(id: FileNodeId) = model.uiState.first {
-            it.currentFolderId == id && !it.isLoading && !it.isRefreshing
-        }
-        fun count() = synchronized(reads) { reads.size }
-        try {
-            assertEquals(0, count())
-            model.onVisible(0)
-            testScheduler.runCurrent()
-            awaitFolder(memory.rootId)
-            model.toggleSelection(source.id)
-            model.copySelected()
-            val clipboard = checkNotNull(model.uiState.value.clipboard)
-            model.navigateTo(child)
-            awaitFolder(child.id)
-            model.toggleSelection(inside.id)
-            model.onHidden()
-            val before = count()
-            // A late accepted action may ask for a refresh after the screen was removed.
-            model.refresh()
-            assertEquals(before, count())
-            model.onVisible(0)
-            testScheduler.runCurrent()
-            awaitFolder(child.id)
-            assertEquals(before + 1, count())
-            assertSame(clipboard, model.uiState.value.clipboard)
-            assertEquals(setOf(inside.id), model.uiState.value.selectedIds)
-            model.onHidden()
-            memory.delete(inside.id)
-            model.onVisible(0)
-            testScheduler.runCurrent()
-            awaitFolder(child.id)
-            assertTrue(model.uiState.value.selectedIds.isEmpty())
-            assertSame(clipboard, model.uiState.value.clipboard)
-            assertTrue(model.navigateBack())
-            awaitFolder(memory.rootId)
-            model.navigateTo(child)
-            awaitFolder(child.id)
-            model.onHidden()
-            val beforeReopen = count()
-            model.refresh()
-            model.onVisible(1)
-            awaitFolder(memory.rootId)
-            assertEquals(beforeReopen + 1, count())
-            assertSame(clipboard, model.uiState.value.clipboard)
-            assertFalse(model.navigateBack())
-        } finally {
-            val owner = model.viewModelScope.coroutineContext.job
-            model.viewModelScope.cancel()
-            owner.join()
-            Dispatchers.resetMain()
-        }
-    }
 }
 
 private class StateBubbles : TransferBubbleRepository {
@@ -128,9 +137,15 @@ private class StateBubbles : TransferBubbleRepository {
 
     override suspend fun createBubble(name: String?): Result<TransferBubble> = error("Not used")
 
-    override suspend fun addItemsToBubble(bubbleId: String, items: List<FileNode>): Result<Unit> = error("Not used")
+    override suspend fun addItemsToBubble(
+        bubbleId: String,
+        items: List<FileNode>,
+    ): Result<Unit> = error("Not used")
 
-    override suspend fun removeItemFromBubble(bubbleId: String, itemId: Long): Result<Unit> = error("Not used")
+    override suspend fun removeItemFromBubble(
+        bubbleId: String,
+        itemId: Long,
+    ): Result<Unit> = error("Not used")
 
     override suspend fun clearBubble(bubbleId: String): Result<Unit> = error("Not used")
 

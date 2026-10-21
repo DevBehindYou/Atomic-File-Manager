@@ -48,10 +48,16 @@ class PrimaryBrowseVisibilityTest {
             BasicText(if (redraw.value) "Updated" else "Initial")
             if (visible.value) PrimaryBrowseVisibility(model, 0)
         }
-        compose.runOnIdle { assertEquals(0, fixture.started.get()); visible.value = true }
+        compose.runOnIdle {
+            assertEquals(0, fixture.started.get())
+            visible.value = true
+        }
         awaitCondition { fixture.started.get() == 1 }
         compose.runOnIdle { redraw.value = true }
-        compose.runOnIdle { assertEquals(1, fixture.started.get()); visible.value = false }
+        compose.runOnIdle {
+            assertEquals(1, fixture.started.get())
+            visible.value = false
+        }
         awaitCondition { fixture.cancelled.get() == 1 }
         compose.runOnIdle { fixture.finishOperation() }
         awaitCondition { fixture.completed.get() == 1 }
@@ -75,7 +81,10 @@ class PrimaryBrowseVisibilityTest {
         awaitCondition { fixture.started.get() == 1 }
         compose.runOnIdle { visible.value = false }
         awaitCondition { fixture.cancelled.get() == 1 }
-        compose.runOnIdle { request.value = 1; visible.value = true }
+        compose.runOnIdle {
+            request.value = 1
+            visible.value = true
+        }
         awaitCondition { fixture.started.get() == 2 }
         compose.runOnIdle { assertEquals(2, fixture.started.get()) }
     }
@@ -99,7 +108,10 @@ class PrimaryBrowseVisibilityTest {
         compose.runOnIdle { assertEquals(3, fixture.started.get()) }
     }
 
-    private fun model(key: String, folder: FileNodeId): BrowseViewModel =
+    private fun model(
+        key: String,
+        folder: FileNodeId,
+    ): BrowseViewModel =
         ViewModelProvider(store, fixture.factory(folder, startVisible = false))[key, BrowseViewModel::class.java]
             .also { if (it !in models) models += it }
 

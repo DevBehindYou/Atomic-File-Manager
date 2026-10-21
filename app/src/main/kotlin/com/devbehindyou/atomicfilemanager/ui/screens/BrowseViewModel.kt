@@ -106,11 +106,12 @@ class BrowseViewModel(
 
     private fun observeOperations() {
         // Operations run in the app-wide queue, so they outlive this screen and never cancel each other.
-        activeOperationJob = viewModelScope.launch {
-            operationQueue.active.collect { snapshot ->
-                if (visible) _uiState.update { it.copy(activeOperation = snapshot) }
+        activeOperationJob =
+            viewModelScope.launch {
+                operationQueue.active.collect { snapshot ->
+                    if (visible) _uiState.update { it.copy(activeOperation = snapshot) }
+                }
             }
-        }
         finishedOperationsJob = viewModelScope.launch { operationQueue.finished.collect { if (visible) refresh() } }
     }
 
@@ -219,11 +220,12 @@ class BrowseViewModel(
                     applyNewItems(accumulated.toList())
                     val shouldRetainSelection =
                         retainSelection && (_uiState.value.selectedIds.isNotEmpty() || selectionAnchor != null)
-                    val retainedIds = if (shouldRetainSelection) {
-                        accumulated.mapTo(HashSet()) { it.id }
-                    } else {
-                        null
-                    }
+                    val retainedIds =
+                        if (shouldRetainSelection) {
+                            accumulated.mapTo(HashSet()) { it.id }
+                        } else {
+                            null
+                        }
                     if (retainedIds != null && selectionAnchor !in retainedIds) selectionAnchor = null
                     _uiState.update {
                         it.copy(

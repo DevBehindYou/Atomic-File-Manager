@@ -33,13 +33,14 @@ class PrimaryBrowseRecreationDeviceTest {
     @Test
     fun navigationAndActivityRecreationRetainPrimaryFolderClipboardAndBackHistory() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val root = runBlocking(Dispatchers.IO) {
-            File(context.cacheDir, "browse-visibility-${UUID.randomUUID()}").apply {
-                check(mkdir())
-                check(File(this, "Child").mkdir())
-                check(File(this, "Source").mkdir())
+        val root =
+            runBlocking(Dispatchers.IO) {
+                File(context.cacheDir, "browse-visibility-${UUID.randomUUID()}").apply {
+                    check(mkdir())
+                    check(File(this, "Child").mkdir())
+                    check(File(this, "Source").mkdir())
+                }
             }
-        }
         val rootId = FileNodeId.file(root.absolutePath)
         val childId = FileNodeId.file(File(root, "Child").absolutePath)
         val sourceId = FileNodeId.file(File(root, "Source").absolutePath)
@@ -84,7 +85,10 @@ class PrimaryBrowseRecreationDeviceTest {
         }
     }
 
-    private fun existingModel(activity: MainActivity, root: FileNodeId): BrowseViewModel =
+    private fun existingModel(
+        activity: MainActivity,
+        root: FileNodeId,
+    ): BrowseViewModel =
         ViewModelProvider(
             activity,
             object : ViewModelProvider.Factory {
@@ -92,7 +96,10 @@ class PrimaryBrowseRecreationDeviceTest {
             },
         )["browse:${root.raw}", BrowseViewModel::class.java]
 
-    private fun awaitFolder(model: BrowseViewModel, folder: FileNodeId) {
+    private fun awaitFolder(
+        model: BrowseViewModel,
+        folder: FileNodeId,
+    ) {
         compose.waitUntil(5_000) {
             val state = model.uiState.value
             state.currentFolderId == folder && !state.isLoading && !state.isRefreshing

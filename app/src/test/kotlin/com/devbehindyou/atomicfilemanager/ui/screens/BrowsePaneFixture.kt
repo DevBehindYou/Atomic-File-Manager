@@ -86,7 +86,10 @@ class BrowsePaneFixture : ExternalResource() {
         Dispatchers.resetMain()
     }
 
-    fun factory(folder: FileNodeId, startVisible: Boolean = true): ViewModelProvider.Factory {
+    fun factory(
+        folder: FileNodeId,
+        startVisible: Boolean = true,
+    ): ViewModelProvider.Factory {
         factories++
         return BrowseViewModel.provideFactory(
             initialFolderId = folder,
