@@ -37,3 +37,5 @@ The debug APK SHA-256 was `d1fbe0825b71307db16244974e3d1e5190ac9f135ea5e75e809e4
 PR #62 at `963a96b` passed full current-head CI, independent review and a clean trial merge, then merged into `codex/feature-upgrade-base` as `08541851c0ab7f8c32ed768e89558a791a93f321`. This is feature integration, not main/release acceptance.
 
 Permission revocation/return, media mount/unmount and recreation checks remain pending. The broader U04 primary-tab ownership/refactor work is separate; this first slice addresses loading-state truthfulness.
+
+Subsequent browse composition-pause follow-up [PR #66](https://github.com/DevBehindYou/Atomic-File-Manager/pull/66), head `80f98ea`, passed CI `39613995458`. Combined integration `5902824` passed 48 focused browse/index tests, static checks, APK packaging and Lint in `browse-index-consistency-retry-validation.log` (exit 0, 12m 2s). This later combined host evidence is separate from the 13-case startup slice above; device recreation remains pending and broader U04 acceptance is not complete.
