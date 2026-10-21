@@ -29,6 +29,17 @@ internal class FixturePlan(val entries: Int) {
 
     companion object {
         val SIZES = listOf(100, 1_000, 10_000)
+
+        /** Absence keeps the full suite; a supplied invalid value must never widen the workload. */
+        fun selectedSizes(raw: String?, supplied: Boolean): List<Int> {
+            if (!supplied) {
+                require(raw == null) { "Unexpected corpus argument without a supplied key" }
+                return SIZES
+            }
+            val selected = SIZES.filter { it.toString() == raw }
+            require(selected.size == 1) { "fixtureEntries must be exactly 100, 1000 or 10000" }
+            return selected
+        }
     }
 }
 

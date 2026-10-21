@@ -56,13 +56,21 @@ Run only the non-mutating fixture contract cases first:
 .\gradlew.bat :benchmark:connectedBenchmarkAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.benchmark.BenchmarkFixtureContractTest
 ```
 
-On the authorized test device, run the controlled corpus scenarios separately:
+For the currently authorized **100-entry smoke only**, select the corpus with an explicit instrumentation argument. This runs opening and scrolling only for the 100-entry corpus; a method-name filter alone is not the workload bound:
+
+```powershell
+.\gradlew.bat :benchmark:connectedBenchmarkAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.benchmark.FolderScrollBenchmark -Pandroid.testInstrumentationRunnerArguments.fixtureEntries=100
+```
+
+`fixtureEntries` accepts exactly `100`, `1000` or `10000`. An omitted key retains the full three-size suite for separately authorized full runs. A supplied null, blank, whitespace-padded, signed, zero-padded, comma-separated or unsupported value fails parameter discovery before fixture generation; it never falls back to all sizes. The `AtomicBenchmark` log tag reports selected numeric sizes only. For the smoke, verify `Selected fixture entries: 100`, the two `[100 entries]` scenario names and JSONL `entries: 100`; do not accept a log showing 1,000/10,000 scenarios. Existing validation above predates this argument change; root must rebuild and rerun the added non-mutating selection contract before the smoke is claimed passed.
+
+The default full-suite command below is retained for documentation and is **not authorized by the current 100-entry smoke approval**:
 
 ```powershell
 .\gradlew.bat :benchmark:connectedBenchmarkAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.benchmark.FolderScrollBenchmark
 ```
 
-The class runs six scenarios (opening and scrolling at each of three sizes), each with ten measured iterations plus library warmups. Fixture insertion/cleanup may take substantial time, particularly at 10,000 entries, and is not included in the measured timings. Budget storage/runtime before the large case. Compilation mode may force-stop the target as part of Macrobenchmark; use a test device with no active real file operation.
+Without `fixtureEntries`, the class runs six scenarios (opening and scrolling at each of three sizes), each with ten measured iterations plus library warmups. With `fixtureEntries=100`, it runs two scenarios at 100 entries. Each corpus also owns the one-file reset folder described above. Fixture insertion/cleanup may take substantial time, particularly at 10,000 entries, and is not included in measured timings. Budget storage/runtime before the large case. Compilation mode may force-stop the target as part of Macrobenchmark; use a test device with no active real file operation.
 
 Macrobenchmark frame/Perfetto artifacts use the normal connected-test additional-output directory. Raw JSONL observations are written to the benchmark APK's own `getExternalFilesDir(null)/benchmark-results/`, with an app-private fallback when external app storage is unavailable. Pull those files before uninstalling the test APK. Each file contains environment, measured observations and a terminal success/failure record; only accept files with successful terminal state and matching expected sample count. The APK hash is the installed **base APK**, not a universal AAB/download-size measure.
 

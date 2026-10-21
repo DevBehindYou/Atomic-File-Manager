@@ -29,6 +29,23 @@ class BenchmarkFixtureContractTest {
     }
 
     @Test
+    fun explicitCorpusSelectionCannotFallBackToTheWholeSuite() {
+        assertEquals(listOf(100, 1_000, 10_000), FixturePlan.selectedSizes(null, supplied = false))
+        FixturePlan.SIZES.forEach { size ->
+            assertEquals(listOf(size), FixturePlan.selectedSizes(size.toString(), supplied = true))
+        }
+        listOf(null, "", " ", " 100", "100 ", "+100", "0100", "100.0", "100,1000", "0", "-100", "100000")
+            .forEach { invalid ->
+                assertThrows(IllegalArgumentException::class.java) {
+                    FixturePlan.selectedSizes(invalid, supplied = true)
+                }
+            }
+        assertThrows(IllegalArgumentException::class.java) {
+            FixturePlan.selectedSizes("100", supplied = false)
+        }
+    }
+
+    @Test
     fun cleanupRequiresMatchingOwnerPathAndGeneratedName() {
         val owner = "benchmark.package"
         val path = "Download/AtomicBenchmark-owned/"

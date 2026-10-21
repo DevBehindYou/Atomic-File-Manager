@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.benchmark
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
@@ -165,6 +166,7 @@ class FolderScrollBenchmark(private val entries: Int) {
     companion object {
         const val TARGET_PACKAGE = "com.devbehindyou.atomicfilemanager"
         private const val EXTRA_OPEN = "$TARGET_PACKAGE.extra.OPEN"
+        private const val FIXTURE_ENTRIES_ARGUMENT = "fixtureEntries"
         private const val WAIT_MS = 30_000L
         private const val ITERATIONS = 10
         private const val FLINGS = 3
@@ -173,7 +175,15 @@ class FolderScrollBenchmark(private val entries: Int) {
 
         @JvmStatic
         @Parameterized.Parameters(name = "{0} entries")
-        fun sizes(): List<Array<Int>> = FixturePlan.SIZES.map { arrayOf(it) }
+        fun sizes(): List<Array<Int>> {
+            val arguments = InstrumentationRegistry.getArguments()
+            val selected = FixturePlan.selectedSizes(
+                arguments.getString(FIXTURE_ENTRIES_ARGUMENT),
+                arguments.containsKey(FIXTURE_ENTRIES_ARGUMENT),
+            )
+            Log.i("AtomicBenchmark", "Selected fixture entries: ${selected.joinToString(",")}")
+            return selected.map { arrayOf(it) }
+        }
 
         private fun folderIntent(path: String): Intent =
             Intent(Intent.ACTION_MAIN).apply {
