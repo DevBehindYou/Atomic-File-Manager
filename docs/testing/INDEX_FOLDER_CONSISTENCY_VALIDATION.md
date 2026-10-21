@@ -1,6 +1,6 @@
 # Search-index folder consistency — U05 slice
 
-Prepared 21 October 2026. The combined 48-case host validation, APK packaging and Android Lint pass. Host validation of the CI teardown follow-up and fresh isolated PR CI remain pending.
+Prepared 21 October 2026. The combined 48-case host validation, APK packaging and Android Lint pass. The 38-case CI teardown follow-up also passes; fresh isolated PR CI remains pending.
 
 Folder refresh previously treated a flow with no emissions as an empty directory. It also committed inserts and disappearance cleanup separately, allowing an interrupted reconciliation to persist only part of the folder update.
 
@@ -24,4 +24,6 @@ The combined browse/index run `build/audit-tools/browse-index-consistency-retry-
 
 PR #67 run `39616679288` completed 940 tests with one failure before `BrowseNavigationIdentityTest.switchingStorageKeepsCopyAndMoveClipboardsAndBackHistory` entered its test body. Its report records a cancelled `Dispatchers.Default` continuation accessing Main after `Dispatchers.resetMain()`. Both navigation tests cancelled their model without joining its children, unlike the already corrected sort-loading fixture.
 
-The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced. Root is running serialized follow-up checks from integration source `7b66082` in `build/audit-tools/index-ci-teardown-validation.log`; no completed result is claimed yet. A fresh complete CI run also remains required.
+The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced.
+
+The serialized follow-up from integration source `7b66082`, with formatter output recorded in `2aa3625`, completed with exit 0 in 2 minutes 24 seconds (`build/audit-tools/index-ci-teardown-validation.log`). Formatting/static checks passed, as did all 38 selected cases with no failures/errors/skips: migration 1, DAO reconciliation 8, index 21, navigation 3 and sort-loading 5. A fresh complete CI run remains required.
