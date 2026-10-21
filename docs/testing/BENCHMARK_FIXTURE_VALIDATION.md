@@ -31,6 +31,8 @@ MediaStore inserts/media scanning can warm filesystem/provider caches. The scena
 
 Source is prepared for root-coordinated validation. No Gradle build, instrumentation case or physical benchmark has been executed by this agent; no timing result is claimed. Parent/root records exact build and device outcomes after running them.
 
+Root's first compile found that `androidx.test.filters.SdkSuppress` was not on the benchmark compilation classpath. Cached `androidx.test:runner:1.6.2` was inspected and contains both `SdkSuppress` and the module's declared `AndroidJUnitRunner`. The benchmark module now explicitly depends on the existing `libs.androidx.test.runner` catalog entry. This is a test-APK dependency only, with no version change or production APK dependency. The correction still needs root's rebuild; no passing compilation result is implied by inspecting the cached artifact.
+
 Compile/package with the repository's normal JDK21/Gradle toolchain:
 
 ```powershell
