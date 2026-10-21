@@ -77,6 +77,7 @@ class BrowseViewModel(
     private val operationQueue: OperationQueue,
     private val transferBubbleRepository: TransferBubbleRepository,
     private val folderSorts: FolderSortMemory? = null,
+    startVisible: Boolean = true,
 ) : ViewModel() {
     /** The last row the user selected or unselected; a long-press selects the range from here. */
     private var selectionAnchor: FileNodeId? = null
@@ -91,24 +92,73 @@ class BrowseViewModel(
     private var appliedOpenRequest: Int? = null
     private var sortRevision = 0L
     private val sortWrites = Mutex()
+    private var visible = startVisible
+    private var pendingLocation: BrowseLocation? = null
+    private var activeOperationJob: Job? = null
+    private var finishedOperationsJob: Job? = null
 
     init {
-        loadDirectory(initialFolderId)
-        // Operations run in the app-wide queue, so they outlive this screen and never cancel each other.
-        viewModelScope.launch {
-            operationQueue.active.collect { snapshot -> _uiState.update { it.copy(activeOperation = snapshot) } }
+        if (startVisible) {
+            loadDirectory(initialFolderId)
+            observeOperations()
         }
-        viewModelScope.launch { operationQueue.finished.collect { refresh() } }
+    }
+
+    private fun observeOperations() {
+        // Operations run in the app-wide queue, so they outlive this screen and never cancel each other.
+        activeOperationJob = viewModelScope.launch {
+            operationQueue.active.collect { snapshot ->
+                if (visible) _uiState.update { it.copy(activeOperation = snapshot) }
+            }
+        }
+        finishedOperationsJob = viewModelScope.launch { operationQueue.finished.collect { if (visible) refresh() } }
+    }
+
+    /** Retains navigation/clipboard state while expensive screen work follows actual visibility. */
+    internal fun onVisible(request: Int) {
+        val reopenInitial = recordOpenRequest(request)
+        val wasHidden = !visible
+        if (!wasHidden && !reopenInitial) return
+        visible = true
+        if (wasHidden) observeOperations()
+        val pending = pendingLocation
+        pendingLocation = null
+        if (reopenInitial) {
+            loadDirectory(initialFolderId)
+        } else {
+            val current = _uiState.value
+            val target = pending?.id ?: current.currentFolderId
+            loadDirectory(
+                target,
+                isRefresh = !current.isLoading && target == current.currentFolderId,
+                knownBreadcrumbs = pending?.breadcrumbs ?: current.breadcrumbs,
+                retainSelection = target == current.currentFolderId,
+            )
+        }
+    }
+
+    internal fun onHidden() {
+        if (!visible) return
+        visible = false
+        listingJob?.cancel()
+        filterJob?.cancel()
+        activeOperationJob?.cancel()
+        finishedOperationsJob?.cancel()
     }
 
     fun loadDirectory(
         folderId: FileNodeId,
         isRefresh: Boolean = false,
         knownBreadcrumbs: List<BreadcrumbItem> = emptyList(),
+        retainSelection: Boolean = false,
     ) {
+        if (!visible) {
+            pendingLocation = BrowseLocation(folderId, knownBreadcrumbs)
+            return
+        }
         listingJob?.cancel()
         filterJob?.cancel()
-        selectionAnchor = null
+        if (!retainSelection) selectionAnchor = null
         val requestedSortRevision = sortRevision
         listingJob =
             viewModelScope.launch {
@@ -119,7 +169,7 @@ class BrowseViewModel(
                         isLoading = !isRefresh,
                         isRefreshing = isRefresh,
                         errorMessage = null,
-                        selectedIds = emptySet(),
+                        selectedIds = if (retainSelection) it.selectedIds else emptySet(),
                     )
                 }
 
@@ -167,7 +217,19 @@ class BrowseViewModel(
 
                 if (!sawFailure) {
                     applyNewItems(accumulated.toList())
-                    _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+                    val retainedIds = if (retainSelection && (_uiState.value.selectedIds.isNotEmpty() || selectionAnchor != null)) {
+                        accumulated.mapTo(HashSet()) { it.id }
+                    } else {
+                        null
+                    }
+                    if (retainedIds != null && selectionAnchor !in retainedIds) selectionAnchor = null
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            selectedIds = retainedIds?.let(it.selectedIds::intersect) ?: it.selectedIds,
+                        )
+                    }
                 }
             }
     }
@@ -266,12 +328,17 @@ class BrowseViewModel(
      * or recreated view model keeps its state.
      */
     fun onOpenRequest(request: Int) {
+        if (recordOpenRequest(request)) loadDirectory(initialFolderId)
+    }
+
+    private fun recordOpenRequest(request: Int): Boolean {
         val previous = appliedOpenRequest
         appliedOpenRequest = request
         if (previous != null && previous != request) {
             folderHistory.clear()
-            loadDirectory(initialFolderId)
+            return true
         }
+        return false
     }
 
     fun navigateTo(folder: FileNode) {
@@ -701,6 +768,7 @@ class BrowseViewModel(
             operationQueue: OperationQueue,
             transferBubbleRepository: TransferBubbleRepository,
             folderSorts: FolderSortMemory? = null,
+            startVisible: Boolean = true,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -715,6 +783,7 @@ class BrowseViewModel(
                         operationQueue = operationQueue,
                         transferBubbleRepository = transferBubbleRepository,
                         folderSorts = folderSorts,
+                        startVisible = startVisible,
                     ) as T
                 }
             }

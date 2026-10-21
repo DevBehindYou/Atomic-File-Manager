@@ -86,7 +86,7 @@ class BrowsePaneFixture : ExternalResource() {
         Dispatchers.resetMain()
     }
 
-    fun factory(folder: FileNodeId): ViewModelProvider.Factory {
+    fun factory(folder: FileNodeId, startVisible: Boolean = true): ViewModelProvider.Factory {
         factories++
         return BrowseViewModel.provideFactory(
             initialFolderId = folder,
@@ -97,6 +97,7 @@ class BrowsePaneFixture : ExternalResource() {
             deleteFileUseCase = DeleteFileUseCase { backend },
             operationQueue = queue,
             transferBubbleRepository = UnusedBubbles(),
+            startVisible = startVisible,
         )
     }
 
