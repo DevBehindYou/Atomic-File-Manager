@@ -383,6 +383,7 @@ fun AtomicAppContent(
             volume.rootNodeId != null -> {
                 openInBrowse(volume.rootNodeId)
             }
+            storageReadiness !is StorageReadinessState.Ready -> refreshVolumes()
             !hasStorageAccess -> {
                 pendingVolumeId = volume.id
                 requestStorageAccess()
@@ -895,7 +896,11 @@ private fun MainScreenContent(
             key(tab.id) {
                 BrowseScreen(
                     initialFolderId = FileNodeId(tab.folderRaw),
-                    storage = BrowseStorageAccess(volumes, hasStorageAccess, callbacks.onRequestStorageAccess),
+                    storage = BrowseStorageAccess(
+                        volumes,
+                        hasStorageAccess,
+                        if (storageReadiness is StorageReadinessState.Ready) callbacks.onRequestStorageAccess else onRetryStorage,
+                    ),
                     onNavigateBack = callbacks.onNavigateBack,
                     openRequest = tab.openRequest,
                     onNotify = callbacks.onNotify,
