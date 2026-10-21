@@ -138,7 +138,16 @@ internal class BenchmarkCorpus private constructor(
         val exists = resolver.query(row.uri, projection, null, null, null).use { cursor ->
             checkNotNull(cursor) { "Cannot verify fixture ownership; preserving its bytes" }
             if (!cursor.moveToFirst()) return@use false
-            check(ownsRow(context.packageName, row.relativePath, row.name, cursor.getString(2), cursor.getString(1), cursor.getString(0))) {
+            check(
+                ownsRow(
+                    context.packageName,
+                    row.relativePath,
+                    row.name,
+                    cursor.getString(2),
+                    cursor.getString(1),
+                    cursor.getString(0),
+                ),
+            ) {
                 "Fixture identity changed; preserving its bytes"
             }
             true

@@ -25,7 +25,9 @@ internal class BenchmarkEvidence(context: Context, entries: Int, images: Int) {
 
     init {
         val info = context.packageManager.getPackageInfo(FolderScrollBenchmark.TARGET_PACKAGE, 0)
-        val source = checkNotNull(context.packageManager.getApplicationInfo(FolderScrollBenchmark.TARGET_PACKAGE, 0).sourceDir)
+        val source = checkNotNull(
+            context.packageManager.getApplicationInfo(FolderScrollBenchmark.TARGET_PACKAGE, 0).sourceDir,
+        )
         append(
             JSONObject()
                 .put("kind", "environment")
@@ -44,7 +46,11 @@ internal class BenchmarkEvidence(context: Context, entries: Int, images: Int) {
                 .put("cacheState", "OS/app caches retained; reset folder opened before each sample")
                 .put("thermalStatusBefore", manager.currentThermalStatus)
                 .put("observedClock", "elapsedRealtimeNanos")
-                .put("timingCaveat", "Includes activity launch handshake, frame wait and accessibility polling; not decoder or first-paint timing"),
+                .put(
+                    "timingCaveat",
+                    "Includes activity launch handshake, frame wait and accessibility polling; " +
+                        "not decoder or first-paint timing",
+                ),
         )
     }
 
@@ -62,7 +68,10 @@ internal class BenchmarkEvidence(context: Context, entries: Int, images: Int) {
 
     fun recordScroll(iteration: Int) {
         samples++
-        append(JSONObject().put("kind", "scrollVerified").put("sample", samples).put("macrobenchmarkIteration", iteration))
+        append(
+            JSONObject().put("kind", "scrollVerified")
+                .put("sample", samples).put("macrobenchmarkIteration", iteration),
+        )
     }
 
     fun finish(success: Boolean) {
