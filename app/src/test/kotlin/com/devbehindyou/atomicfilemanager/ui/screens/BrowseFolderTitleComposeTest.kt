@@ -52,7 +52,11 @@ class BrowseFolderTitleComposeTest {
         assertRowsAndAccessibleSummary(title)
     }
 
-    private fun show(title: String, width: Dp, fontScale: Float = 1f) {
+    private fun show(
+        title: String,
+        width: Dp,
+        fontScale: Float = 1f,
+    ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 val density = LocalDensity.current

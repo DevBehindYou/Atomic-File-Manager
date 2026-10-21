@@ -89,14 +89,15 @@ class BrowseOptionsComposeTest {
 
     @Test
     fun allSixSortDirectionsReportTheirChoiceAndRestoreTheSelectedRadio() {
-        val choices = listOf(
-            "Name A–Z" to SortOption.NAME,
-            "Name Z–A" to SortOption.NAME_DESCENDING,
-            "Date ascending" to SortOption.DATE_MODIFIED_ASCENDING,
-            "Date descending" to SortOption.DATE_MODIFIED,
-            "Size ascending" to SortOption.SIZE_ASCENDING,
-            "Size descending" to SortOption.SIZE,
-        )
+        val choices =
+            listOf(
+                "Name A–Z" to SortOption.NAME,
+                "Name Z–A" to SortOption.NAME_DESCENDING,
+                "Date ascending" to SortOption.DATE_MODIFIED_ASCENDING,
+                "Date descending" to SortOption.DATE_MODIFIED,
+                "Size ascending" to SortOption.SIZE_ASCENDING,
+                "Size descending" to SortOption.SIZE,
+            )
         show()
         for ((label, option) in choices) {
             open()

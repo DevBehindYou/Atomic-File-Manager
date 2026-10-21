@@ -13,21 +13,23 @@ class BrowseItemOrderingTest {
     @ParameterizedTest
     @EnumSource(SortOption::class)
     fun `each direction orders mixed entries without reversing folders first`(option: SortOption) {
-        val items = listOf(
-            node("Banana", size = 20, modified = 400),
-            node("Zeta folder", directory = true, size = 10, modified = 100),
-            node("Cherry", size = 60, modified = 50),
-            node("Alpha folder", directory = true, size = 30, modified = 300),
-            node("apple", size = 40, modified = 200),
-        )
-        val expected = when (option) {
-            SortOption.NAME -> listOf("Alpha folder", "Zeta folder", "apple", "Banana", "Cherry")
-            SortOption.NAME_DESCENDING -> listOf("Zeta folder", "Alpha folder", "Cherry", "Banana", "apple")
-            SortOption.DATE_MODIFIED_ASCENDING -> listOf("Zeta folder", "Alpha folder", "Cherry", "apple", "Banana")
-            SortOption.DATE_MODIFIED -> listOf("Alpha folder", "Zeta folder", "Banana", "apple", "Cherry")
-            SortOption.SIZE_ASCENDING -> listOf("Zeta folder", "Alpha folder", "Banana", "apple", "Cherry")
-            SortOption.SIZE -> listOf("Alpha folder", "Zeta folder", "Cherry", "apple", "Banana")
-        }
+        val items =
+            listOf(
+                node("Banana", size = 20, modified = 400),
+                node("Zeta folder", directory = true, size = 10, modified = 100),
+                node("Cherry", size = 60, modified = 50),
+                node("Alpha folder", directory = true, size = 30, modified = 300),
+                node("apple", size = 40, modified = 200),
+            )
+        val expected =
+            when (option) {
+                SortOption.NAME -> listOf("Alpha folder", "Zeta folder", "apple", "Banana", "Cherry")
+                SortOption.NAME_DESCENDING -> listOf("Zeta folder", "Alpha folder", "Cherry", "Banana", "apple")
+                SortOption.DATE_MODIFIED_ASCENDING -> listOf("Zeta folder", "Alpha folder", "Cherry", "apple", "Banana")
+                SortOption.DATE_MODIFIED -> listOf("Alpha folder", "Zeta folder", "Banana", "apple", "Cherry")
+                SortOption.SIZE_ASCENDING -> listOf("Zeta folder", "Alpha folder", "Banana", "apple", "Cherry")
+                SortOption.SIZE -> listOf("Alpha folder", "Zeta folder", "Cherry", "apple", "Banana")
+            }
         assertEquals(expected, ordered(items, option).map { it.name })
         assertEquals(expected, ordered(items.reversed(), option).map { it.name })
     }
@@ -57,11 +59,12 @@ class BrowseItemOrderingTest {
         val unknown = node("A unknown", size = -1, modified = 0)
         val zero = node("Z zero", size = 0, modified = 1)
         val largest = node("Middle", size = Long.MAX_VALUE, modified = Long.MAX_VALUE)
-        val knownFiles = if (option in setOf(SortOption.DATE_MODIFIED, SortOption.SIZE)) {
-            listOf(largest.id, zero.id)
-        } else {
-            listOf(zero.id, largest.id)
-        }
+        val knownFiles =
+            if (option in setOf(SortOption.DATE_MODIFIED, SortOption.SIZE)) {
+                listOf(largest.id, zero.id)
+            } else {
+                listOf(zero.id, largest.id)
+            }
         val items = listOf(unknown, unknownFolder, largest, zero, knownFolder)
         assertEquals(
             listOf(knownFolder.id, unknownFolder.id) + knownFiles + unknown.id,
@@ -86,8 +89,10 @@ class BrowseItemOrderingTest {
         assertEquals(listOf(wrongType, image, hidden, wrongQuery, folder), input)
     }
 
-    private fun ordered(items: List<FileNode>, option: SortOption) =
-        filterAndSortBrowseItems(items, "", option, true, BrowseFileFilter.ALL)
+    private fun ordered(
+        items: List<FileNode>,
+        option: SortOption,
+    ) = filterAndSortBrowseItems(items, "", option, true, BrowseFileFilter.ALL)
 
     private fun node(
         name: String,

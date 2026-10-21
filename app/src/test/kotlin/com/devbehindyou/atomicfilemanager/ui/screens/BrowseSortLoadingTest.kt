@@ -41,17 +41,23 @@ import org.junit.jupiter.params.provider.ValueSource
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowseSortLoadingTest {
     @ParameterizedTest
-    @ValueSource(strings = ["NAME", "DATE_MODIFIED", "SIZE", "NAME_DESCENDING", "DATE_MODIFIED_ASCENDING", "SIZE_ASCENDING"])
+    @ValueSource(
+        strings = ["NAME", "DATE_MODIFIED", "SIZE", "NAME_DESCENDING", "DATE_MODIFIED_ASCENDING", "SIZE_ASCENDING"],
+    )
     fun `legacy and inverse direction names restore and save unchanged`(persisted: String) =
         runTest {
             var saved: String? = null
-            val memory = object : FolderSortMemory {
-                override suspend fun get(folderRaw: String) = persisted
+            val memory =
+                object : FolderSortMemory {
+                    override suspend fun get(folderRaw: String) = persisted
 
-                override suspend fun set(folderRaw: String, value: String) {
-                    saved = value
+                    override suspend fun set(
+                        folderRaw: String,
+                        value: String,
+                    ) {
+                        saved = value
+                    }
                 }
-            }
             withModel(memory) { model ->
                 model.uiState.first { !it.isLoading }
                 val expected = SortOption.valueOf(persisted)
