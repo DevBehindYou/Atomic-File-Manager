@@ -32,8 +32,12 @@ class PreviewExternalActionTest {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 PreviewExternalAction(
-                    first, shown.value, onOpenOriginal = null,
-                    onOpenShown = { requested += it.id }, onOpenDefault = {}, busy = false,
+                    first,
+                    shown.value,
+                    onOpenOriginal = null,
+                    onOpenShown = { requested += it.id },
+                    onOpenDefault = {},
+                    busy = false,
                 )
             }
         }
@@ -51,8 +55,12 @@ class PreviewExternalActionTest {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 PreviewExternalAction(
-                    first, shown.value, onOpenOriginal = { originalOpens++ },
-                    onOpenShown = null, onOpenDefault = {}, busy = false,
+                    first,
+                    shown.value,
+                    onOpenOriginal = { originalOpens++ },
+                    onOpenShown = null,
+                    onOpenDefault = {},
+                    busy = false,
                 )
             }
         }
@@ -62,8 +70,9 @@ class PreviewExternalActionTest {
         assertEquals(1, originalOpens)
     }
 
-    private fun image(name: String) = FileNode(
-        FileNodeId.file("/fixture/$name"), name, name, "image/png", 1, 0, false, false, null,
-        StorageType.INTERNAL_SHARED, AccessFlags.FULL, null, null,
-    )
+    private fun image(name: String) =
+        FileNode(
+            FileNodeId.file("/fixture/$name"), name, name, "image/png", 1, 0, false, false, null,
+            StorageType.INTERNAL_SHARED, AccessFlags.FULL, null, null,
+        )
 }

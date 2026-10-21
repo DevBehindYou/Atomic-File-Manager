@@ -73,23 +73,31 @@ fun FilePreviewPane(
     var busy by remember(displayed.id) { mutableStateOf(false) }
     var problem by rememberSaveable(displayed.id.raw) { mutableStateOf<OpeningProblem?>(null) }
     val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
-    val exporter = remember(app) {
-        ExternalPreviewHelper(context.applicationContext) { app.container.storageBackendSelector.forNode(it) }
-    }
+    val exporter =
+        remember(app) {
+            ExternalPreviewHelper(context.applicationContext) { app.container.storageBackendSelector.forNode(it) }
+        }
     val scope = rememberCoroutineScope()
     DisposableEffect(node.id) {
         onDispose { scope.coroutineContext.cancelChildren() }
     }
     val chooserTitle = stringResource(R.string.viewer_open_external)
-    val rule = remember(displayed) {
-        keyFor(displayed, FileOpenRuleScope.EXTENSION) ?: keyFor(displayed, FileOpenRuleScope.MIME)
-            ?: keyFor(displayed, FileOpenRuleScope.FAMILY)
-    }
-    val canSaveRule = rule != null &&
-        (repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES ||
-            rule in repository.settings.value.fileOpening.rules)
+    val rule =
+        remember(displayed) {
+            keyFor(displayed, FileOpenRuleScope.EXTENSION) ?: keyFor(displayed, FileOpenRuleScope.MIME)
+                ?: keyFor(displayed, FileOpenRuleScope.FAMILY)
+        }
+    val canSaveRule =
+        rule != null &&
+            (
+                repository.settings.value.fileOpening.rules.size < MAX_FILE_OPENING_RULES ||
+                    rule in repository.settings.value.fileOpening.rules
+            )
 
-    fun choose(target: FileOpenTarget, always: Boolean) {
+    fun choose(
+        target: FileOpenTarget,
+        always: Boolean,
+    ) {
         if (busy) return
         if (target.mode == FileOpenMode.BUILT_IN) {
             if (always && rule != null) {
@@ -103,9 +111,10 @@ fun FilePreviewPane(
             busy = true
             problem = null
             try {
-                val result = exporter.open(displayed) { file ->
-                    launcher.launch(file, displayed.name, target, chooserTitle)
-                }
+                val result =
+                    exporter.open(displayed) { file ->
+                        launcher.launch(file, displayed.name, target, chooserTitle)
+                    }
                 if (result is FileResult.Success) {
                     // Save an app-specific rule only after a real explicit component launches successfully.
                     if (always && rule != null) {
@@ -209,14 +218,15 @@ internal fun FileOpeningChoicePanel(
             AtomicIconButton(AtomicIcons.Close, stringResource(R.string.action_close), onClick = onClose)
         }
         AtomicText(stringResource(R.string.file_open_title), AtomicTextRole.MonoLabel)
-        val message = when {
-            busy -> R.string.viewer_external_loading
-            loading -> R.string.file_open_loading_apps
-            problem == OpeningProblem.MISSING_APP -> R.string.file_open_missing_app
-            problem == OpeningProblem.FAILED -> R.string.viewer_external_failed
-            problem == OpeningProblem.NO_HANDLER || apps.isEmpty() -> R.string.file_open_no_apps
-            else -> R.string.file_open_read_only
-        }
+        val message =
+            when {
+                busy -> R.string.viewer_external_loading
+                loading -> R.string.file_open_loading_apps
+                problem == OpeningProblem.MISSING_APP -> R.string.file_open_missing_app
+                problem == OpeningProblem.FAILED -> R.string.viewer_external_failed
+                problem == OpeningProblem.NO_HANDLER || apps.isEmpty() -> R.string.file_open_no_apps
+                else -> R.string.file_open_read_only
+            }
         AtomicText(stringResource(message), AtomicTextRole.BodySecondary)
         if (ruleLabel != null) {
             AtomicToggleCard(
@@ -227,19 +237,21 @@ internal fun FileOpeningChoicePanel(
                 enabled = !busy && !loading,
             )
         }
-        val builtIn = AtomicMenuAction(
-            stringResource(if (builtInAvailable) R.string.file_open_built_in else R.string.file_open_details),
-            AtomicIcons.Document,
-            { onChoose(FileOpenTarget(FileOpenMode.BUILT_IN), always) },
-            enabled = !busy,
-        )
+        val builtIn =
+            AtomicMenuAction(
+                stringResource(if (builtInAvailable) R.string.file_open_built_in else R.string.file_open_details),
+                AtomicIcons.Document,
+                { onChoose(FileOpenTarget(FileOpenMode.BUILT_IN), always) },
+                enabled = !busy,
+            )
         AtomicCommandGrid(
-            listOf(builtIn) + apps.map { handler ->
-                AtomicMenuAction(
-                    handler.label, AtomicIcons.OpenExternally,
-                    { onChoose(handler.target(), always) }, enabled = !busy,
-                )
-            },
+            listOf(builtIn) +
+                apps.map { handler ->
+                    AtomicMenuAction(
+                        handler.label, AtomicIcons.OpenExternally,
+                        { onChoose(handler.target(), always) }, enabled = !busy,
+                    )
+                },
         )
     }
 }

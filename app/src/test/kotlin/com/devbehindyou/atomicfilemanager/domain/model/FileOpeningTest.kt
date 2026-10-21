@@ -15,8 +15,9 @@ class FileOpeningTest {
         val extension = keyFor(node, FileOpenRuleScope.EXTENSION)!!
         val mime = keyFor(node, FileOpenRuleScope.MIME)!!
         val family = keyFor(node, FileOpenRuleScope.FAMILY)!!
-        val policy = FileOpeningPreferences(FileOpenMode.ASK)
-            .withRule(family, builtIn).withRule(mime, external).withRule(extension, ask)
+        val policy =
+            FileOpeningPreferences(FileOpenMode.ASK)
+                .withRule(family, builtIn).withRule(mime, external).withRule(extension, ask)
         assertEquals(ask, policy.targetFor(node))
         assertEquals(external, policy.withoutRule(extension).targetFor(node))
         assertEquals(builtIn, policy.withoutRule(extension).withoutRule(mime).targetFor(node))
@@ -63,7 +64,10 @@ class FileOpeningTest {
         assertEquals(mapOf(pdf to external, text to ask), policy.rules)
     }
 
-    private fun node(name: String, mime: String?) = FileNode(
+    private fun node(
+        name: String,
+        mime: String?,
+    ) = FileNode(
         FileNodeId.file("/fixture/$name"), name, name, mime, 1, 0, false, false, null,
         StorageType.INTERNAL_SHARED, AccessFlags.FULL, null, null,
     )

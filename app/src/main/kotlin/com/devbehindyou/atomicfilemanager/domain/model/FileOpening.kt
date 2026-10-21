@@ -31,33 +31,48 @@ data class FileOpeningPreferences(
     val defaultMode: FileOpenMode = FileOpenMode.BUILT_IN,
     val rules: Map<FileOpenRuleKey, FileOpenTarget> = emptyMap(),
 ) {
-    init { require(rules.size <= MAX_FILE_OPENING_RULES) }
+    init {
+        require(rules.size <= MAX_FILE_OPENING_RULES)
+    }
 
     fun targetFor(node: FileNode): FileOpenTarget =
-        if (node.isDirectory) FileOpenTarget(FileOpenMode.BUILT_IN) else
+        if (node.isDirectory) {
+            FileOpenTarget(FileOpenMode.BUILT_IN)
+        } else {
             FileOpenRuleScope.entries.firstNotNullOfOrNull { scope -> keyFor(node, scope)?.let(rules::get) }
                 ?: FileOpenTarget(defaultMode)
+        }
 
-    fun withRule(key: FileOpenRuleKey, target: FileOpenTarget): FileOpeningPreferences =
-        copy(rules = rules + (key to target))
+    fun withRule(
+        key: FileOpenRuleKey,
+        target: FileOpenTarget,
+    ): FileOpeningPreferences = copy(rules = rules + (key to target))
 
     fun withoutRule(key: FileOpenRuleKey): FileOpeningPreferences = copy(rules = rules - key)
 }
 
 const val MAX_FILE_OPENING_RULES = 128
 
-fun parseFileOpenRuleKey(scope: FileOpenRuleScope, raw: String): FileOpenRuleKey? {
+fun parseFileOpenRuleKey(
+    scope: FileOpenRuleScope,
+    raw: String,
+): FileOpenRuleKey? {
     val value = raw.trim()
-    val normalized = when (scope) {
-        FileOpenRuleScope.EXTENSION -> value.removePrefix(".").lowercase(Locale.ROOT)
-            .takeIf { it.length in 1..32 && it.all { c -> c.isLetterOrDigit() || c in "_+-" } }
-        FileOpenRuleScope.MIME -> normalizedFileMime(value)
-        FileOpenRuleScope.FAMILY -> FileOpenFamily.entries.firstOrNull { it.name == value }?.name
-    }
+    val normalized =
+        when (scope) {
+            FileOpenRuleScope.EXTENSION ->
+                value.removePrefix(".").lowercase(Locale.ROOT)
+                    .takeIf { it.length in 1..32 && it.all { c -> c.isLetterOrDigit() || c in "_+-" } }
+            FileOpenRuleScope.MIME -> normalizedFileMime(value)
+            FileOpenRuleScope.FAMILY -> FileOpenFamily.entries.firstOrNull { it.name == value }?.name
+        }
     return normalized?.takeIf { it.length <= 128 }?.let { FileOpenRuleKey(scope, it) }
 }
 
-fun keyFor(node: FileNode, scope: FileOpenRuleScope): FileOpenRuleKey? {
+fun keyFor(
+    node: FileNode,
+    scope: FileOpenRuleScope,
+): FileOpenRuleKey? {
     if (node.isDirectory) return null
     val value =
         when (scope) {
@@ -125,6 +140,11 @@ private val CODE_MIMES =
     setOf("application/json", "application/xml", "application/javascript", "application/sql", "application/x-sh")
 private val ARCHIVE_MIMES =
     setOf(
-        "application/zip", "application/x-zip-compressed", "application/x-7z-compressed", "application/vnd.rar",
-        "application/x-rar-compressed", "application/x-tar", "application/gzip",
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/x-7z-compressed",
+        "application/vnd.rar",
+        "application/x-rar-compressed",
+        "application/x-tar",
+        "application/gzip",
     )

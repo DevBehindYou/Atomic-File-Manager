@@ -28,10 +28,14 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FileOpeningSettingsComposeTest {
     @get:Rule val compose = createComposeRule()
-    private val repository = object : SettingsRepository {
-        override val settings = MutableStateFlow(AppSettings(themeMode = ThemeMode.DARK))
-        override fun update(transform: (AppSettings) -> AppSettings) { settings.value = transform(settings.value) }
-    }
+    private val repository =
+        object : SettingsRepository {
+            override val settings = MutableStateFlow(AppSettings(themeMode = ThemeMode.DARK))
+
+            override fun update(transform: (AppSettings) -> AppSettings) {
+                settings.value = transform(settings.value)
+            }
+        }
 
     @Test
     fun familyRuleCanBeChangedAndResetWithoutChangingAppearance() {

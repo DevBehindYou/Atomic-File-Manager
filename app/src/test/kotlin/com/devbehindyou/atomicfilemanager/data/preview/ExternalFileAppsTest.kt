@@ -25,17 +25,22 @@ class ExternalFileAppsTest {
 
     @Test
     fun onlyEnabledExportedDistinctExternalComponentsAreOffered() {
-        val probe = Intent(Intent.ACTION_VIEW).setDataAndType(
-            Uri.parse("content://${app.packageName}.fileprovider/open"), "application/pdf",
-        )
+        val probe =
+            Intent(Intent.ACTION_VIEW).setDataAndType(
+                Uri.parse("content://${app.packageName}.fileprovider/open"),
+                "application/pdf",
+            )
         val valid = handler("reader.app", "Reader")
-        shadowOf(app.packageManager).addResolveInfoForIntent(probe, listOf(
-            valid,
-            valid,
-            handler(app.packageName, "Atomic"),
-            handler("private.app", "Private", exported = false),
-            handler("disabled.app", "Disabled", enabled = false),
-        ))
+        shadowOf(app.packageManager).addResolveInfoForIntent(
+            probe,
+            listOf(
+                valid,
+                valid,
+                handler(app.packageName, "Atomic"),
+                handler("private.app", "Private", exported = false),
+                handler("disabled.app", "Disabled", enabled = false),
+            ),
+        )
         assertEquals(
             listOf(ExternalFileApp("reader.app/reader.app.View", "Reader")),
             ExternalFileApps(app).list("application/pdf"),
@@ -47,8 +52,10 @@ class ExternalFileAppsTest {
     fun explicitExternalLaunchUsesOnlyTemporaryReadAccessAndTheSelectedComponent() {
         val uri = Uri.parse("content://fixture/document/report")
         ExternalFileApps(app).launch(
-            ExternalPreviewFile(uri, "application/pdf"), "report.pdf",
-            FileOpenTarget(FileOpenMode.EXTERNAL, "reader.app/reader.app.View", "Reader"), "Open with",
+            ExternalPreviewFile(uri, "application/pdf"),
+            "report.pdf",
+            FileOpenTarget(FileOpenMode.EXTERNAL, "reader.app/reader.app.View", "Reader"),
+            "Open with",
         )
         val launched = shadowOf(app).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, launched.action)
@@ -63,8 +70,10 @@ class ExternalFileAppsTest {
     fun genericExternalPreferenceUsesARealSystemChooserWithoutInventingAnAppIdentity() {
         val uri = Uri.parse("content://fixture/document/report")
         ExternalFileApps(app).launch(
-            ExternalPreviewFile(uri, "application/pdf"), "report.pdf",
-            FileOpenTarget(FileOpenMode.EXTERNAL), "Open with",
+            ExternalPreviewFile(uri, "application/pdf"),
+            "report.pdf",
+            FileOpenTarget(FileOpenMode.EXTERNAL),
+            "Open with",
         )
         val chooser = shadowOf(app).nextStartedActivity
         assertEquals(Intent.ACTION_CHOOSER, chooser.action)
@@ -82,12 +91,17 @@ class ExternalFileAppsTest {
         exported: Boolean = true,
     ) = ResolveInfo().apply {
         nonLocalizedLabel = label
-        activityInfo = ActivityInfo().apply {
-            this.packageName = packageName
-            name = "$packageName.View"
-            this.enabled = enabled
-            this.exported = exported
-            applicationInfo = ApplicationInfo().apply { this.packageName = packageName; this.enabled = true }
-        }
+        activityInfo =
+            ActivityInfo().apply {
+                this.packageName = packageName
+                name = "$packageName.View"
+                this.enabled = enabled
+                this.exported = exported
+                applicationInfo =
+                    ApplicationInfo().apply {
+                        this.packageName = packageName
+                        this.enabled = true
+                    }
+            }
     }
 }

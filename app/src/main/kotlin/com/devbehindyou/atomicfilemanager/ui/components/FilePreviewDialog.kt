@@ -249,11 +249,14 @@ internal fun PreviewExternalAction(
     onOpenDefault: () -> Unit,
     busy: Boolean,
 ) {
-    val open = when {
-        onOpenOriginal != null -> onOpenOriginal.takeIf { original.id == shown.id }
-        onOpenShown != null -> { { onOpenShown(shown) } }
-        else -> onOpenDefault
-    }
+    val open =
+        when {
+            onOpenOriginal != null -> onOpenOriginal.takeIf { original.id == shown.id }
+            onOpenShown != null -> {
+                { onOpenShown(shown) }
+            }
+            else -> onOpenDefault
+        }
     if (open != null) {
         AtomicIconButton(
             AtomicIcons.OpenExternally,
