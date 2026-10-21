@@ -1,6 +1,6 @@
 # Search-index folder consistency — U05 slice
 
-Prepared 21 October 2026. The combined 48-case host validation, APK packaging and Android Lint pass. The 38-case CI teardown follow-up also passes; fresh isolated PR CI remains pending.
+Prepared 21 October 2026. The combined 48-case host validation, APK packaging and Android Lint pass. The 38-case CI teardown follow-up also passes. Isolated CI at `b985fc2` ran 941 cases with one process-kill fixture failure; the next fixture-only correction awaits validation.
 
 Folder refresh previously treated a flow with no emissions as an empty directory. It also committed inserts and disappearance cleanup separately, allowing an interrupted reconciliation to persist only part of the folder update.
 
@@ -27,3 +27,13 @@ PR #67 run `39616679288` completed 940 tests with one failure before `BrowseNavi
 The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced.
 
 The serialized follow-up from integration source `7b66082`, with formatter output recorded in `2aa3625`, completed with exit 0 in 2 minutes 24 seconds (`build/audit-tools/index-ci-teardown-validation.log`). Formatting/static checks passed, as did all 38 selected cases with no failures/errors/skips: migration 1, DAO reconciliation 8, index 21, navigation 3 and sort-loading 5. A fresh complete CI run remains required.
+
+## Process-kill fixture scheduling follow-up
+
+PR #67 run `39619803103` at `b985fc2` ran 941 tests with one failure. Its downloaded report under `build/audit-tools/index-ci-second-report/` records `ProcessKillTest` line 140: expected `RUNNING`, actual `QUEUED`. The preceding no-partial-real-name assertion passed. This failure is a journal-state scheduling assumption, not evidence that a partial file was published.
+
+The engine emits initial running progress before copying but uses buffered `flowOn(Dispatchers.IO)`. Its producer can reach the test's simulated mid-write death before the queue's journal consumer persists that progress. The fixture freezes later writes after death, leaving a valid admitted `QUEUED` intent. Increasing payload size does not guarantee journal delivery. Production recovery already considers both queued and running records unfinished; the index PR does not change this engine, queue or recovery code.
+
+The fixture now waits for acknowledgement of an actually forwarded `RUNNING` journal update before opening its output. The four existing kill locations, exact `RUNNING` assertions, partial cleanup, completed destination bytes and untouched source assertions remain unchanged. A new deterministic coroutine-scheduler case holds the running journal write at a gate, proves the first storage write and kill cannot happen while the journal remains queued, then releases delivery and verifies the original mid-write kill and staged bytes. There are no sleeps, relaxed assertions or production-engine changes.
+
+This fixture-only correction has been source-reviewed and passes `git diff --check`; its five process-kill cases, static checks and fresh complete CI are still pending. No new passing test run is claimed by this commit.
