@@ -130,7 +130,13 @@ fun StorageScreen(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
             AtomicSectionLabel("Storage usage")
-            if (app != null) StorageUsageDashboard(volumes, app.container.storageUsageRepository, app.container.operationQueue.finished)
+            if (app != null) {
+                StorageUsageDashboard(
+                    volumes,
+                    app.container.storageUsageRepository,
+                    app.container.operationQueue.finished,
+                )
+            }
             AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
             volumes.forEach { volume -> StorageVolumeCard(volume, onBrowse = { onBrowseVolume(volume) }) }
         }
@@ -253,7 +259,8 @@ fun StorageScreen(
         ShizukuLabsSection(onBrowseFolder = onBrowseFolder)
 
         AtomicText(
-            "Capacity covers mounted filesystems. The file breakdown covers readable shared folders; Android keeps some system and app data private.",
+            "Capacity covers mounted filesystems. The file breakdown covers readable shared folders; " +
+                "Android keeps some system and app data private.",
             AtomicTextRole.BodySecondary,
         )
     }

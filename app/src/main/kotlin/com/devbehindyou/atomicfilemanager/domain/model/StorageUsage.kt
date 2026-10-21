@@ -18,7 +18,10 @@ enum class StorageUsageCategory(val label: String) {
 }
 
 /** Name/MIME only; hidden entries are included and nothing is opened or decoded. */
-fun storageUsageCategory(name: String, mimeType: String? = null): StorageUsageCategory {
+fun storageUsageCategory(
+    name: String,
+    mimeType: String? = null,
+): StorageUsageCategory {
     val extension = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
     usageExtensions[extension]?.let { return it }
     val mime = mimeType.orEmpty().substringBefore(';').trim().lowercase(Locale.ROOT)
@@ -40,7 +43,9 @@ fun storageUsageCategory(name: String, mimeType: String? = null): StorageUsageCa
 }
 
 data class CategoryUsage(val bytes: Long = 0, val files: Long = 0) {
-    init { require(bytes >= 0 && files >= 0) }
+    init {
+        require(bytes >= 0 && files >= 0)
+    }
 }
 
 /** Filesystem capacity of deduplicated mounted volumes; unknown volumes contribute no invented bytes. */
@@ -96,40 +101,63 @@ data class StorageUsageSnapshot(
 }
 
 /** Nonnegative saturating aggregation keeps malformed/very large metadata from wrapping usage totals. */
-fun storageUsageAdd(a: Long, b: Long): Long {
+fun storageUsageAdd(
+    a: Long,
+    b: Long,
+): Long {
     val left = a.coerceAtLeast(0L)
     val right = b.coerceAtLeast(0L)
     return if (Long.MAX_VALUE - left < right) Long.MAX_VALUE else left + right
 }
 
-private val usageExtensions = buildMap {
-    fun add(category: StorageUsageCategory, words: String) {
-        words.split(' ').forEach { put(it, category) }
+private val usageExtensions =
+    buildMap {
+        fun add(
+            category: StorageUsageCategory,
+            words: String,
+        ) {
+            words.split(' ').forEach { put(it, category) }
+        }
+        add(StorageUsageCategory.IMAGES, "jpg jpeg png gif webp heic heif avif bmp svg tif tiff dng raw ico")
+        add(StorageUsageCategory.VIDEOS, "mp4 mkv webm avi mov 3gp m4v ts mpeg mpg wmv flv")
+        add(StorageUsageCategory.AUDIO, "mp3 m4a aac flac wav ogg opus wma amr aiff mid midi")
+        add(StorageUsageCategory.PDFS, "pdf")
+        add(StorageUsageCategory.DOCUMENTS, "doc docx xls xlsx ppt pptx odt ods odp rtf pages numbers key")
+        add(StorageUsageCategory.ARCHIVES, "zip rar 7z tar gz bz2 xz zst tgz tbz tbz2 txz iso")
+        add(StorageUsageCategory.APKS, "apk apks xapk apkm")
+        add(StorageUsageCategory.TEXT, "txt md markdown csv tsv json xml log html htm css js jsx tsx kt kts java py sh")
+        add(
+            StorageUsageCategory.TEXT,
+            "yaml yml ini cfg conf properties toml rst go rs c cpp h hpp sql rb php swift dart lua",
+        )
+        add(StorageUsageCategory.EBOOKS, "epub mobi azw azw3 fb2")
+        add(StorageUsageCategory.FONTS, "ttf otf woff woff2")
     }
-    add(StorageUsageCategory.IMAGES, "jpg jpeg png gif webp heic heif avif bmp svg tif tiff dng raw ico")
-    add(StorageUsageCategory.VIDEOS, "mp4 mkv webm avi mov 3gp m4v ts mpeg mpg wmv flv")
-    add(StorageUsageCategory.AUDIO, "mp3 m4a aac flac wav ogg opus wma amr aiff mid midi")
-    add(StorageUsageCategory.PDFS, "pdf")
-    add(StorageUsageCategory.DOCUMENTS, "doc docx xls xlsx ppt pptx odt ods odp rtf pages numbers key")
-    add(StorageUsageCategory.ARCHIVES, "zip rar 7z tar gz bz2 xz zst tgz tbz tbz2 txz iso")
-    add(StorageUsageCategory.APKS, "apk apks xapk apkm")
-    add(StorageUsageCategory.TEXT, "txt md markdown csv tsv json xml log html htm css js jsx tsx kt kts java py sh")
-    add(StorageUsageCategory.TEXT, "yaml yml ini cfg conf properties toml rst go rs c cpp h hpp sql rb php swift dart lua")
-    add(StorageUsageCategory.EBOOKS, "epub mobi azw azw3 fb2")
-    add(StorageUsageCategory.FONTS, "ttf otf woff woff2")
-}
-private val usageArchiveMimes = setOf(
-    "application/zip", "application/x-zip-compressed", "application/vnd.rar", "application/x-rar-compressed",
-    "application/x-7z-compressed", "application/x-tar", "application/gzip", "application/x-gzip",
-    "application/x-bzip2", "application/x-xz", "application/zstd", "application/x-iso9660-image",
-)
-private val usageOfficeMimes = setOf(
-    "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint", "application/rtf",
-)
-private val usageCodeMimes = setOf(
-    "application/json", "application/xml", "application/javascript", "application/sql", "application/x-sh",
-)
-private val usageEbookMimes = setOf(
-    "application/epub+zip", "application/x-mobipocket-ebook", "application/vnd.amazon.ebook",
-)
+private val usageArchiveMimes =
+    setOf(
+        "application/zip", "application/x-zip-compressed", "application/vnd.rar", "application/x-rar-compressed",
+        "application/x-7z-compressed", "application/x-tar", "application/gzip", "application/x-gzip",
+        "application/x-bzip2", "application/x-xz", "application/zstd", "application/x-iso9660-image",
+    )
+private val usageOfficeMimes =
+    setOf(
+        "application/msword",
+        "application/vnd.ms-excel",
+        "application/vnd.ms-powerpoint",
+        "application/rtf",
+    )
+private val usageCodeMimes =
+    setOf(
+        "application/json",
+        "application/xml",
+        "application/javascript",
+        "application/sql",
+        "application/x-sh",
+    )
+private val usageEbookMimes =
+    setOf(
+        "application/epub+zip",
+        "application/x-mobipocket-ebook",
+        "application/vnd.amazon.ebook",
+    )
 private val usageFontMimes = setOf("application/font-sfnt", "application/font-woff", "application/vnd.ms-fontobject")

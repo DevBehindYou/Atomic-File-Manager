@@ -18,7 +18,13 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.attribute.BasicFileAttributes
 
-data class StorageUsageEntry(val path: String, val name: String, val size: Long, val directory: Boolean, val link: Boolean)
+data class StorageUsageEntry(
+    val path: String,
+    val name: String,
+    val size: Long,
+    val directory: Boolean,
+    val link: Boolean,
+)
 
 data class StorageUsagePlan(
     val key: String,
@@ -55,9 +61,10 @@ class LocalStorageUsageSource(
         var counted = 0
         for (volume in mounted) {
             currentCoroutineContext().ensureActive()
-            val root = volume.rootNodeId?.takeIf { it.prefix == FileNodeId.Prefix.FILE }
-                ?.raw?.removePrefix(FileNodeId.Prefix.FILE.scheme)
-                ?.let { runCatching { File(it).canonicalPath }.getOrNull() }
+            val root =
+                volume.rootNodeId?.takeIf { it.prefix == FileNodeId.Prefix.FILE }
+                    ?.raw?.removePrefix(FileNodeId.Prefix.FILE.scheme)
+                    ?.let { runCatching { File(it).canonicalPath }.getOrNull() }
             // UUID identity and a corroborated canonical alias deduplicate volumes. FUSE st_dev
             // alone is deliberately insufficient: distinct SD/USB UUIDs must never be collapsed.
             if (volume.id in ids || root != null && root in paths) continue
@@ -66,7 +73,10 @@ class LocalStorageUsageSource(
             counted++
             val probe = root ?: if (volume.type == StorageType.INTERNAL_SHARED) primaryPath() else null
             val measured = probe?.let(space) ?: (volume.totalBytes to volume.freeBytes)
-            if (measured.first > 0 && measured.second in 0..measured.first && Long.MAX_VALUE - total >= measured.first) {
+            if (
+                measured.first > 0 && measured.second in 0..measured.first &&
+                Long.MAX_VALUE - total >= measured.first
+            ) {
                 total += measured.first
                 free += measured.second
             } else {
@@ -77,52 +87,67 @@ class LocalStorageUsageSource(
             keys += "${volume.id}|${root.orEmpty()}|${volume.requiresGrant}"
         }
         // Nested roots are scanned once, even if the caller has linked the same folder twice.
-        val distinctRoots = roots.sortedBy { it.length }.fold(mutableListOf<String>()) { result, root ->
-            if (result.none { isUnderStorageRoot(root, it) }) result += root
-            result
-        }
+        val distinctRoots =
+            roots.sortedBy { it.length }.fold(mutableListOf<String>()) { result, root ->
+                if (result.none { isUnderStorageRoot(root, it) }) result += root
+                result
+            }
         return StorageUsagePlan(
-            keys.sorted().joinToString("\n"), distinctRoots,
-            StorageCapacity(total, free.coerceAtMost(total), counted, unknown), unavailable,
+            keys.sorted().joinToString("\n"),
+            distinctRoots,
+            StorageCapacity(total, free.coerceAtMost(total), counted, unknown),
+            unavailable,
         )
     }
 
-    override fun list(directory: String): Flow<FileResult<List<StorageUsageEntry>>> = flow {
-        val batch = ArrayList<StorageUsageEntry>(128)
-        val folder = File(directory).toPath()
-        val attributes = Files.readAttributes(folder, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
-        if (attributes.isSymbolicLink || !attributes.isDirectory) {
-            emit(FileResult.Failure(FileError.AccessDenied(null)))
-            return@flow
-        }
-        Files.newDirectoryStream(folder).use { entries ->
-            for (path in entries) {
-                currentCoroutineContext().ensureActive()
-                val next = try {
-                    val child = Files.readAttributes(path, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
-                    StorageUsageEntry(
-                        path.toFile().canonicalPath, path.fileName.toString(), child.size().coerceAtLeast(0),
-                        child.isDirectory, child.isSymbolicLink || !child.isDirectory && !child.isRegularFile,
-                    )
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    null
-                }
-                if (next == null) emit(FileResult.Failure(FileError.AccessDenied(null))) else batch += next
-                if (batch.size == 128) {
-                    emit(FileResult.Success(batch.toList()))
-                    batch.clear()
+    override fun list(directory: String): Flow<FileResult<List<StorageUsageEntry>>> =
+        flow {
+            val batch = ArrayList<StorageUsageEntry>(128)
+            val folder = File(directory).toPath()
+            val attributes = Files.readAttributes(folder, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+            if (attributes.isSymbolicLink || !attributes.isDirectory) {
+                emit(FileResult.Failure(FileError.AccessDenied(null)))
+                return@flow
+            }
+            Files.newDirectoryStream(folder).use { entries ->
+                for (path in entries) {
+                    currentCoroutineContext().ensureActive()
+                    val next =
+                        try {
+                            val child =
+                                Files.readAttributes(
+                                    path,
+                                    BasicFileAttributes::class.java,
+                                    LinkOption.NOFOLLOW_LINKS,
+                                )
+                            StorageUsageEntry(
+                                path.toFile().canonicalPath,
+                                path.fileName.toString(),
+                                child.size().coerceAtLeast(0),
+                                child.isDirectory,
+                                child.isSymbolicLink || !child.isDirectory && !child.isRegularFile,
+                            )
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            null
+                        }
+                    if (next == null) emit(FileResult.Failure(FileError.AccessDenied(null))) else batch += next
+                    if (batch.size == 128) {
+                        emit(FileResult.Success(batch.toList()))
+                        batch.clear()
+                    }
                 }
             }
+            // Emit an explicit success even for an empty directory.
+            emit(FileResult.Success(batch.toList()))
+        }.catch { error ->
+            if (error is CancellationException) throw error
+            emit(FileResult.Failure(FileError.IoFailure(null)))
         }
-        // Emit an explicit success even for an empty directory.
-        emit(FileResult.Success(batch.toList()))
-    }.catch { error ->
-        if (error is CancellationException) throw error
-        emit(FileResult.Failure(FileError.IoFailure(null)))
-    }
 }
 
-internal fun isUnderStorageRoot(path: String, root: String): Boolean =
-    path == root || path.startsWith(root.trimEnd(File.separatorChar) + File.separatorChar)
+internal fun isUnderStorageRoot(
+    path: String,
+    root: String,
+): Boolean = path == root || path.startsWith(root.trimEnd(File.separatorChar) + File.separatorChar)

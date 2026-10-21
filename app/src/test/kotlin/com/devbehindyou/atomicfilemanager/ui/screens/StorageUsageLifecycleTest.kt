@@ -3,8 +3,8 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -14,12 +14,12 @@ import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageEntry
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsagePlan
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageSource
-import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.StorageCapacity
-import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
+import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
@@ -41,26 +41,42 @@ class StorageUsageLifecycleTest {
     fun changingStorageClearsTheOldBreakdownBeforeTheNewPlanCompletes() {
         val plans = AtomicInteger()
         val cancelled = AtomicInteger()
-        val source = object : StorageUsageSource {
-            override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
-                if (plans.incrementAndGet() > 1) {
-                    try { awaitCancellation() } finally { cancelled.incrementAndGet() }
+        val source =
+            object : StorageUsageSource {
+                override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
+                    if (plans.incrementAndGet() > 1) {
+                        try {
+                            awaitCancellation()
+                        } finally {
+                            cancelled.incrementAndGet()
+                        }
+                    }
+                    return StorageUsagePlan("first", listOf("/first"), StorageCapacity(1_000, 100, 1), 0)
                 }
-                return StorageUsagePlan("first", listOf("/first"), StorageCapacity(1_000, 100, 1), 0)
-            }
 
-            override fun list(directory: String) = flowOf<FileResult<List<StorageUsageEntry>>>(
-                FileResult.Success(listOf(StorageUsageEntry("/first/test.pdf", "test.pdf", 600, false, false))),
-            )
-        }
-        val owner = object : LifecycleOwner {
-            val registry = LifecycleRegistry.createUnsafe(this)
-            override val lifecycle: Lifecycle get() = registry
-        }
+                override fun list(directory: String) =
+                    flowOf<FileResult<List<StorageUsageEntry>>>(
+                        FileResult.Success(listOf(StorageUsageEntry("/first/test.pdf", "test.pdf", 600, false, false))),
+                    )
+            }
+        val owner =
+            object : LifecycleOwner {
+                val registry = LifecycleRegistry.createUnsafe(this)
+                override val lifecycle: Lifecycle get() = registry
+            }
         owner.registry.currentState = Lifecycle.State.STARTED
-        val volumes = mutableStateOf(listOf(StorageVolumeInfo(
-            "first", "Internal", StorageType.INTERNAL_SHARED, 1_000, 100, false, true, FileNodeId.file("/first"), false,
-        )))
+        val volumes =
+            mutableStateOf(
+                listOf(
+                    StorageVolumeInfo(
+                        "first", "Internal", StorageType.INTERNAL_SHARED, 1_000, 100, false, true,
+                        FileNodeId.file(
+                            "/first",
+                        ),
+                        false,
+                    ),
+                ),
+            )
         val repository = StorageUsageRepository(source)
         val finished = MutableSharedFlow<OperationSnapshot>()
         compose.setContent {
@@ -71,9 +87,15 @@ class StorageUsageLifecycleTest {
             }
         }
         try {
-            compose.waitUntil(5_000) { compose.onAllNodes(androidx.compose.ui.test.hasTestTag("storage_readable_total")).fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(5_000) {
+                compose.onAllNodes(
+                    androidx.compose.ui.test.hasTestTag("storage_readable_total"),
+                ).fetchSemanticsNodes().isNotEmpty()
+            }
             compose.runOnIdle {
-                volumes.value = listOf(volumes.value.single().copy(id = "second", rootNodeId = FileNodeId.file("/second")))
+                volumes.value = listOf(
+                    volumes.value.single().copy(id = "second", rootNodeId = FileNodeId.file("/second")),
+                )
             }
             compose.waitUntil(5_000) { plans.get() == 2 }
             compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
@@ -87,19 +109,26 @@ class StorageUsageLifecycleTest {
     fun scansAndOperationSubscriptionsExistOnlyWhileTheStorageScreenIsStarted() {
         val starts = AtomicInteger()
         val cancelled = AtomicInteger()
-        val source = object : StorageUsageSource {
-            override suspend fun plan(volumes: List<StorageVolumeInfo>) =
-                StorageUsagePlan("root", listOf("/root"), StorageCapacity(1000, 100, 1), 0)
+        val source =
+            object : StorageUsageSource {
+                override suspend fun plan(volumes: List<StorageVolumeInfo>) =
+                    StorageUsagePlan("root", listOf("/root"), StorageCapacity(1000, 100, 1), 0)
 
-            override fun list(directory: String) = flow<FileResult<List<StorageUsageEntry>>> {
-                starts.incrementAndGet()
-                try { awaitCancellation() } finally { cancelled.incrementAndGet() }
+                override fun list(directory: String) =
+                    flow<FileResult<List<StorageUsageEntry>>> {
+                        starts.incrementAndGet()
+                        try {
+                            awaitCancellation()
+                        } finally {
+                            cancelled.incrementAndGet()
+                        }
+                    }
             }
-        }
-        val owner = object : LifecycleOwner {
-            val registry = LifecycleRegistry.createUnsafe(this)
-            override val lifecycle: Lifecycle get() = registry
-        }
+        val owner =
+            object : LifecycleOwner {
+                val registry = LifecycleRegistry.createUnsafe(this)
+                override val lifecycle: Lifecycle get() = registry
+            }
         owner.registry.currentState = Lifecycle.State.CREATED
         val finished = MutableSharedFlow<OperationSnapshot>()
         val repository = StorageUsageRepository(source)
@@ -110,11 +139,17 @@ class StorageUsageLifecycleTest {
                 }
             }
         }
-        compose.runOnIdle { assertEquals(0, starts.get()); owner.registry.currentState = Lifecycle.State.STARTED }
+        compose.runOnIdle {
+            assertEquals(0, starts.get())
+            owner.registry.currentState = Lifecycle.State.STARTED
+        }
         compose.waitUntil(5_000) { starts.get() == 1 && finished.subscriptionCount.value == 1 }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
         compose.waitUntil(5_000) { cancelled.get() == 1 && finished.subscriptionCount.value == 0 }
-        compose.runOnIdle { assertEquals(1, starts.get()); owner.registry.currentState = Lifecycle.State.STARTED }
+        compose.runOnIdle {
+            assertEquals(1, starts.get())
+            owner.registry.currentState = Lifecycle.State.STARTED
+        }
         compose.waitUntil(5_000) { starts.get() == 2 }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.DESTROYED }
         compose.waitUntil(5_000) { cancelled.get() == 2 && finished.subscriptionCount.value == 0 }

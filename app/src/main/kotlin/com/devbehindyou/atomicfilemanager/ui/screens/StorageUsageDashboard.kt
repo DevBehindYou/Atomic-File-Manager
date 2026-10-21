@@ -69,9 +69,10 @@ internal fun StorageUsageDashboard(
     val scopeKey = volumes.map { "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}" }.sorted()
     var update by remember(repository, scopeKey) { mutableStateOf(StorageUsageUpdate()) }
     DisposableEffect(refresh, owner, repository) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) repository.invalidate()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) repository.invalidate()
+            }
         owner.lifecycle.addObserver(observer)
         onDispose {
             owner.lifecycle.removeObserver(observer)
@@ -95,10 +96,16 @@ internal fun StorageUsageDashboard(
 }
 
 @Composable
-internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit) {
+internal fun StorageUsagePanel(
+    update: StorageUsageUpdate,
+    onRefresh: () -> Unit,
+) {
     val current = update.current
-    val previous = update.lastGood.takeIf { update.phase != StorageUsagePhase.COMPLETE }
-        ?: update.previousObserved.takeIf { update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED }
+    val previous =
+        update.lastGood.takeIf { update.phase != StorageUsagePhase.COMPLETE }
+            ?: update.previousObserved.takeIf {
+                update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED
+            }
     val files = previous ?: current
     val capacity = current?.capacity ?: previous?.capacity
     Column(
@@ -107,8 +114,11 @@ internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit
     ) {
         if (capacity == null) {
             AtomicText(
-                if (update.phase == StorageUsagePhase.FAILED) "Mounted storage capacity could not be read."
-                else "Reading mounted storage capacity…",
+                if (update.phase == StorageUsagePhase.FAILED) {
+                    "Mounted storage capacity could not be read."
+                } else {
+                    "Reading mounted storage capacity…"
+                },
                 AtomicTextRole.BodySecondary,
             )
         } else {
@@ -117,13 +127,18 @@ internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit
         AtomicSectionLabel("Readable shared files")
         AtomicText(usageStatus(update), AtomicTextRole.BodySecondary, Modifier.testTag("storage_usage_status"))
         if (previous != null) {
+            val coverage = if (previous.complete) "complete" else "partial"
+            val scannedAt = FileUtils.formatDate(previous.scannedAtMillis)
             AtomicText(
-                "Showing the previous ${if (previous.complete) "complete" else "partial"} file breakdown from ${FileUtils.formatDate(previous.scannedAtMillis)}. It may be stale.",
+                "Showing the previous $coverage file breakdown from $scannedAt. It may be stale.",
                 AtomicTextRole.BodySecondary,
             )
         } else if (update.phase == StorageUsagePhase.COMPLETE && files != null) {
             val cacheLabel = if (update.cached) " · cached" else ""
-            AtomicText("Last scanned ${FileUtils.formatDate(files.scannedAtMillis)}$cacheLabel", AtomicTextRole.MonoMeta)
+            AtomicText(
+                "Last scanned ${FileUtils.formatDate(files.scannedAtMillis)}$cacheLabel",
+                AtomicTextRole.MonoMeta,
+            )
         }
         AtomicText(
             "Includes accessible files, including hidden files. Percentages use their combined size.",
@@ -142,7 +157,8 @@ internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit
                     "Other used space (estimate) · ${FileUtils.formatBytes(estimate)}. " +
                         "Includes apps, system data and inaccessible files; file sizes can differ from disk allocation."
                 } else {
-                    "Other used-space estimate unavailable: some capacity is unknown or file sizes exceed disk allocation."
+                    "Other used-space estimate unavailable: " +
+                        "some capacity is unknown or file sizes exceed disk allocation."
                 },
                 AtomicTextRole.BodySecondary,
                 Modifier.testTag("storage_unattributed_estimate"),
@@ -173,21 +189,31 @@ private fun CapacitySummary(capacity: StorageCapacity) {
         AtomicText("${capacity.mountedVolumes} mounted volumes$unavailable", AtomicTextRole.MonoMeta)
         when {
             capacity.mountedVolumes == 0 -> AtomicText("No mounted local storage.", AtomicTextRole.BodySecondary)
-            capacity.totalBytes == 0L -> AtomicText("Capacity unavailable. Grant access or reconnect storage, then refresh.", AtomicTextRole.BodySecondary)
+            capacity.totalBytes == 0L ->
+                AtomicText(
+                    "Capacity unavailable. Grant access or reconnect storage, then refresh.",
+                    AtomicTextRole.BodySecondary,
+                )
             else -> {
                 val known = if (capacity.unknownVolumes > 0) " (known volumes)" else ""
                 CapacityValue("Total$known", capacity.totalBytes)
                 CapacityValue("Used$known", capacity.usedBytes)
                 CapacityValue("Free$known", capacity.freeBytes)
                 AtomicProgressBar(capacity.fraction, "${percent(capacity.fraction)} of known mounted capacity used")
-                AtomicText("Filesystem usage includes areas outside the readable file breakdown.", AtomicTextRole.BodySecondary)
+                AtomicText(
+                    "Filesystem usage includes areas outside the readable file breakdown.",
+                    AtomicTextRole.BodySecondary,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CapacityValue(label: String, bytes: Long) {
+private fun CapacityValue(
+    label: String,
+    bytes: Long,
+) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
         AtomicText(label, AtomicTextRole.Body, Modifier.weight(1f))
         AtomicText(FileUtils.formatBytes(bytes), AtomicTextRole.MonoMeta)
@@ -195,28 +221,45 @@ private fun CapacityValue(label: String, bytes: Long) {
 }
 
 @Composable
-private fun UsageCategoryRow(category: StorageUsageCategory, snapshot: StorageUsageSnapshot) {
-    val (icon, type) = when (category) {
-        StorageUsageCategory.IMAGES -> AtomicIcons.Image to AtomicFileType.IMAGE
-        StorageUsageCategory.VIDEOS -> AtomicIcons.Video to AtomicFileType.VIDEO
-        StorageUsageCategory.AUDIO -> AtomicIcons.AudioFile to AtomicFileType.AUDIO
-        StorageUsageCategory.PDFS -> AtomicIcons.Pdf to AtomicFileType.PDF
-        StorageUsageCategory.DOCUMENTS -> AtomicIcons.Document to AtomicFileType.DOCUMENT
-        StorageUsageCategory.ARCHIVES -> AtomicIcons.Archive to AtomicFileType.ARCHIVE
-        StorageUsageCategory.APKS -> AtomicIcons.Apk to AtomicFileType.APK
-        StorageUsageCategory.TEXT -> AtomicIcons.Code to AtomicFileType.CODE
-        StorageUsageCategory.EBOOKS -> AtomicIcons.Ebook to AtomicFileType.EBOOK
-        StorageUsageCategory.FONTS -> AtomicIcons.Font to AtomicFileType.FONT
-        StorageUsageCategory.OTHER -> AtomicIcons.UnknownFile to AtomicFileType.GENERIC
-    }
+private fun UsageCategoryRow(
+    category: StorageUsageCategory,
+    snapshot: StorageUsageSnapshot,
+) {
+    val (icon, type) =
+        when (category) {
+            StorageUsageCategory.IMAGES -> AtomicIcons.Image to AtomicFileType.IMAGE
+            StorageUsageCategory.VIDEOS -> AtomicIcons.Video to AtomicFileType.VIDEO
+            StorageUsageCategory.AUDIO -> AtomicIcons.AudioFile to AtomicFileType.AUDIO
+            StorageUsageCategory.PDFS -> AtomicIcons.Pdf to AtomicFileType.PDF
+            StorageUsageCategory.DOCUMENTS -> AtomicIcons.Document to AtomicFileType.DOCUMENT
+            StorageUsageCategory.ARCHIVES -> AtomicIcons.Archive to AtomicFileType.ARCHIVE
+            StorageUsageCategory.APKS -> AtomicIcons.Apk to AtomicFileType.APK
+            StorageUsageCategory.TEXT -> AtomicIcons.Code to AtomicFileType.CODE
+            StorageUsageCategory.EBOOKS -> AtomicIcons.Ebook to AtomicFileType.EBOOK
+            StorageUsageCategory.FONTS -> AtomicIcons.Font to AtomicFileType.FONT
+            StorageUsageCategory.OTHER -> AtomicIcons.UnknownFile to AtomicFileType.GENERIC
+        }
     val usage = snapshot.categories[category] ?: CategoryUsage()
     val fraction = snapshot.fraction(category)
-    Column(Modifier.fillMaxWidth().testTag("storage_usage_${category.name}"), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+    Column(
+        Modifier.fillMaxWidth().testTag("storage_usage_${category.name}"),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+        ) {
             AtomicIconTile(icon)
             Column(Modifier.weight(1f)) {
-                AtomicText(category.label, AtomicTextRole.Name, color = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark)))
-                AtomicText("${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)}", AtomicTextRole.MonoMeta)
+                AtomicText(
+                    category.label,
+                    AtomicTextRole.Name,
+                    color = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark)),
+                )
+                AtomicText(
+                    "${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)}",
+                    AtomicTextRole.MonoMeta,
+                )
             }
         }
         AtomicProgressBar(fraction, "${category.label}, ${percent(fraction)} of observed shared-file bytes")
@@ -227,13 +270,22 @@ internal fun usageStatus(update: StorageUsageUpdate): String {
     val current = update.current
     return when (update.phase) {
         StorageUsagePhase.SCANNING -> "Scanning files · ${current?.scannedFiles ?: 0} files found."
-        StorageUsagePhase.COMPLETE -> "Readable-folder scan complete. System and private app data are outside this breakdown."
-        StorageUsagePhase.PARTIAL -> buildString {
-            append("Partial results · ${current?.unreadable ?: 0} unreadable/unavailable folders · ${current?.skippedLinks ?: 0} skipped links.")
-            if (current?.limitReached == true) append(" Scan budget reached; totals cover only the entries observed.")
-            if (update.changedDuringScan) append(" Files changed while scanning. Refresh to update.")
-            if ((current?.capacity?.unknownVolumes ?: 0) > 0) append(" Some mounted capacity is unknown.")
-        }
+        StorageUsagePhase.COMPLETE ->
+            "Readable-folder scan complete. System and private app data are outside this breakdown."
+        StorageUsagePhase.PARTIAL ->
+            buildString {
+                append(
+                    "Partial results · ${current?.unreadable ?: 0} unreadable/unavailable folders · " +
+                        "${current?.skippedLinks ?: 0} skipped links.",
+                )
+                if (current?.limitReached == true) {
+                    append(
+                        " Scan budget reached; totals cover only the entries observed.",
+                    )
+                }
+                if (update.changedDuringScan) append(" Files changed while scanning. Refresh to update.")
+                if ((current?.capacity?.unknownVolumes ?: 0) > 0) append(" Some mounted capacity is unknown.")
+            }
         StorageUsagePhase.FAILED -> "Storage usage could not be read. Refresh to retry; no empty result is assumed."
         StorageUsagePhase.NO_STORAGE -> "No mounted local storage is available. Reconnect storage, then refresh."
     }

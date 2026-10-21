@@ -14,7 +14,10 @@ class StorageUsageTest {
         "sheet.xlsx,DOCUMENTS", "slides.pptx,DOCUMENTS", ".backup.tar.gz,ARCHIVES", "app.APK,APKS",
         "config.TOML,TEXT", "source.kts,TEXT", "book.epub,EBOOKS", "font.woff2,FONTS", "unknown.blob,OTHER",
     )
-    fun `named and hidden files belong to one exclusive family`(name: String, expected: StorageUsageCategory) {
+    fun `named and hidden files belong to one exclusive family`(
+        name: String,
+        expected: StorageUsageCategory,
+    ) {
         assertEquals(expected, storageUsageCategory(name))
     }
 
@@ -26,7 +29,10 @@ class StorageUsageTest {
         "application/vnd.android.package-archive,APKS", "application/x-7z-compressed,ARCHIVES",
         "application/octet-stream,OTHER", "application/x-unfamiliar,OTHER",
     )
-    fun `extensionless files use MIME metadata without being read`(mime: String, expected: StorageUsageCategory) {
+    fun `extensionless files use MIME metadata without being read`(
+        mime: String,
+        expected: StorageUsageCategory,
+    ) {
         assertEquals(expected, storageUsageCategory("export", mime))
     }
 
@@ -40,11 +46,16 @@ class StorageUsageTest {
 
     @Test
     fun `PDF text and ebooks never contribute again to the documents umbrella`() {
-        val categories = listOf("manual.pdf", "notes.txt", "book.epub", "report.docx")
-            .groupingBy { storageUsageCategory(it) }.eachCount()
+        val categories =
+            listOf("manual.pdf", "notes.txt", "book.epub", "report.docx")
+                .groupingBy { storageUsageCategory(it) }.eachCount()
         assertEquals(
-            mapOf(StorageUsageCategory.PDFS to 1, StorageUsageCategory.TEXT to 1,
-                StorageUsageCategory.EBOOKS to 1, StorageUsageCategory.DOCUMENTS to 1),
+            mapOf(
+                StorageUsageCategory.PDFS to 1,
+                StorageUsageCategory.TEXT to 1,
+                StorageUsageCategory.EBOOKS to 1,
+                StorageUsageCategory.DOCUMENTS to 1,
+            ),
             categories,
         )
     }
@@ -54,29 +65,38 @@ class StorageUsageTest {
         assertEquals(Long.MAX_VALUE, storageUsageAdd(Long.MAX_VALUE - 1, 100))
         assertEquals(0L, storageUsageAdd(-5, -1))
         assertEquals(3L, storageUsageAdd(-5, 3))
-        val snapshot = snapshot(mapOf(
-            StorageUsageCategory.IMAGES to CategoryUsage(Long.MAX_VALUE - 1, 1),
-            StorageUsageCategory.OTHER to CategoryUsage(10, 1),
-        ))
+        val snapshot =
+            snapshot(
+                mapOf(
+                    StorageUsageCategory.IMAGES to CategoryUsage(Long.MAX_VALUE - 1, 1),
+                    StorageUsageCategory.OTHER to CategoryUsage(10, 1),
+                ),
+            )
         assertEquals(Long.MAX_VALUE, snapshot.readableBytes)
     }
 
     @Test
     fun `overflowing logical totals keep meaningful fractions and cannot claim a physical remainder`() {
-        val result = snapshot(mapOf(
-            StorageUsageCategory.IMAGES to CategoryUsage(Long.MAX_VALUE, 1),
-            StorageUsageCategory.OTHER to CategoryUsage(Long.MAX_VALUE, 1),
-        )).copy(capacity = StorageCapacity(Long.MAX_VALUE, 0, 1))
+        val result =
+            snapshot(
+                mapOf(
+                    StorageUsageCategory.IMAGES to CategoryUsage(Long.MAX_VALUE, 1),
+                    StorageUsageCategory.OTHER to CategoryUsage(Long.MAX_VALUE, 1),
+                ),
+            ).copy(capacity = StorageCapacity(Long.MAX_VALUE, 0, 1))
         assertEquals(0.5f, result.fraction(StorageUsageCategory.IMAGES))
         assertNull(result.unattributedUsedEstimate)
     }
 
     @Test
     fun `physical usage and category fractions keep their different denominators`() {
-        val result = snapshot(mapOf(
-            StorageUsageCategory.IMAGES to CategoryUsage(20, 2),
-            StorageUsageCategory.OTHER to CategoryUsage(10, 1),
-        ))
+        val result =
+            snapshot(
+                mapOf(
+                    StorageUsageCategory.IMAGES to CategoryUsage(20, 2),
+                    StorageUsageCategory.OTHER to CategoryUsage(10, 1),
+                ),
+            )
         assertEquals(80L, result.capacity.usedBytes)
         assertEquals(0.8f, result.capacity.fraction)
         assertEquals(30L, result.readableBytes)
@@ -97,15 +117,16 @@ class StorageUsageTest {
         assertThrows(IllegalArgumentException::class.java) { CategoryUsage(-1, 0) }
     }
 
-    private fun snapshot(categories: Map<StorageUsageCategory, CategoryUsage>) = StorageUsageSnapshot(
-        capacity = StorageCapacity(100, 20, 1),
-        categories = categories,
-        scannedFiles = 3,
-        scannedDirectories = 1,
-        unreadable = 0,
-        skippedLinks = 0,
-        limitReached = false,
-        complete = true,
-        scannedAtMillis = 1_000,
-    )
+    private fun snapshot(categories: Map<StorageUsageCategory, CategoryUsage>) =
+        StorageUsageSnapshot(
+            capacity = StorageCapacity(100, 20, 1),
+            categories = categories,
+            scannedFiles = 3,
+            scannedDirectories = 1,
+            unreadable = 0,
+            skippedLinks = 0,
+            limitReached = false,
+            complete = true,
+            scannedAtMillis = 1_000,
+        )
 }

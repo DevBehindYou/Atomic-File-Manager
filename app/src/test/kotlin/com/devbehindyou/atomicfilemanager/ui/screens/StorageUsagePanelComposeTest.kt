@@ -42,7 +42,9 @@ class StorageUsagePanelComposeTest {
         compose.onNodeWithText("Free").assertExists()
         compose.onNodeWithText("800.0 B").assertExists()
         compose.onNodeWithTag("storage_readable_total").assertTextContains("600.0 B")
-        compose.onNodeWithContentDescription("PDFs, 16.7% of observed shared-file bytes").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription(
+            "PDFs, 16.7% of observed shared-file bytes",
+        ).performScrollTo().assertExists()
         compose.onNodeWithTag("storage_usage_OTHER").performScrollTo().assertExists()
         compose.onNodeWithTag("storage_unattributed_estimate").performScrollTo().assertTextContains("200.0 B")
     }
@@ -77,7 +79,10 @@ class StorageUsagePanelComposeTest {
         compose.onNodeWithText("Readable-folder scan complete", substring = true).assertDoesNotExist()
     }
 
-    private fun show(update: StorageUsageUpdate, onRefresh: () -> Unit = {}) {
+    private fun show(
+        update: StorageUsageUpdate,
+        onRefresh: () -> Unit = {},
+    ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 Column(Modifier.verticalScroll(rememberScrollState())) { StorageUsagePanel(update, onRefresh) }
@@ -85,9 +90,14 @@ class StorageUsagePanelComposeTest {
         }
     }
 
-    private fun snapshot() = StorageUsageSnapshot(
-        StorageCapacity(1000, 200, 2),
-        mapOf(StorageUsageCategory.PDFS to CategoryUsage(100, 1), StorageUsageCategory.TEXT to CategoryUsage(200, 2), StorageUsageCategory.OTHER to CategoryUsage(300, 3)),
-        6, 2, 0, 0, false, true, 1_000,
-    )
+    private fun snapshot() =
+        StorageUsageSnapshot(
+            StorageCapacity(1000, 200, 2),
+            mapOf(
+                StorageUsageCategory.PDFS to CategoryUsage(100, 1),
+                StorageUsageCategory.TEXT to CategoryUsage(200, 2),
+                StorageUsageCategory.OTHER to CategoryUsage(300, 3),
+            ),
+            6, 2, 0, 0, false, true, 1_000,
+        )
 }

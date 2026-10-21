@@ -40,7 +40,9 @@ data class StorageUsageLimits(
     val depth: Int = 64,
     val millis: Long = 30_000,
 ) {
-    init { require(entries > 0 && directories > 0 && depth >= 0 && millis > 0) }
+    init {
+        require(entries > 0 && directories > 0 && depth >= 0 && millis > 0)
+    }
 }
 
 /** One bounded last-good cache; collection owns work and cancellation, never an application job. */
@@ -53,59 +55,92 @@ class StorageUsageRepository(
     private val ttlNanos: Long = 120_000_000_000,
 ) {
     private data class Cache(
-        val inputKey: String, val planKey: String, val snapshot: StorageUsageSnapshot, val time: Long, val revision: Long,
+        val inputKey: String,
+        val planKey: String,
+        val snapshot: StorageUsageSnapshot,
+        val time: Long,
+        val revision: Long,
     )
+
     private val writer = Mutex()
     private val revision = AtomicLong()
+
     @Volatile private var cache: Cache? = null
     private var observed: Cache? = null
 
     /** Mark stale without destroying the last successful evidence shown during refresh/failure. */
-    fun invalidate() { revision.incrementAndGet() }
+    fun invalidate() {
+        revision.incrementAndGet()
+    }
 
-    fun scan(volumes: List<StorageVolumeInfo>, refresh: Boolean = false): Flow<StorageUsageUpdate> = flow {
-        writer.withLock {
-            if (refresh) invalidate()
-            val inputKey = volumes.map { "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}" }.sorted().joinToString("\n")
-            if (cache?.let { it.inputKey != inputKey } == true) invalidate()
-            val previous = cache?.takeIf { it.inputKey == inputKey }
-            val priorObserved = observed?.takeIf { it.inputKey == inputKey }
-            val plan = try {
-                withTimeoutOrNull(limits.millis) { source.plan(volumes) }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                null
-            }
-            if (plan == null) {
-                currentCoroutineContext().ensureActive()
-                invalidate()
-                emit(StorageUsageUpdate(StorageUsagePhase.FAILED, lastGood = previous?.snapshot, previousObserved = priorObserved?.snapshot))
-                return@withLock
-            }
-            val hit = previous?.takeIf { it.planKey == plan.key }
-            if (previous != null && hit == null) invalidate()
-            val observedHit = priorObserved?.takeIf { it.planKey == plan.key }
-            val requestedRevision = revision.get()
-            if (!refresh && hit != null && hit.revision == requestedRevision &&
-                plan.unavailableRoots == 0 && plan.capacity.unknownVolumes == 0 &&
-                nanoTime() - hit.time in 0 until ttlNanos
-            ) {
-                emit(StorageUsageUpdate(StorageUsagePhase.COMPLETE, hit.snapshot.copy(capacity = plan.capacity), hit.snapshot, cached = true))
-            } else {
-                walk(plan, hit?.snapshot, requestedRevision) { update ->
+    fun scan(
+        volumes: List<StorageVolumeInfo>,
+        refresh: Boolean = false,
+    ): Flow<StorageUsageUpdate> =
+        flow {
+            writer.withLock {
+                if (refresh) invalidate()
+                val inputKey =
+                    volumes.map {
+                        "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}"
+                    }.sorted().joinToString("\n")
+                if (cache?.let { it.inputKey != inputKey } == true) invalidate()
+                val previous = cache?.takeIf { it.inputKey == inputKey }
+                val priorObserved = observed?.takeIf { it.inputKey == inputKey }
+                val plan =
+                    try {
+                        withTimeoutOrNull(limits.millis) { source.plan(volumes) }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        null
+                    }
+                if (plan == null) {
                     currentCoroutineContext().ensureActive()
-                    if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
-                        cache = Cache(inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision)
+                    invalidate()
+                    emit(
+                        StorageUsageUpdate(
+                            StorageUsagePhase.FAILED,
+                            lastGood = previous?.snapshot,
+                            previousObserved = priorObserved?.snapshot,
+                        ),
+                    )
+                    return@withLock
+                }
+                val hit = previous?.takeIf { it.planKey == plan.key }
+                if (previous != null && hit == null) invalidate()
+                val observedHit = priorObserved?.takeIf { it.planKey == plan.key }
+                val requestedRevision = revision.get()
+                if (!refresh && hit != null && hit.revision == requestedRevision &&
+                    plan.unavailableRoots == 0 && plan.capacity.unknownVolumes == 0 &&
+                    nanoTime() - hit.time in 0 until ttlNanos
+                ) {
+                    emit(
+                        StorageUsageUpdate(
+                            StorageUsagePhase.COMPLETE,
+                            hit.snapshot.copy(capacity = plan.capacity),
+                            hit.snapshot,
+                            cached = true,
+                        ),
+                    )
+                } else {
+                    walk(plan, hit?.snapshot, requestedRevision) { update ->
+                        currentCoroutineContext().ensureActive()
+                        if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
+                            cache = Cache(
+                                inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
+                            )
+                        }
+                        if (update.phase == StorageUsagePhase.PARTIAL || update.phase == StorageUsagePhase.COMPLETE) {
+                            observed = Cache(
+                                inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
+                            )
+                        }
+                        emit(update.copy(previousObserved = observedHit?.snapshot))
                     }
-                    if (update.phase == StorageUsagePhase.PARTIAL || update.phase == StorageUsagePhase.COMPLETE) {
-                        observed = Cache(inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision)
-                    }
-                    emit(update.copy(previousObserved = observedHit?.snapshot))
                 }
             }
-        }
-    }.flowOn(io)
+        }.flowOn(io)
 
     private suspend fun walk(
         plan: StorageUsagePlan,
@@ -126,81 +161,97 @@ class StorageUsageRepository(
         var links = 0
         var bounded = false
         var lastEmission = started
-        fun snapshot(complete: Boolean = false) = StorageUsageSnapshot(
-            plan.capacity, categories.toMap(), files, directories, unreadable, links, bounded, complete, wallTime(),
-        )
+
+        fun snapshot(complete: Boolean = false) =
+            StorageUsageSnapshot(
+                plan.capacity, categories.toMap(), files, directories, unreadable, links, bounded, complete, wallTime(),
+            )
         publish(StorageUsageUpdate(StorageUsagePhase.SCANNING, snapshot(), lastGood))
         if (plan.capacity.mountedVolumes == 0) {
             publish(StorageUsageUpdate(StorageUsagePhase.NO_STORAGE, snapshot()))
             return
         }
-        val finishedWithinBudget = withTimeoutOrNull(limits.millis) {
-            while (pending.isNotEmpty() && !bounded) {
-                currentCoroutineContext().ensureActive()
-                if (directories >= limits.directories || nanoTime() - started >= limits.millis * 1_000_000) {
-                    bounded = true
-                    break
-                }
-                val (folder, depth) = pending.removeFirst()
-                if (visited.add(folder)) {
-                    directories++
-                    var success = false
-                    var failed = false
-                    try {
-                        flow { emitAll(source.list(folder)) }.catch { error ->
-                            if (error is CancellationException) throw error
-                            emit(FileResult.Failure(FileError.IoFailure(null)))
-                        }.collect { result ->
-                            currentCoroutineContext().ensureActive()
-                            when (result) {
-                                is FileResult.Failure -> failed = true
-                                is FileResult.Success -> {
-                                    success = true
-                                    for (entry in result.value) {
-                                        currentCoroutineContext().ensureActive()
-                                        if (entries >= limits.entries || nanoTime() - started >= limits.millis * 1_000_000) {
-                                            bounded = true
-                                            break
-                                        }
-                                        entries++
-                                        if (entry.link || plan.roots.none { isUnderStorageRoot(entry.path, it) }) {
-                                            links++
-                                        } else if (entry.directory) {
-                                            if (depth >= limits.depth || pending.size >= limits.directories) bounded = true
-                                            else pending += entry.path to depth + 1
-                                        } else if (seenFiles.add(entry.path)) {
-                                            val category = storageUsageCategory(entry.name)
-                                            val before = categories.getValue(category)
-                                            categories[category] = CategoryUsage(storageUsageAdd(before.bytes, entry.size), storageUsageAdd(before.files, 1))
-                                            files = storageUsageAdd(files, 1)
+        val finishedWithinBudget =
+            withTimeoutOrNull(limits.millis) {
+                while (pending.isNotEmpty() && !bounded) {
+                    currentCoroutineContext().ensureActive()
+                    if (directories >= limits.directories || nanoTime() - started >= limits.millis * 1_000_000) {
+                        bounded = true
+                        break
+                    }
+                    val (folder, depth) = pending.removeFirst()
+                    if (visited.add(folder)) {
+                        directories++
+                        var success = false
+                        var failed = false
+                        try {
+                            flow { emitAll(source.list(folder)) }.catch { error ->
+                                if (error is CancellationException) throw error
+                                emit(FileResult.Failure(FileError.IoFailure(null)))
+                            }.collect { result ->
+                                currentCoroutineContext().ensureActive()
+                                when (result) {
+                                    is FileResult.Failure -> failed = true
+                                    is FileResult.Success -> {
+                                        success = true
+                                        for (entry in result.value) {
+                                            currentCoroutineContext().ensureActive()
+                                            if (
+                                                entries >= limits.entries ||
+                                                nanoTime() - started >= limits.millis * 1_000_000
+                                            ) {
+                                                bounded = true
+                                                break
+                                            }
+                                            entries++
+                                            if (entry.link || plan.roots.none { isUnderStorageRoot(entry.path, it) }) {
+                                                links++
+                                            } else if (entry.directory) {
+                                                if (depth >= limits.depth || pending.size >= limits.directories) {
+                                                    bounded = true
+                                                } else {
+                                                    pending += entry.path to depth + 1
+                                                }
+                                            } else if (seenFiles.add(entry.path)) {
+                                                val category = storageUsageCategory(entry.name)
+                                                val before = categories.getValue(category)
+                                                categories[category] = CategoryUsage(
+                                                    storageUsageAdd(before.bytes, entry.size),
+                                                    storageUsageAdd(before.files, 1),
+                                                )
+                                                files = storageUsageAdd(files, 1)
+                                            }
                                         }
                                     }
                                 }
+                                if (nanoTime() - lastEmission >= 250_000_000) {
+                                    publish(StorageUsageUpdate(StorageUsagePhase.SCANNING, snapshot(), lastGood))
+                                    lastEmission = nanoTime()
+                                }
+                                if (bounded) throw ScanLimitReached()
                             }
-                            if (nanoTime() - lastEmission >= 250_000_000) {
-                                publish(StorageUsageUpdate(StorageUsagePhase.SCANNING, snapshot(), lastGood))
-                                lastEmission = nanoTime()
-                            }
-                            if (bounded) throw ScanLimitReached()
+                        } catch (_: ScanLimitReached) {
+                            bounded = true
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
                         }
-                    } catch (_: ScanLimitReached) {
-                        bounded = true
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
+                        if (!success || failed) unreadable++
                     }
-                    if (!success || failed) unreadable++
                 }
-            }
-            true
-        } ?: false
+                true
+            } ?: false
         if (!finishedWithinBudget) bounded = true
         currentCoroutineContext().ensureActive()
         val changed = revision.get() != requestedRevision
         val complete = unreadable == 0 && links == 0 && !bounded && !changed && plan.capacity.unknownVolumes == 0
-        publish(StorageUsageUpdate(
-            if (complete) StorageUsagePhase.COMPLETE else StorageUsagePhase.PARTIAL,
-            snapshot(complete), lastGood, changedDuringScan = changed,
-        ))
+        publish(
+            StorageUsageUpdate(
+                if (complete) StorageUsagePhase.COMPLETE else StorageUsagePhase.PARTIAL,
+                snapshot(complete),
+                lastGood,
+                changedDuringScan = changed,
+            ),
+        )
     }
 
     private class ScanLimitReached : RuntimeException()
