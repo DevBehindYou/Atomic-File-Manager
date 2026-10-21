@@ -254,7 +254,10 @@ internal fun resolvePreviewExternalAction(
     }
 
 @Composable
-internal fun PreviewExternalAction(onOpen: (() -> Unit)?, busy: Boolean) {
+internal fun PreviewExternalAction(
+    onOpen: (() -> Unit)?,
+    busy: Boolean,
+) {
     if (onOpen != null) {
         AtomicIconButton(
             AtomicIcons.OpenExternally,
@@ -590,7 +593,10 @@ private fun GenericFileContent(
 }
 
 @Composable
-internal fun GenericFileExternalAction(onOpen: (() -> Unit)?, busy: Boolean) {
+internal fun GenericFileExternalAction(
+    onOpen: (() -> Unit)?,
+    busy: Boolean,
+) {
     if (onOpen != null) {
         AtomicButton(
             stringResource(R.string.file_open_another_app),

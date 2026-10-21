@@ -36,10 +36,14 @@ class PreviewExternalActionTest {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 PreviewExternalAction(
-                    onOpen = resolvePreviewExternalAction(
-                        first, shown.value, onOpenOriginal = null,
-                        onOpenShown = { requested += it.id }, onOpenDefault = {},
-                    ),
+                    onOpen =
+                        resolvePreviewExternalAction(
+                            first,
+                            shown.value,
+                            onOpenOriginal = null,
+                            onOpenShown = { requested += it.id },
+                            onOpenDefault = {},
+                        ),
                     busy = false,
                 )
             }
@@ -58,10 +62,14 @@ class PreviewExternalActionTest {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 PreviewExternalAction(
-                    onOpen = resolvePreviewExternalAction(
-                        first, shown.value, onOpenOriginal = { originalOpens++ },
-                        onOpenShown = null, onOpenDefault = {},
-                    ),
+                    onOpen =
+                        resolvePreviewExternalAction(
+                            first,
+                            shown.value,
+                            onOpenOriginal = { originalOpens++ },
+                            onOpenShown = null,
+                            onOpenDefault = {},
+                        ),
                     busy = false,
                 )
             }
@@ -79,15 +87,19 @@ class PreviewExternalActionTest {
         val requested = mutableListOf<FileNodeId>()
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                val open = resolvePreviewExternalAction(
-                    node, node, onOpenOriginal = null, onOpenShown = { requested += it.id },
-                    onOpenDefault = {
-                        app.startActivity(
-                            Intent.createChooser(Intent(Intent.ACTION_VIEW), "Open with")
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    },
-                )
+                val open =
+                    resolvePreviewExternalAction(
+                        node,
+                        node,
+                        onOpenOriginal = null,
+                        onOpenShown = { requested += it.id },
+                        onOpenDefault = {
+                            app.startActivity(
+                                Intent.createChooser(Intent(Intent.ACTION_VIEW), "Open with")
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        },
+                    )
                 GenericFileExternalAction(onOpen = open, busy = false)
             }
         }

@@ -32,8 +32,9 @@ internal object FileOpeningPreferencesCodec {
                                 ?: return@mapNotNull null
                         val key = normalizedKey(scope, row.optString("key")) ?: return@mapNotNull null
                         val modeName = row.optString("mode")
-                        val mode = enumValues<FileOpenMode>().firstOrNull { it.name == modeName }
-                            ?: return@mapNotNull null
+                        val mode =
+                            enumValues<FileOpenMode>().firstOrNull { it.name == modeName }
+                                ?: return@mapNotNull null
                         val component = row.optString("component").takeIf { it.isNotBlank() }
                         if (component != null &&
                             (mode != FileOpenMode.EXTERNAL || component.length !in 3..512 || '/' !in component)
