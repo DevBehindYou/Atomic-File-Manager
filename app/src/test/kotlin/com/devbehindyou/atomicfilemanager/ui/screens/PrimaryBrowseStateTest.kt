@@ -69,7 +69,9 @@ class PrimaryBrowseStateTest {
             StateBubbles(),
             startVisible = false,
         )
-        suspend fun awaitFolder(id: FileNodeId) = model.uiState.first { it.currentFolderId == id && !it.isLoading && !it.isRefreshing }
+        suspend fun awaitFolder(id: FileNodeId) = model.uiState.first {
+            it.currentFolderId == id && !it.isLoading && !it.isRefreshing
+        }
         fun count() = synchronized(reads) { reads.size }
         try {
             assertEquals(0, count())

@@ -217,7 +217,9 @@ class BrowseViewModel(
 
                 if (!sawFailure) {
                     applyNewItems(accumulated.toList())
-                    val retainedIds = if (retainSelection && (_uiState.value.selectedIds.isNotEmpty() || selectionAnchor != null)) {
+                    val shouldRetainSelection =
+                        retainSelection && (_uiState.value.selectedIds.isNotEmpty() || selectionAnchor != null)
+                    val retainedIds = if (shouldRetainSelection) {
                         accumulated.mapTo(HashSet()) { it.id }
                     } else {
                         null
