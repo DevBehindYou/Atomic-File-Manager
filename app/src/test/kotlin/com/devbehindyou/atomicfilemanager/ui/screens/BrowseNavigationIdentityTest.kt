@@ -170,32 +170,35 @@ class BrowseNavigationIdentityTest {
             val cancelling = CompletableDeferred<Unit>()
             val release = CompletableDeferred<Unit>()
             val finished = CompletableDeferred<Unit>()
-            val backend = object : StorageBackend by memory {
-                override fun listChildren(id: FileNodeId) = flow<FileResult<List<FileNode>>> {
-                    started.complete(Unit)
-                    try {
-                        awaitCancellation()
-                    } finally {
-                        cancelling.complete(Unit)
-                        withContext(NonCancellable) { release.await() }
-                        finished.complete(Unit)
-                    }
+            val backend =
+                object : StorageBackend by memory {
+                    override fun listChildren(id: FileNodeId) =
+                        flow<FileResult<List<FileNode>>> {
+                            started.complete(Unit)
+                            try {
+                                awaitCancellation()
+                            } finally {
+                                cancelling.complete(Unit)
+                                withContext(NonCancellable) { release.await() }
+                                finished.complete(Unit)
+                            }
+                        }
                 }
-            }
-            val model = BrowseViewModel(
-                memory.rootId,
-                GetDirectoryListingUseCase { backend },
-                GetNodeUseCase { backend },
-                CreateDirectoryUseCase { backend },
-                RenameFileUseCase { backend },
-                DeleteFileUseCase { backend },
-                OperationQueue(
-                    engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
-                    journal = null,
-                    scope = backgroundScope,
-                ),
-                NavigationBubbles(),
-            )
+            val model =
+                BrowseViewModel(
+                    memory.rootId,
+                    GetDirectoryListingUseCase { backend },
+                    GetNodeUseCase { backend },
+                    CreateDirectoryUseCase { backend },
+                    RenameFileUseCase { backend },
+                    DeleteFileUseCase { backend },
+                    OperationQueue(
+                        engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
+                        journal = null,
+                        scope = backgroundScope,
+                    ),
+                    NavigationBubbles(),
+                )
             try {
                 started.await()
                 val closing = launch { clearNavigationModel(model) }

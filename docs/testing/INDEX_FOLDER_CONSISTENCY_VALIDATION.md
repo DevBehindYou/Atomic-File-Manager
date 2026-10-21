@@ -1,6 +1,6 @@
 # Search-index folder consistency — U05 slice
 
-Prepared 21 October 2026. Focused host regressions pass; final Lint and isolated PR CI remain pending.
+Prepared 21 October 2026. The combined 48-case host validation, APK packaging and Android Lint pass. Host validation of the CI teardown follow-up and fresh isolated PR CI remain pending.
 
 Folder refresh previously treated a flow with no emissions as an empty directory. It also committed inserts and disappearance cleanup separately, allowing an interrupted reconciliation to persist only part of the folder update.
 
@@ -18,10 +18,10 @@ Root coordinates serialized validation. Required: formatting/static analysis, `R
 
 ## Current host evidence
 
-The combined browse/index run `build/audit-tools/browse-index-consistency-retry-validation.log` passed formatting, ktlint and detekt, then 48 selected cases with no failures/errors/skips. Its index subset is 21 `RoomSearchIndexTest` cases, 8 file-backed `SearchIndexReconciliationTest` cases across API27/34, and 1 existing `AtomicDatabaseMigrationTest` case. Debug and instrumentation APKs compiled; final Android Lint is still running, so the overall command is not yet a recorded pass. The exported schema has no diff. This combined integration check does not replace isolated current-head PR CI or physical recovery acceptance.
+The combined browse/index run `build/audit-tools/browse-index-consistency-retry-validation.log` at root integration source `5902824` completed successfully with exit 0 in 12 minutes 2 seconds. Formatting, ktlint and detekt passed, along with 48 selected cases with no failures/errors/skips. Its index subset is 21 `RoomSearchIndexTest` cases, 8 file-backed `SearchIndexReconciliationTest` cases across API27/34, and 1 existing `AtomicDatabaseMigrationTest` case. Debug and instrumentation APKs packaged successfully. Android Lint reported 0 errors, 154 warnings and 1 hint. The exported schema has no diff. This evidence precedes the CI teardown follow-up and does not replace isolated current-head PR CI or physical recovery acceptance.
 
 ## CI teardown follow-up
 
 PR #67 run `39616679288` completed 940 tests with one failure before `BrowseNavigationIdentityTest.switchingStorageKeepsCopyAndMoveClipboardsAndBackHistory` entered its test body. Its report records a cancelled `Dispatchers.Default` continuation accessing Main after `Dispatchers.resetMain()`. Both navigation tests cancelled their model without joining its children, unlike the already corrected sort-loading fixture.
 
-The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced. This follow-up has not yet been built or run; serialized host checks and a fresh complete CI run remain required.
+The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced. Root is running serialized follow-up checks from integration source `7b66082` in `build/audit-tools/index-ci-teardown-validation.log`; no completed result is claimed yet. A fresh complete CI run also remains required.
