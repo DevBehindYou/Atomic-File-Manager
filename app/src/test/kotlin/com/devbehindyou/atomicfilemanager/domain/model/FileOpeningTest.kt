@@ -46,6 +46,7 @@ class FileOpeningTest {
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.EXTENSION, "../pdf"))
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.MIME, "image/*"))
         assertNull(parseFileOpenRuleKey(FileOpenRuleScope.MIME, "application/octet-stream"))
+        assertNull(keyFor(node("file", "application/" + "x".repeat(200)), FileOpenRuleScope.MIME))
         assertNull(fileExtension(".nomedia"))
         assertNull(fileExtension("report."))
     }

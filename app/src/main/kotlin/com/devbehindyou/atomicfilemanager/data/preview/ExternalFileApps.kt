@@ -43,7 +43,9 @@ internal class ExternalFileApps(private val context: Context) {
         return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
             .mapNotNull { resolved ->
                 val activity = resolved.activityInfo ?: return@mapNotNull null
-                if (!activity.exported || !activity.enabled || activity.packageName == context.packageName) return@mapNotNull null
+                if (!activity.exported || !activity.enabled || activity.applicationInfo?.enabled == false ||
+                    activity.packageName == context.packageName
+                ) return@mapNotNull null
                 ExternalFileApp(
                     ComponentName(activity.packageName, activity.name).flattenToString(),
                     resolved.loadLabel(context.packageManager).toString(),

@@ -77,7 +77,7 @@ fun fileExtension(name: String): String? {
 
 fun normalizedFileMime(raw: String?): String? =
     raw?.substringBefore(';')?.trim()?.lowercase(Locale.ROOT)
-        ?.takeIf { it != "application/octet-stream" && MIME_PATTERN.matches(it) }
+        ?.takeIf { it.length <= 128 && it != "application/octet-stream" && MIME_PATTERN.matches(it) }
 
 /** Classification for routing, independent of decorative icon colours and without file reads. */
 fun fileOpenFamily(node: FileNode): FileOpenFamily {

@@ -98,6 +98,13 @@ fun FilePreviewPane(
                 if (result is FileResult.Success) {
                     // Save an app-specific rule only after a real explicit component launches successfully.
                     if (always && rule != null) repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
+                    try {
+                        withContext(Dispatchers.IO) { app.container.recentsRepository.recordOpened(node) }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        // A shortcut failure must not turn a successfully launched reader into an open failure.
+                    }
                     onClose()
                 } else {
                     problem = OpeningProblem.FAILED
