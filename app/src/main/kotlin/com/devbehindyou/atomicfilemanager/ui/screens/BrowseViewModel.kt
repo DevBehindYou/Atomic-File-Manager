@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
 import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
-import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
@@ -209,7 +208,7 @@ class BrowseViewModel(
                                 it.copy(
                                     isLoading = false,
                                     isRefreshing = false,
-                                    errorMessage = result.error.message(),
+                                    errorMessage = result.error.browseMessage(),
                                 )
                             }
                         }
@@ -245,7 +244,7 @@ class BrowseViewModel(
         val fileFilter = _uiState.value.fileFilter
         val filtered =
             withContext(Dispatchers.Default) {
-                filterAndSort(items, query, sort, showHidden, fileFilter)
+                filterAndSortBrowseItems(items, query, sort, showHidden, fileFilter)
             }
         _uiState.update {
             it.copy(
@@ -274,7 +273,7 @@ class BrowseViewModel(
                 val requested = _uiState.value
                 val filtered =
                     withContext(Dispatchers.Default) {
-                        filterAndSort(
+                        filterAndSortBrowseItems(
                             requested.rawItems,
                             requested.searchQuery,
                             requested.sortOption,
@@ -296,34 +295,6 @@ class BrowseViewModel(
                     }
                 }
             }
-    }
-
-    private fun filterAndSort(
-        items: List<FileNode>,
-        query: String,
-        sort: SortOption,
-        showHidden: Boolean,
-        fileFilter: BrowseFileFilter,
-    ): List<FileNode> {
-        val visible = items.filter { (showHidden || !it.isHidden) && fileFilter.matches(it) }
-        val filtered =
-            if (query.isBlank()) {
-                visible
-            } else {
-                visible.filter { it.name.contains(query, ignoreCase = true) }
-            }
-        val comparator = comparatorFor(sort)
-        return filtered.sortedWith(comparator)
-    }
-
-    private fun comparatorFor(sortOption: SortOption): Comparator<FileNode> {
-        val byField: Comparator<FileNode> =
-            when (sortOption) {
-                SortOption.NAME -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }
-                SortOption.DATE_MODIFIED -> compareByDescending { it.modifiedAt }
-                SortOption.SIZE -> compareByDescending { it.size }
-            }
-        return compareByDescending<FileNode> { it.isDirectory }.then(byField)
     }
 
     /**
@@ -485,7 +456,7 @@ class BrowseViewModel(
         viewModelScope.launch {
             when (val result = createDirectoryUseCase(_uiState.value.currentFolderId, name)) {
                 is FileResult.Success -> refresh()
-                is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.message()) }
+                is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.browseMessage()) }
             }
         }
     }
@@ -497,7 +468,7 @@ class BrowseViewModel(
         viewModelScope.launch {
             when (val result = renameFileUseCase(nodeId, newName)) {
                 is FileResult.Success -> refresh()
-                is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.message()) }
+                is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.browseMessage()) }
             }
         }
     }
@@ -732,34 +703,6 @@ class BrowseViewModel(
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
-
-    private fun FileError.message(): String =
-        when (this) {
-            is FileError.FileNotFound -> "File not found: ${name.orEmpty()}"
-            is FileError.FileAlreadyExists -> "File already exists: $name"
-            is FileError.AccessDenied -> "Access denied: ${name.orEmpty()}"
-            is FileError.PermissionDenied -> "Permission denied"
-            is FileError.PlatformRestricted -> "Access restricted by Android OS"
-            is FileError.ProviderUnavailable -> "Storage provider unavailable"
-            is FileError.StorageUnavailable ->
-                volumeLabel?.let { "Storage volume unavailable: $it" }
-                    ?: "The storage was removed or can't be reached. Reconnect it and try again."
-            is FileError.ReadOnlyStorage -> "Storage is read-only"
-            is FileError.DiskFull -> "Insufficient storage space"
-            is FileError.OutOfMemory -> "Out of memory"
-            is FileError.PathTooLong -> "Path is too long: ${name.orEmpty()}"
-            is FileError.InvalidDestination -> "Invalid destination: ${name.orEmpty()}"
-            is FileError.InvalidName -> "Invalid name: $name"
-            is FileError.OperationCancelled -> "Operation cancelled"
-            is FileError.IncompleteWrite -> "Write incomplete for $name"
-            is FileError.PartialFailure -> "Partial failure: $failedCount of $totalCount failed"
-            is FileError.IoFailure -> "I/O failure: ${name.orEmpty()}"
-            is FileError.UnsupportedFormat -> "Unsupported format: ${mimeType.orEmpty()}"
-            is FileError.CorruptedArchive -> "Corrupted archive: ${name.orEmpty()}"
-            is FileError.SuspiciousArchive -> "Suspicious archive: $reason"
-            is FileError.FileTooLarge -> "File too large: $name"
-            is FileError.Unknown -> "Unknown error ($marker)"
-        }
 
     companion object {
         fun provideFactory(
