@@ -73,7 +73,7 @@ class StorageUsagePanelComposeTest {
         show(StorageUsageUpdate(previousObserved = snapshot().copy(complete = false, unreadable = 1)))
         compose.onNodeWithTag("storage_readable_total").assertTextContains("600.0 B")
         compose.onNodeWithText("Showing the previous partial file breakdown", substring = true).assertExists()
-        compose.onNodeWithTag("storage_usage_status").assertTextContains("Scanning metadata")
+        compose.onNodeWithTag("storage_usage_status").assertTextContains("Scanning files")
         compose.onNodeWithText("Readable-folder scan complete", substring = true).assertDoesNotExist()
     }
 

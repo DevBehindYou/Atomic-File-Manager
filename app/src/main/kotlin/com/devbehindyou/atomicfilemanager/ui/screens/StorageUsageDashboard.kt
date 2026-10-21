@@ -126,12 +126,12 @@ internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit
             AtomicText("Last scanned ${FileUtils.formatDate(files.scannedAtMillis)}$cacheLabel", AtomicTextRole.MonoMeta)
         }
         AtomicText(
-            "Includes hidden files. Percentages describe observed shared-file bytes, not total disk capacity. Inaccessible folders and links are not counted.",
+            "Includes accessible files, including hidden files. Percentages use their combined size.",
             AtomicTextRole.BodySecondary,
         )
         if (files != null) {
             AtomicText(
-                "${FileUtils.formatBytes(files.readableBytes)} · ${files.scannedFiles} files observed",
+                "${FileUtils.formatBytes(files.readableBytes)} · ${files.scannedFiles} files found",
                 AtomicTextRole.Name,
                 Modifier.testTag("storage_readable_total"),
             )
@@ -139,10 +139,10 @@ internal fun StorageUsagePanel(update: StorageUsageUpdate, onRefresh: () -> Unit
             val estimate = files.copy(capacity = capacity ?: files.capacity).unattributedUsedEstimate
             AtomicText(
                 if (estimate != null) {
-                    "Unattributed used-space estimate · ${FileUtils.formatBytes(estimate)}. " +
-                        "This may include system/apps, private or unreadable data, filesystem overhead and differences between logical and allocated sizes."
+                    "Other used space (estimate) · ${FileUtils.formatBytes(estimate)}. " +
+                        "Includes apps, system data and inaccessible files; file sizes can differ from disk allocation."
                 } else {
-                    "An unattributed used-space estimate is unavailable. Logical file sizes can exceed allocated space, and some volume capacity may be unknown."
+                    "Other used-space estimate unavailable: some capacity is unknown or file sizes exceed disk allocation."
                 },
                 AtomicTextRole.BodySecondary,
                 Modifier.testTag("storage_unattributed_estimate"),
@@ -168,8 +168,9 @@ private fun CapacitySummary(capacity: StorageCapacity) {
             .testTag("storage_capacity_summary"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
-        AtomicText("Mounted internal + external storage", AtomicTextRole.MonoLabel)
-        AtomicText("${capacity.mountedVolumes} mounted volumes · ${capacity.unknownVolumes} capacity unavailable", AtomicTextRole.MonoMeta)
+        AtomicText("Internal + external storage", AtomicTextRole.MonoLabel)
+        val unavailable = if (capacity.unknownVolumes > 0) " · ${capacity.unknownVolumes} capacity unavailable" else ""
+        AtomicText("${capacity.mountedVolumes} mounted volumes$unavailable", AtomicTextRole.MonoMeta)
         when {
             capacity.mountedVolumes == 0 -> AtomicText("No mounted local storage.", AtomicTextRole.BodySecondary)
             capacity.totalBytes == 0L -> AtomicText("Capacity unavailable. Grant access or reconnect storage, then refresh.", AtomicTextRole.BodySecondary)
@@ -215,7 +216,7 @@ private fun UsageCategoryRow(category: StorageUsageCategory, snapshot: StorageUs
             AtomicIconTile(icon)
             Column(Modifier.weight(1f)) {
                 AtomicText(category.label, AtomicTextRole.Name, color = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark)))
-                AtomicText("${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)} of observed bytes", AtomicTextRole.MonoMeta)
+                AtomicText("${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)}", AtomicTextRole.MonoMeta)
             }
         }
         AtomicProgressBar(fraction, "${category.label}, ${percent(fraction)} of observed shared-file bytes")
@@ -225,7 +226,7 @@ private fun UsageCategoryRow(category: StorageUsageCategory, snapshot: StorageUs
 internal fun usageStatus(update: StorageUsageUpdate): String {
     val current = update.current
     return when (update.phase) {
-        StorageUsagePhase.SCANNING -> "Scanning metadata · ${current?.scannedFiles ?: 0} files observed. Nothing is opened or changed."
+        StorageUsagePhase.SCANNING -> "Scanning files · ${current?.scannedFiles ?: 0} files found."
         StorageUsagePhase.COMPLETE -> "Readable-folder scan complete. System and private app data are outside this breakdown."
         StorageUsagePhase.PARTIAL -> buildString {
             append("Partial results · ${current?.unreadable ?: 0} unreadable/unavailable folders · ${current?.skippedLinks ?: 0} skipped links.")

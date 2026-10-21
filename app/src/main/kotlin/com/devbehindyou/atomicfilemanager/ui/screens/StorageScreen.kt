@@ -129,8 +129,9 @@ fun StorageScreen(
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
-            AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
+            AtomicSectionLabel("Storage usage")
             if (app != null) StorageUsageDashboard(volumes, app.container.storageUsageRepository, app.container.operationQueue.finished)
+            AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
             volumes.forEach { volume -> StorageVolumeCard(volume, onBrowse = { onBrowseVolume(volume) }) }
         }
 
