@@ -167,6 +167,8 @@ internal fun BuiltInFilePreviewPane(
     val previewType = remember(node) { resolvePreviewType(node) }
     // Share and open-with act on the file the caller opened, so they hide once another image is shown.
     val actsOnShown = shown.id == node.id
+    val shownOpenExternal =
+        resolvePreviewExternalAction(node, shown, onOpenExternal, onOpenExternalForNode, openExternal)
 
     Column(modifier.background(colors.background).testTag("file_preview_pane")) {
         Row(
@@ -201,11 +203,7 @@ internal fun BuiltInFilePreviewPane(
                 )
             }
             PreviewExternalAction(
-                original = node,
-                shown = shown,
-                onOpenOriginal = onOpenExternal,
-                onOpenShown = onOpenExternalForNode,
-                onOpenDefault = openExternal,
+                onOpen = shownOpenExternal,
                 busy = openingExternal,
             )
         }
@@ -232,7 +230,7 @@ internal fun BuiltInFilePreviewPane(
                     PreviewType.ARCHIVE -> ArchivePreviewContent(node, container)
                     PreviewType.AUDIO -> AudioPreviewContent(node, container)
                     PreviewType.VIDEO -> VideoPreviewContent(node, container)
-                    PreviewType.GENERIC -> GenericFileContent(node, container, openExternal)
+                    PreviewType.GENERIC -> GenericFileContent(node, container, shownOpenExternal, openingExternal)
                 }
             }
         }
@@ -240,28 +238,28 @@ internal fun BuiltInFilePreviewPane(
 }
 
 /** A caller's original-file callback must never act on a different gallery image. */
-@Composable
-internal fun PreviewExternalAction(
+internal fun resolvePreviewExternalAction(
     original: FileNode,
     shown: FileNode,
     onOpenOriginal: (() -> Unit)?,
     onOpenShown: ((FileNode) -> Unit)?,
     onOpenDefault: () -> Unit,
-    busy: Boolean,
-) {
-    val open =
-        when {
-            onOpenOriginal != null -> onOpenOriginal.takeIf { original.id == shown.id }
-            onOpenShown != null -> {
-                { onOpenShown(shown) }
-            }
-            else -> onOpenDefault
+): (() -> Unit)? =
+    when {
+        onOpenOriginal != null -> onOpenOriginal.takeIf { original.id == shown.id }
+        onOpenShown != null -> {
+            { onOpenShown(shown) }
         }
-    if (open != null) {
+        else -> onOpenDefault
+    }
+
+@Composable
+internal fun PreviewExternalAction(onOpen: (() -> Unit)?, busy: Boolean) {
+    if (onOpen != null) {
         AtomicIconButton(
             AtomicIcons.OpenExternally,
             stringResource(R.string.file_open_another_app),
-            onClick = open,
+            onClick = onOpen,
             enabled = !busy,
             modifier = Modifier.testTag("preview_open_external"),
         )
@@ -531,6 +529,7 @@ private fun GenericFileContent(
     node: FileNode,
     container: AppContainer,
     onOpenExternal: (() -> Unit)?,
+    openingExternal: Boolean,
 ) {
     var checksums by remember { mutableStateOf<FileChecksums?>(null) }
     var checksumError by remember { mutableStateOf<String?>(null) }
@@ -586,14 +585,20 @@ private fun GenericFileContent(
                 )
             }
         }
-        if (onOpenExternal != null) {
-            AtomicButton(
-                "Open with another app",
-                onClick = onOpenExternal,
-                leadingIcon = AtomicIcons.OpenExternally,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        GenericFileExternalAction(onOpenExternal, openingExternal)
+    }
+}
+
+@Composable
+internal fun GenericFileExternalAction(onOpen: (() -> Unit)?, busy: Boolean) {
+    if (onOpen != null) {
+        AtomicButton(
+            stringResource(R.string.file_open_another_app),
+            onClick = onOpen,
+            leadingIcon = AtomicIcons.OpenExternally,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth().testTag("generic_open_external"),
+        )
     }
 }
 
