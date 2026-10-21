@@ -895,11 +895,16 @@ private fun MainScreenContent(
             key(tab.id) {
                 BrowseScreen(
                     initialFolderId = FileNodeId(tab.folderRaw),
-                    storage = BrowseStorageAccess(
-                        volumes,
-                        hasStorageAccess,
-                        if (storageReadiness is StorageReadinessState.Ready) callbacks.onRequestStorageAccess else onRetryStorage,
-                    ),
+                    storage =
+                        BrowseStorageAccess(
+                            volumes,
+                            hasStorageAccess,
+                            if (storageReadiness is StorageReadinessState.Ready) {
+                                callbacks.onRequestStorageAccess
+                            } else {
+                                onRetryStorage
+                            },
+                        ),
                     onNavigateBack = callbacks.onNavigateBack,
                     openRequest = tab.openRequest,
                     onNotify = callbacks.onNotify,
