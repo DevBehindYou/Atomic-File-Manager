@@ -67,13 +67,37 @@ class BrowseOptionsComposeTest {
         compose.runOnIdle { assertEquals(FileViewMode.GRID, viewMode.value) }
         open()
         compose.onNodeWithText("Sort by").performClick()
-        compose.onNodeWithText("Date modified").performClick()
+        compose.onNodeWithText("Date descending").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(SortOption.DATE_MODIFIED, sort.value) }
         open()
         compose.onNodeWithText("Filter").performClick()
         compose.onNodeWithText("Images").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(BrowseFileFilter.IMAGES, filter.value) }
         compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+    }
+
+    @Test
+    fun allSixSortDirectionsReportTheirChoiceAndRestoreTheSelectedRadio() {
+        val choices = listOf(
+            "Name A–Z" to SortOption.NAME,
+            "Name Z–A" to SortOption.NAME_DESCENDING,
+            "Date ascending" to SortOption.DATE_MODIFIED_ASCENDING,
+            "Date descending" to SortOption.DATE_MODIFIED,
+            "Size ascending" to SortOption.SIZE_ASCENDING,
+            "Size descending" to SortOption.SIZE,
+        )
+        show()
+        for ((label, option) in choices) {
+            open()
+            compose.onNodeWithText("Sort by").performClick()
+            compose.onNodeWithText(label).performScrollTo().performClick()
+            compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+            compose.runOnIdle { assertEquals(option, sort.value) }
+            open()
+            compose.onNodeWithText("Sort by").performClick()
+            compose.onNodeWithText(label).performScrollTo().assertIsSelected()
+            compose.onNodeWithContentDescription("Close file options").performClick()
+        }
     }
 
     @Test
