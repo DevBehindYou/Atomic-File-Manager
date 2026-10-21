@@ -39,4 +39,6 @@ Initial host attempts did not pass the details assertion. Diagnostic semantics s
 
 The earlier `built-in-plugins-final-validation.log` stopped without a terminal result across the session interruption. It is not passing evidence. No Java process remained before validation was resumed.
 
-ADB reported no attached device at the connection check. No phone installation or physical surface result is claimed for this increment.
+The initial connection check found no device. On 21 October the authorized API34 phone was connected again and the recorded debug APK was installed with `adb install -r`. Settings → In-app plugins displayed all eight cards. PDF details showed the real feature/limitation disclosure; Back returned to the list, Archive manager opened its details, and Close returned to Settings. The app was returned to Home. No real user file, setting or permission was changed by this surface run. Captures: `build/audit-tools/device-preview-tools/plugins-{grid,pdf-details,back,archive-details,closed,final-home}.{png,xml}`. These physical checks close the pending U01 surface flow; broader provider/recovery tests remain separate.
+
+PR #61 CI at `12f007d` passed static analysis but its full 918-case run found a teardown race in BrowseSortLoadingTest: a cancelled Default-dispatcher child returned after `resetMain()`. The fix waits for the ViewModel job to cancel and join before removing test Main. The failure is retained in `plugins-pr61-ci-failed.log` and the downloaded report. A passing new-head CI run is required before merging.
