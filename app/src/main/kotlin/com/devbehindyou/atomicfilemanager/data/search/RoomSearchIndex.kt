@@ -115,7 +115,9 @@ class RoomSearchIndex(
     override fun refreshIfStale(roots: List<FileNodeId>) {
         val snapshot = _state.value
         val builtAt = snapshot.builtAt
-        if (retryRequired || snapshot.unreadable > 0 || builtAt == null || clock() - builtAt > freshForMillis) rebuild(roots)
+        if (retryRequired || snapshot.unreadable > 0 || builtAt == null || clock() - builtAt > freshForMillis) {
+            rebuild(roots)
+        }
     }
 
     @Synchronized
