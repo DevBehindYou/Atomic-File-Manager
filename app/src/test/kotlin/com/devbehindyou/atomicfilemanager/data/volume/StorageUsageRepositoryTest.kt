@@ -37,9 +37,10 @@ class StorageUsageRepositoryTest {
         val source = FakeSource()
         val repository = repository(source)
         val completed = repository.scan(volumes).last()
+        val snapshot = checkNotNull(completed.current)
         assertEquals(StorageUsagePhase.COMPLETE, completed.phase)
-        assertEquals(0L, completed.current!!.readableBytes)
-        assertTrue(completed.current.complete)
+        assertEquals(0L, snapshot.readableBytes)
+        assertTrue(snapshot.complete)
         assertFalse(completed.cached)
         assertTrue(repository.scan(volumes).last().cached)
         assertEquals(1, source.listCalls.size)
@@ -58,9 +59,10 @@ class StorageUsageRepositoryTest {
             val repository = repository(source)
             repeat(2) {
                 val update = repository.scan(volumes).last()
+                val snapshot = checkNotNull(update.current)
                 assertEquals(StorageUsagePhase.PARTIAL, update.phase)
-                assertEquals(1, update.current!!.unreadable)
-                assertFalse(update.current.complete)
+                assertEquals(1, snapshot.unreadable)
+                assertFalse(snapshot.complete)
                 assertFalse(update.cached)
             }
             assertEquals(2, source.listCalls.size)
@@ -141,10 +143,11 @@ class StorageUsageRepositoryTest {
         val repository = repository(source, StorageUsageLimits(entries = 2))
         repeat(2) {
             val update = repository.scan(volumes).last()
+            val snapshot = checkNotNull(update.current)
             assertEquals(StorageUsagePhase.PARTIAL, update.phase)
-            assertTrue(update.current!!.limitReached)
-            assertEquals(2L, update.current.scannedFiles)
-            assertEquals(4L, update.current.readableBytes)
+            assertTrue(snapshot.limitReached)
+            assertEquals(2L, snapshot.scannedFiles)
+            assertEquals(4L, snapshot.readableBytes)
             assertFalse(update.cached)
         }
         assertEquals(2, source.listCalls.size)
@@ -158,11 +161,12 @@ class StorageUsageRepositoryTest {
         }
         val repository = repository(source, StorageUsageLimits(millis = 25))
         val update = repository.scan(volumes).last()
+        val snapshot = checkNotNull(update.current)
         assertEquals(25L, testScheduler.currentTime)
         assertTrue(cancelled.isCompleted)
         assertEquals(StorageUsagePhase.PARTIAL, update.phase)
-        assertTrue(update.current!!.limitReached)
-        assertFalse(update.current.complete)
+        assertTrue(snapshot.limitReached)
+        assertFalse(snapshot.complete)
     }
 
     @Test
@@ -177,9 +181,10 @@ class StorageUsageRepositoryTest {
             }
         }
         val update = repository(source).scan(volumes).last()
+        val snapshot = checkNotNull(update.current)
         assertEquals(StorageUsagePhase.COMPLETE, update.phase)
-        assertEquals(30L, update.current!!.readableBytes)
-        assertEquals(2L, update.current.scannedFiles)
+        assertEquals(30L, snapshot.readableBytes)
+        assertEquals(2L, snapshot.scannedFiles)
         assertEquals(listOf(rootPath, nestedPath), source.listCalls)
     }
 
@@ -251,10 +256,11 @@ class StorageUsageRepositoryTest {
         source.planValue = StorageUsagePlan("unknown", emptyList(), StorageCapacity(0, 0, 1, 1), 1)
         repeat(2) {
             val unknown = repository.scan(volumes).last()
+            val snapshot = checkNotNull(unknown.current)
             assertEquals(StorageUsagePhase.PARTIAL, unknown.phase)
-            assertEquals(1, unknown.current!!.capacity.unknownVolumes)
-            assertEquals(1, unknown.current.unreadable)
-            assertFalse(unknown.current.complete)
+            assertEquals(1, snapshot.capacity.unknownVolumes)
+            assertEquals(1, snapshot.unreadable)
+            assertFalse(snapshot.complete)
             assertFalse(unknown.cached)
         }
     }
