@@ -142,7 +142,10 @@ class FolderScrollBenchmark(private val entries: Int) {
         checkNotNull(device.findObject(By.pkg(TARGET_PACKAGE).desc("Close file options"))) {
             "File options could not be closed"
         }.click()
-        check(device.wait(Until.gone(By.pkg(TARGET_PACKAGE).text("View")), WAIT_MS)) { "File options stayed open" }
+        check(device.wait(Until.gone(By.pkg(TARGET_PACKAGE).desc("Close file options")), WAIT_MS)) {
+            "File options stayed open"
+        }
+        device.waitForIdle()
         check(selected) { "Select List view before this benchmark; preferences were not changed" }
     }
 
