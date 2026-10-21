@@ -13,7 +13,9 @@ import java.util.UUID
 /** Raw observations complement frame metrics without claiming first-paint or pure-listing precision. */
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class BenchmarkEvidence(context: Context, entries: Int, images: Int) {
-    private val manager = context.getSystemService(PowerManager::class.java)
+    private val manager = checkNotNull(context.getSystemService(PowerManager::class.java)) {
+        "Power manager unavailable for thermal metadata"
+    }
     private val output = File(
         File(context.getExternalFilesDir(null) ?: context.filesDir, "benchmark-results").apply {
             check(isDirectory || mkdirs()) { "Could not create benchmark-owned result directory" }
