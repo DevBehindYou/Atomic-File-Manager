@@ -23,25 +23,27 @@ internal object FileOpeningPreferencesCodec {
                     ?: FileOpenMode.BUILT_IN
             val rows = json.optJSONArray("rules") ?: JSONArray()
             val rules =
-                buildMap {
-                    for (i in 0 until minOf(rows.length(), MAX_FILE_OPENING_RULES)) {
-                        val row = rows.optJSONObject(i) ?: continue
+                (0 until minOf(rows.length(), MAX_FILE_OPENING_RULES))
+                    .mapNotNull { i ->
+                        val row = rows.optJSONObject(i) ?: return@mapNotNull null
                         val scopeName = row.optString("scope")
                         val scope =
-                            enumValues<FileOpenRuleScope>().firstOrNull { it.name == scopeName } ?: continue
-                        val key = normalizedKey(scope, row.optString("key")) ?: continue
+                            enumValues<FileOpenRuleScope>().firstOrNull { it.name == scopeName }
+                                ?: return@mapNotNull null
+                        val key = normalizedKey(scope, row.optString("key")) ?: return@mapNotNull null
                         val modeName = row.optString("mode")
-                        val mode = enumValues<FileOpenMode>().firstOrNull { it.name == modeName } ?: continue
+                        val mode = enumValues<FileOpenMode>().firstOrNull { it.name == modeName }
+                            ?: return@mapNotNull null
                         val component = row.optString("component").takeIf { it.isNotBlank() }
                         if (component != null &&
                             (mode != FileOpenMode.EXTERNAL || component.length !in 3..512 || '/' !in component)
                         ) {
-                            continue
+                            return@mapNotNull null
                         }
                         val label = row.optString("label").takeIf { it.isNotBlank() }?.take(128)
-                        put(FileOpenRuleKey(scope, key), FileOpenTarget(mode, component, label))
+                        FileOpenRuleKey(scope, key) to FileOpenTarget(mode, component, label)
                     }
-                }
+                    .toMap()
             FileOpeningPreferences(defaultMode, rules)
         } catch (_: JSONException) {
             FileOpeningPreferences()
