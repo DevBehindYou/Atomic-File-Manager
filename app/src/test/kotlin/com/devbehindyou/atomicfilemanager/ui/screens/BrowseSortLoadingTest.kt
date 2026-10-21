@@ -19,9 +19,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.job
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -207,7 +209,9 @@ class BrowseSortLoadingTest {
         try {
             test(model)
         } finally {
-            model.viewModelScope.cancel()
+            // Listing/filter work can still be returning from Dispatchers.Default after cancel().
+            // Keep the test Main installed until those children finish their cancellation handoff.
+            model.viewModelScope.coroutineContext.job.cancelAndJoin()
             Dispatchers.resetMain()
         }
     }
