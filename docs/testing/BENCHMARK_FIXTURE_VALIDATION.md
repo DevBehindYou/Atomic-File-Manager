@@ -29,9 +29,20 @@ MediaStore inserts/media scanning can warm filesystem/provider caches. The scena
 
 ## Validation and execution
 
-Source is prepared for root-coordinated validation. No Gradle build, instrumentation case or physical benchmark has been executed by this agent; no timing result is claimed. Parent/root records exact build and device outcomes after running them.
+Root-coordinated validation passed for the integrated benchmark source:
 
-Root's first compile found that `androidx.test.filters.SdkSuppress` was not on the benchmark compilation classpath. Cached `androidx.test:runner:1.6.2` was inspected and contains both `SdkSuppress` and the module's declared `AndroidJUnitRunner`. The benchmark module now explicitly depends on the existing `libs.androidx.test.runner` catalog entry. This is a test-APK dependency only, with no version change or production APK dependency. The correction still needs root's rebuild; no passing compilation result is implied by inspecting the cached artifact.
+| Check | Result |
+| --- | --- |
+| `:benchmark:assembleBenchmark` | Passed; `benchmark-fixture-build-retry.log`, exit 0, `BUILD SUCCESSFUL in 1m 1s`, 41 tasks |
+| `BenchmarkFixtureContractTest` on Android14/API34, device `5ff095c7f80a` | Both non-mutating contract cases passed; `benchmark-contract-device.log`, `OK (2 tests)` |
+| Full generated-corpus / MediaStore mutation / scrolling scenarios | Not run |
+| Performance baseline or speed-up measurement | Not run; no timing result claimed |
+
+The logs are retained in the integration checkout's ignored `build/audit-tools/` directory. The tests exercise deterministic fixture names/budgets and cleanup identity predicates without creating or deleting MediaStore files. They do not certify the entire generated-corpus lifecycle or measured UI flows.
+
+Root's first compile found that `androidx.test.filters.SdkSuppress` was not on the benchmark compilation classpath. Cached `androidx.test:runner:1.6.2` was inspected and contains both `SdkSuppress` and the module's declared `AndroidJUnitRunner`. The benchmark module now explicitly depends on the existing `libs.androidx.test.runner` catalog entry. This is a test-APK dependency only, with no version change or production APK dependency. Root's retry then packaged the benchmark APK successfully, as recorded above.
+
+Review also corrected popup-dismissal verification to wait until the real **Close file options** accessibility node disappears. The View submenu's title can outlive/overlap other View text, so it is not the popup-lifetime signal. List selection is read from the checkable ancestor row, matching the existing physical UI hierarchy; it is not inferred from the child text node's `selected` flag. The generated-corpus UI journey itself still needs a dedicated run.
 
 Compile/package with the repository's normal JDK21/Gradle toolchain:
 
