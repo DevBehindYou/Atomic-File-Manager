@@ -106,9 +106,7 @@ class RoomSearchIndexTest {
     private val stamp = Stamp()
     private var now = 1_000L
 
-    private fun TestScope.index(
-        listing: (FileNodeId) -> Flow<FileResult<List<FileNode>>> = backend::listChildren,
-    ) =
+    private fun TestScope.index(listing: (FileNodeId) -> Flow<FileResult<List<FileNode>>> = backend::listChildren) =
         RoomSearchIndex(
             dao = dao,
             listChildren = listing,
@@ -330,11 +328,12 @@ class RoomSearchIndexTest {
             index().build(listOf(backend.rootId))
             val before = dao.rows.toMap()
             val denied = FileResult.Failure(FileError.AccessDenied(null))
-            val incomplete: List<Flow<FileResult<List<FileNode>>>> = listOf(
-                emptyFlow(),
-                flowOf(denied),
-                flowOf(FileResult.Success(emptyList<FileNode>()), denied),
-            )
+            val incomplete: List<Flow<FileResult<List<FileNode>>>> =
+                listOf(
+                    emptyFlow(),
+                    flowOf(denied),
+                    flowOf(FileResult.Success(emptyList<FileNode>()), denied),
+                )
             for (listing in incomplete) {
                 index { listing }.refreshFolders(listOf(backend.rootId))
                 assertEquals(before, dao.rows)
@@ -352,13 +351,14 @@ class RoomSearchIndexTest {
             val newId = backend.putFile(backend.rootId, "new.txt", byteArrayOf(2))
             val newNode = (backend.getNode(newId) as FileResult.Success).value
             val started = CompletableDeferred<Unit>()
-            val partial = index {
-                flow {
-                    emit(FileResult.Success(listOf(newNode)))
-                    started.complete(Unit)
-                    awaitCancellation()
+            val partial =
+                index {
+                    flow {
+                        emit(FileResult.Success(listOf(newNode)))
+                        started.complete(Unit)
+                        awaitCancellation()
+                    }
                 }
-            }
             val refresh = launch { partial.refreshFolders(listOf(backend.rootId)) }
             started.await()
             refresh.cancelAndJoin()
@@ -396,9 +396,16 @@ class RoomSearchIndexTest {
             index().build(listOf(backend.rootId))
             backend.putFile(backend.rootId, "new.txt", byteArrayOf(2))
             now = 2_000L
-            val partial = index { id ->
-                if (id == docs) flowOf(FileResult.Failure(FileError.AccessDenied(null))) else backend.listChildren(id)
-            }
+            val partial =
+                index { id ->
+                    if (id == docs) {
+                        flowOf(
+                            FileResult.Failure(FileError.AccessDenied(null)),
+                        )
+                    } else {
+                        backend.listChildren(id)
+                    }
+                }
 
             partial.build(listOf(backend.rootId))
 
@@ -416,16 +423,17 @@ class RoomSearchIndexTest {
             val building = CompletableDeferred<Unit>()
             val release = CompletableDeferred<Unit>()
             val calls = mutableListOf<FileNodeId>()
-            val serial = index { id ->
-                flow {
-                    calls += id
-                    if (id == backend.rootId) {
-                        building.complete(Unit)
-                        release.await()
+            val serial =
+                index { id ->
+                    flow {
+                        calls += id
+                        if (id == backend.rootId) {
+                            building.complete(Unit)
+                            release.await()
+                        }
+                        backend.listChildren(id).collect { emit(it) }
                     }
-                    backend.listChildren(id).collect { emit(it) }
                 }
-            }
             val build = launch { serial.build(listOf(backend.rootId)) }
             building.await()
             val refresh = launch { serial.refreshFolders(listOf(docs)) }
@@ -461,10 +469,11 @@ class RoomSearchIndexTest {
             now = 2_000L
             var denied = true
             var attempts = 0
-            val retrying = index { id ->
-                attempts++
-                if (denied) flowOf(FileResult.Failure(FileError.AccessDenied(null))) else backend.listChildren(id)
-            }
+            val retrying =
+                index { id ->
+                    attempts++
+                    if (denied) flowOf(FileResult.Failure(FileError.AccessDenied(null))) else backend.listChildren(id)
+                }
             retrying.build(listOf(backend.rootId))
             assertEquals(1, retrying.state.value.unreadable)
             assertEquals(1_000L, stamp.value)
@@ -486,13 +495,14 @@ class RoomSearchIndexTest {
             now = 2_000L
             var fail = true
             var attempts = 0
-            val retrying = index { id ->
-                flow {
-                    attempts++
-                    if (fail) throw IOException("listing unavailable")
-                    backend.listChildren(id).collect { emit(it) }
+            val retrying =
+                index { id ->
+                    flow {
+                        attempts++
+                        if (fail) throw IOException("listing unavailable")
+                        backend.listChildren(id).collect { emit(it) }
+                    }
                 }
-            }
             retrying.rebuild(listOf(backend.rootId))
             runCurrent()
             assertEquals(1, attempts)

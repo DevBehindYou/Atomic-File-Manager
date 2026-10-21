@@ -58,7 +58,10 @@ interface SearchIndexDao {
 
     /** Commits one fully enumerated folder as one durable unit; callers enumerate before entering. */
     @Transaction
-    suspend fun reconcileFolder(parentId: String, rows: List<SearchIndexEntity>) {
+    suspend fun reconcileFolder(
+        parentId: String,
+        rows: List<SearchIndexEntity>,
+    ) {
         require(rows.all { it.parentId == parentId }) { "Folder rows must belong to the listed parent" }
         val present = rows.mapTo(HashSet()) { it.id }
         upsert(rows)

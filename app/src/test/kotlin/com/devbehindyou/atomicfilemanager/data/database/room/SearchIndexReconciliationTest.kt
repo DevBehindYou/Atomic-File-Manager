@@ -50,92 +50,104 @@ class SearchIndexReconciliationTest {
     }
 
     @Test
-    fun completedFolderSurvivesReopenAndPreservesSiblingRoots() = runBlocking {
-        val parent = "file:/root/docs"
-        val old = row("$parent/old", parent, directory = true)
-        val descendant = row("${old.id}/deep.txt", old.id)
-        val keep = row("$parent/keep.txt", parent)
-        val sibling = row("file:/root/docs-other/other.txt", "file:/root/docs-other")
-        val otherRoot = row("file:/sd/other.txt", "file:/sd")
-        database.searchIndex().upsert(listOf(old, descendant, keep, sibling, otherRoot))
-        val added = row("$parent/new.txt", parent)
-        val updated = keep.copy(size = 99, generation = 2)
+    fun completedFolderSurvivesReopenAndPreservesSiblingRoots() =
+        runBlocking {
+            val parent = "file:/root/docs"
+            val old = row("$parent/old", parent, directory = true)
+            val descendant = row("${old.id}/deep.txt", old.id)
+            val keep = row("$parent/keep.txt", parent)
+            val sibling = row("file:/root/docs-other/other.txt", "file:/root/docs-other")
+            val otherRoot = row("file:/sd/other.txt", "file:/sd")
+            database.searchIndex().upsert(listOf(old, descendant, keep, sibling, otherRoot))
+            val added = row("$parent/new.txt", parent)
+            val updated = keep.copy(size = 99, generation = 2)
 
-        database.searchIndex().reconcileFolder(parent, listOf(updated, added))
-        reopen()
+            database.searchIndex().reconcileFolder(parent, listOf(updated, added))
+            reopen()
 
-        assertEquals(setOf(updated, added, sibling, otherRoot), database.searchIndex().search("%", 100).toSet())
-        database.searchIndex().reconcileFolder(parent, emptyList())
-        reopen()
-        assertEquals(setOf(sibling, otherRoot), database.searchIndex().search("%", 100).toSet())
-    }
-
-    @Test
-    fun deleteFailureRollsBackEarlierUpsertAndRetainsOldFolderAfterReopen() = runBlocking {
-        val parent = "file:/root/docs"
-        val old = row("$parent/old.txt", parent)
-        val keep = row("$parent/keep.txt", parent)
-        database.searchIndex().upsert(listOf(old, keep))
-        database.openHelper.writableDatabase.execSQL(
-            "CREATE TRIGGER fail_reconcile_delete BEFORE DELETE ON search_index " +
-                "WHEN OLD.id = '${old.id}' BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END",
-        )
-        val added = row("$parent/new.txt", parent)
-        val updated = keep.copy(size = 99, generation = 2)
-
-        val failure = assertThrows(RuntimeException::class.java) {
-            runBlocking { database.searchIndex().reconcileFolder(parent, listOf(updated, added)) }
+            assertEquals(setOf(updated, added, sibling, otherRoot), database.searchIndex().search("%", 100).toSet())
+            database.searchIndex().reconcileFolder(parent, emptyList())
+            reopen()
+            assertEquals(setOf(sibling, otherRoot), database.searchIndex().search("%", 100).toSet())
         }
-        assertTrue(generateSequence<Throwable>(failure) { it.cause }.any {
-            it.message?.contains("injected delete failure") == true
-        })
-        reopen()
-
-        assertEquals(setOf(old, keep), database.searchIndex().search("%", 100).toSet())
-    }
 
     @Test
-    fun cancelledEnclosingTransactionRollsBackReconciliationAfterReopen() = runBlocking {
-        val parent = "file:/root/docs"
-        val old = row("$parent/old.txt", parent)
-        database.searchIndex().upsert(listOf(old))
-        val changed = CompletableDeferred<Unit>()
-        val update = launch {
-            database.withTransaction {
-                database.searchIndex().reconcileFolder(parent, listOf(row("$parent/new.txt", parent)))
-                changed.complete(Unit)
-                awaitCancellation()
+    fun deleteFailureRollsBackEarlierUpsertAndRetainsOldFolderAfterReopen() =
+        runBlocking {
+            val parent = "file:/root/docs"
+            val old = row("$parent/old.txt", parent)
+            val keep = row("$parent/keep.txt", parent)
+            database.searchIndex().upsert(listOf(old, keep))
+            database.openHelper.writableDatabase.execSQL(
+                "CREATE TRIGGER fail_reconcile_delete BEFORE DELETE ON search_index " +
+                    "WHEN OLD.id = '${old.id}' BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END",
+            )
+            val added = row("$parent/new.txt", parent)
+            val updated = keep.copy(size = 99, generation = 2)
+
+            val failure =
+                assertThrows(RuntimeException::class.java) {
+                    runBlocking { database.searchIndex().reconcileFolder(parent, listOf(updated, added)) }
+                }
+            assertTrue(
+                generateSequence<Throwable>(failure) { it.cause }.any {
+                    it.message?.contains("injected delete failure") == true
+                },
+            )
+            reopen()
+
+            assertEquals(setOf(old, keep), database.searchIndex().search("%", 100).toSet())
+        }
+
+    @Test
+    fun cancelledEnclosingTransactionRollsBackReconciliationAfterReopen() =
+        runBlocking {
+            val parent = "file:/root/docs"
+            val old = row("$parent/old.txt", parent)
+            database.searchIndex().upsert(listOf(old))
+            val changed = CompletableDeferred<Unit>()
+            val update =
+                launch {
+                    database.withTransaction {
+                        database.searchIndex().reconcileFolder(parent, listOf(row("$parent/new.txt", parent)))
+                        changed.complete(Unit)
+                        awaitCancellation()
+                    }
+                }
+            changed.await()
+            update.cancelAndJoin()
+            assertTrue(update.isCancelled)
+            reopen()
+
+            assertEquals(listOf(old), database.searchIndex().search("%", 100))
+        }
+
+    @Test
+    fun descendantDeletionEscapesWildcardsAndRejectsRowsFromAnotherParent() =
+        runBlocking {
+            val parent = "file:/root/docs"
+            val old = row("$parent/a_%", parent, directory = true)
+            val descendant = row("${old.id}/deep.txt", old.id)
+            val similar = row("$parent/abc/kept.txt", "$parent/abc")
+            database.searchIndex().upsert(listOf(old, descendant, similar))
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { database.searchIndex().reconcileFolder(parent, listOf(row("file:/sd/new", "file:/sd"))) }
             }
+            assertEquals(setOf(old, descendant, similar), database.searchIndex().search("%", 100).toSet())
+
+            database.searchIndex().reconcileFolder(parent, emptyList())
+            reopen()
+
+            val remaining = database.searchIndex().search("%", 100)
+            assertEquals(listOf(similar), remaining)
+            assertFalse(remaining.any { it.id == old.id || it.id == descendant.id })
         }
-        changed.await()
-        update.cancelAndJoin()
-        assertTrue(update.isCancelled)
-        reopen()
 
-        assertEquals(listOf(old), database.searchIndex().search("%", 100))
-    }
-
-    @Test
-    fun descendantDeletionEscapesWildcardsAndRejectsRowsFromAnotherParent() = runBlocking {
-        val parent = "file:/root/docs"
-        val old = row("$parent/a_%", parent, directory = true)
-        val descendant = row("${old.id}/deep.txt", old.id)
-        val similar = row("$parent/abc/kept.txt", "$parent/abc")
-        database.searchIndex().upsert(listOf(old, descendant, similar))
-        assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { database.searchIndex().reconcileFolder(parent, listOf(row("file:/sd/new", "file:/sd"))) }
-        }
-        assertEquals(setOf(old, descendant, similar), database.searchIndex().search("%", 100).toSet())
-
-        database.searchIndex().reconcileFolder(parent, emptyList())
-        reopen()
-
-        val remaining = database.searchIndex().search("%", 100)
-        assertEquals(listOf(similar), remaining)
-        assertFalse(remaining.any { it.id == old.id || it.id == descendant.id })
-    }
-
-    private fun row(id: String, parentId: String, directory: Boolean = false) = SearchIndexEntity(
+    private fun row(
+        id: String,
+        parentId: String,
+        directory: Boolean = false,
+    ) = SearchIndexEntity(
         id = id,
         name = id.substringAfterLast('/'),
         nameLower = id.substringAfterLast('/').lowercase(),

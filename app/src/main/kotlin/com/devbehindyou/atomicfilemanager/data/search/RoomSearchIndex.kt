@@ -139,90 +139,97 @@ class RoomSearchIndex(
             }
     }
 
-    override suspend fun refreshFolders(folders: Collection<FileNodeId>) = writerMutex.withLock {
-        if (_state.value.builtAt == null) return@withLock
-        val generation = clock()
-        for (folder in folders.distinct()) {
-            currentCoroutineContext().ensureActive()
-            val listed = mutableListOf<FileNode>()
-            var emittedSuccess = false
-            var failed = false
-            listChildren(folder).collect { chunk ->
-                when (chunk) {
-                    is FileResult.Success -> {
-                        emittedSuccess = true
-                        listed += chunk.value.filterNot { it.isHidden }
+    override suspend fun refreshFolders(folders: Collection<FileNodeId>) =
+        writerMutex.withLock {
+            if (_state.value.builtAt == null) return@withLock
+            val generation = clock()
+            for (folder in folders.distinct()) {
+                currentCoroutineContext().ensureActive()
+                val listed = mutableListOf<FileNode>()
+                var emittedSuccess = false
+                var failed = false
+                listChildren(folder).collect { chunk ->
+                    when (chunk) {
+                        is FileResult.Success -> {
+                            emittedSuccess = true
+                            listed += chunk.value.filterNot { it.isHidden }
+                        }
+                        is FileResult.Failure -> failed = true
                     }
-                    is FileResult.Failure -> failed = true
                 }
+                // Readable empty folders explicitly emit Success(emptyList()); silence is not deletion evidence.
+                if (failed || !emittedSuccess) continue
+                currentCoroutineContext().ensureActive()
+                dao.reconcileFolder(folder.raw, listed.map { it.toEntity(generation) })
             }
-            // Readable empty folders explicitly emit Success(emptyList()); silence is not deletion evidence.
-            if (failed || !emittedSuccess) continue
-            currentCoroutineContext().ensureActive()
-            dao.reconcileFolder(folder.raw, listed.map { it.toEntity(generation) })
+            _state.update { it.copy(indexedCount = dao.count()) }
         }
-        _state.update { it.copy(indexedCount = dao.count()) }
-    }
 
     /** Walks [roots]; partial builds retain mixed evidence without pruning or claiming freshness. */
-    internal suspend fun build(roots: List<FileNodeId>) = writerMutex.withLock {
-        if (roots.isEmpty()) {
-            _state.update { it.copy(unreadable = 1) }
-            return@withLock
-        }
-        val generation = clock()
-        val canonicalRoots = roots.mapNotNull(canonicalPath)
-        val pending = ArrayDeque(roots)
-        val visited = HashSet<String>()
-        val batch = ArrayList<SearchIndexEntity>(BATCH_SIZE)
-        var written = 0
-        var unreadable = 0
+    internal suspend fun build(roots: List<FileNodeId>) =
+        writerMutex.withLock {
+            if (roots.isEmpty()) {
+                _state.update { it.copy(unreadable = 1) }
+                return@withLock
+            }
+            val generation = clock()
+            val canonicalRoots = roots.mapNotNull(canonicalPath)
+            val pending = ArrayDeque(roots)
+            val visited = HashSet<String>()
+            val batch = ArrayList<SearchIndexEntity>(BATCH_SIZE)
+            var written = 0
+            var unreadable = 0
 
-        suspend fun flush() {
-            if (batch.isEmpty()) return
-            dao.upsert(batch.toList())
-            written += batch.size
-            batch.clear()
-            _state.update { it.copy(indexedCount = maxOf(it.indexedCount, written)) }
-        }
+            suspend fun flush() {
+                if (batch.isEmpty()) return
+                dao.upsert(batch.toList())
+                written += batch.size
+                batch.clear()
+                _state.update { it.copy(indexedCount = maxOf(it.indexedCount, written)) }
+            }
 
-        while (pending.isNotEmpty()) {
-            currentCoroutineContext().ensureActive()
-            val folder = pending.removeFirst()
-            val canonical = canonicalPath(folder)
-            val inside = canonical != null && canonicalRoots.any { root -> isInside(canonical, root) }
-            if (canonical == null) unreadable++
-            if (!inside || !visited.add(canonical.orEmpty())) continue
-            var emittedSuccess = false
-            var failed = false
-            listChildren(folder).collect { chunk ->
-                when (chunk) {
-                    is FileResult.Failure -> failed = true
-                    is FileResult.Success -> {
-                        emittedSuccess = true
-                        for (node in chunk.value.filterNot { it.isHidden }) {
-                            if (node.isDirectory) pending.add(node.id)
-                            batch += node.toEntity(generation)
-                            if (batch.size >= BATCH_SIZE) flush()
+            while (pending.isNotEmpty()) {
+                currentCoroutineContext().ensureActive()
+                val folder = pending.removeFirst()
+                val canonical = canonicalPath(folder)
+                val inside = canonical != null && canonicalRoots.any { root -> isInside(canonical, root) }
+                if (canonical == null) unreadable++
+                if (!inside || !visited.add(canonical.orEmpty())) continue
+                var emittedSuccess = false
+                var failed = false
+                listChildren(folder).collect { chunk ->
+                    when (chunk) {
+                        is FileResult.Failure -> failed = true
+                        is FileResult.Success -> {
+                            emittedSuccess = true
+                            for (node in chunk.value.filterNot { it.isHidden }) {
+                                if (node.isDirectory) pending.add(node.id)
+                                batch += node.toEntity(generation)
+                                if (batch.size >= BATCH_SIZE) flush()
+                            }
                         }
                     }
                 }
+                if (failed || !emittedSuccess) unreadable++
             }
-            if (failed || !emittedSuccess) unreadable++
+            flush()
+            if (unreadable > 0) {
+                _state.update { it.copy(indexedCount = dao.count(), unreadable = unreadable) }
+                return@withLock
+            }
+            dao.deleteOlderThan(generation)
+            val finished = clock()
+            builtAtStore.set(finished)
+            _state.update {
+                SearchIndexState(
+                    indexedCount = dao.count(),
+                    building = true,
+                    builtAt = finished,
+                    unreadable = unreadable,
+                )
+            }
+            retryRequired = false
         }
-        flush()
-        if (unreadable > 0) {
-            _state.update { it.copy(indexedCount = dao.count(), unreadable = unreadable) }
-            return@withLock
-        }
-        dao.deleteOlderThan(generation)
-        val finished = clock()
-        builtAtStore.set(finished)
-        _state.update {
-            SearchIndexState(indexedCount = dao.count(), building = true, builtAt = finished, unreadable = unreadable)
-        }
-        retryRequired = false
-    }
 
     private fun isInside(
         canonical: String,
