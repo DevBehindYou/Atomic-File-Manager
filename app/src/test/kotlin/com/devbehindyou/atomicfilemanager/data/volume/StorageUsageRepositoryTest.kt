@@ -257,6 +257,54 @@ class StorageUsageRepositoryTest {
     }
 
     @Test
+    fun `restoring access after another scope forces a new walk before TTL`() = runTest {
+        val source = FakeSource().apply { entries = { success(file("one.pdf", 10)) } }
+        val repository = repository(source)
+        val originalPlan = source.planValue
+        assertEquals(10L, repository.scan(volumes).last().current!!.readableBytes)
+        source.planValue = originalPlan.copy(key = "denied", roots = emptyList(), unavailableRoots = 1)
+        val denied = repository.scan(listOf(volume.copy(requiresGrant = true))).last()
+        assertEquals(StorageUsagePhase.PARTIAL, denied.phase)
+        assertNull(denied.lastGood)
+        source.planValue = originalPlan
+        source.entries = { success(file("one.pdf", 20)) }
+        val restored = repository.scan(volumes).last()
+        assertEquals(StorageUsagePhase.COMPLETE, restored.phase)
+        assertFalse(restored.cached)
+        assertEquals(20L, restored.current!!.readableBytes)
+        assertEquals(2, source.listCalls.size)
+    }
+
+    @Test
+    fun `reopening partial evidence retains its bytes while rescanning without cache promotion`() = runTest {
+        val source = FakeSource().apply {
+            entries = {
+                flowOf(
+                    FileResult.Success(listOf(file("observed.pdf", 10))),
+                    FileResult.Failure(FileError.AccessDenied(null)),
+                )
+            }
+        }
+        val repository = repository(source)
+        val partial = repository.scan(volumes).last()
+        assertEquals(StorageUsagePhase.PARTIAL, partial.phase)
+        assertEquals(10L, partial.current!!.readableBytes)
+        source.entries = { success(file("recovered.pdf", 30)) }
+        val reopened = repository.scan(volumes).toList()
+        val scanning = reopened.first()
+        assertEquals(StorageUsagePhase.SCANNING, scanning.phase)
+        assertEquals(partial.current, scanning.previousObserved)
+        assertFalse(checkNotNull(scanning.previousObserved).complete)
+        assertNull(scanning.lastGood)
+        assertFalse(scanning.cached)
+        val recovered = reopened.last()
+        assertEquals(StorageUsagePhase.COMPLETE, recovered.phase)
+        assertFalse(recovered.cached)
+        assertEquals(30L, recovered.current!!.readableBytes)
+        assertEquals(2, source.listCalls.size)
+    }
+
+    @Test
     fun `logical file bytes larger than physical used bytes have no attributable remainder`() = runTest {
         val source = FakeSource().apply { entries = { success(file("sparse.bin", 900)) } }
         val snapshot = repository(source).scan(volumes).last().current!!
