@@ -1,6 +1,6 @@
 # Search-index folder consistency — U05 slice
 
-Prepared 21 October 2026. Source candidate only; host and database checks have not yet run.
+Prepared 21 October 2026. Focused host regressions pass; final Lint and isolated PR CI remain pending.
 
 Folder refresh previously treated a flow with no emissions as an empty directory. It also committed inserts and disappearance cleanup separately, allowing an interrupted reconciliation to persist only part of the folder update.
 
@@ -15,3 +15,7 @@ Database version 4, entity columns and exported schema are unchanged. No migrati
 Prepared checks cover explicit empty versus silent/denied enumeration, partial cancellation, writer ordering, incomplete build evidence, missing roots and retry. Real file-backed Room tests on API27/34 cover successful reconciliation and reopen, sibling/root preservation, an injected delete failure rolling back earlier inserts, enclosing-transaction cancellation, wildcard escaping and rejection of another parent's rows. The rollback test must observe the injected failure itself. These tests do not establish process-kill recovery.
 
 Root coordinates serialized validation. Required: formatting/static analysis, `RoomSearchIndexTest`, `SearchIndexReconciliationTest`, existing Room migration cases, APK compilation and Android Lint. Record terminal logs and actual results before claiming any pass. Broader U05 acceptance remains open.
+
+## Current host evidence
+
+The combined browse/index run `build/audit-tools/browse-index-consistency-retry-validation.log` passed formatting, ktlint and detekt, then 48 selected cases with no failures/errors/skips. Its index subset is 21 `RoomSearchIndexTest` cases, 8 file-backed `SearchIndexReconciliationTest` cases across API27/34, and 1 existing `AtomicDatabaseMigrationTest` case. Debug and instrumentation APKs compiled; final Android Lint is still running, so the overall command is not yet a recorded pass. The exported schema has no diff. This combined integration check does not replace isolated current-head PR CI or physical recovery acceptance.
