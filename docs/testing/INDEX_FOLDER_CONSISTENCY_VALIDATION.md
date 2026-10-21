@@ -8,7 +8,7 @@ The candidate accepts a folder snapshot only after at least one successful emiss
 
 One writer mutex serializes full builds and folder reconciliations. A reconciliation can wait behind a running full walk; this is a consistency change, not a responsiveness improvement. No database transaction spans filesystem enumeration.
 
-A full walk with unreadable/silent folders does not globally prune old generations or advance the last successful build time. Searches may still see mixed old and new rows from flushed batches. Known unreadable walks retry within the previous freshness window while the index instance remains alive. Empty root input cannot erase the index. Durable scan checkpoints, persisted failure state, coherent all-root snapshots and account/source ownership remain separate work.
+A full walk with unreadable/silent folders does not globally prune old generations or advance the last successful build time. Searches may still see mixed old and new rows from flushed batches. Known unreadable walks and exceptional public rebuild failures retry within the previous freshness window while the index instance remains alive. A successful full build clears the exceptional retry flag; cancellation still propagates. Empty root input cannot erase the index. Durable scan checkpoints, persisted failure state, coherent all-root snapshots and account/source ownership remain separate work.
 
 Database version 4, entity columns and exported schema are unchanged. No migration, production dependency, storage permission or user-file mutation is introduced.
 

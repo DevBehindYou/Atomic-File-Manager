@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomSearchIndexTest {
@@ -475,6 +476,39 @@ class RoomSearchIndexTest {
             assertEquals(2, attempts)
             assertEquals(0, retrying.state.value.unreadable)
             assertEquals(2_000L, stamp.value)
+        }
+
+    @Test
+    fun `exceptional public rebuild retries before TTL and clears retry after recovery`() =
+        runTest {
+            backend.putFile(backend.rootId, "kept.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            now = 2_000L
+            var fail = true
+            var attempts = 0
+            val retrying = index { id ->
+                flow {
+                    attempts++
+                    if (fail) throw IOException("listing unavailable")
+                    backend.listChildren(id).collect { emit(it) }
+                }
+            }
+            retrying.rebuild(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(1, attempts)
+            assertFalse(retrying.state.value.building)
+            assertEquals(1_000L, stamp.value)
+
+            fail = false
+            retrying.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(2, attempts)
+            assertEquals(2_000L, stamp.value)
+            assertFalse(retrying.state.value.building)
+
+            retrying.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+            assertEquals(2, attempts)
         }
 
     private fun searchRow(

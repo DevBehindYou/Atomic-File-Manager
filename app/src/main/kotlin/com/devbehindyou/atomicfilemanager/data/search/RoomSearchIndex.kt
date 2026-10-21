@@ -54,6 +54,9 @@ class RoomSearchIndex(
     private val writerMutex = Mutex()
 
     @Volatile
+    private var retryRequired = false
+
+    @Volatile
     private var job: Job? = null
 
     init {
@@ -112,7 +115,7 @@ class RoomSearchIndex(
     override fun refreshIfStale(roots: List<FileNodeId>) {
         val snapshot = _state.value
         val builtAt = snapshot.builtAt
-        if (snapshot.unreadable > 0 || builtAt == null || clock() - builtAt > freshForMillis) rebuild(roots)
+        if (retryRequired || snapshot.unreadable > 0 || builtAt == null || clock() - builtAt > freshForMillis) rebuild(roots)
     }
 
     @Synchronized
@@ -126,6 +129,7 @@ class RoomSearchIndex(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
+                    retryRequired = true
                     // Already flushed rows remain mixed evidence; failure never reaches pruning/freshness.
                 } finally {
                     _state.update { it.copy(building = false) }
@@ -215,6 +219,7 @@ class RoomSearchIndex(
         _state.update {
             SearchIndexState(indexedCount = dao.count(), building = true, builtAt = finished, unreadable = unreadable)
         }
+        retryRequired = false
     }
 
     private fun isInside(
