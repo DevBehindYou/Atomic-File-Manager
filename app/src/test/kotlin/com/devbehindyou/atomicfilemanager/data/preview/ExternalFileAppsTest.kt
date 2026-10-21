@@ -43,6 +43,8 @@ class ExternalFileAppsTest {
                     activities = arrayOf(activity)
                 },
             )
+            // installPackage alone does not create the shadow's component-filter registry.
+            manager.addOrUpdateActivity(activity)
             manager.addIntentFilterForActivity(ComponentName(activity.packageName, activity.name), pdfFilter())
         }
         // Two matching manifest filters must still offer this component only once.
