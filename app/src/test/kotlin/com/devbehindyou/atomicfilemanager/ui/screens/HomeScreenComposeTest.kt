@@ -1,5 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -10,6 +12,8 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +43,7 @@ class HomeScreenComposeTest {
 
     private val events = mutableListOf<String>()
 
-    private fun show(hasAccess: Boolean = true) {
+    private fun show(hasAccess: Boolean = true, readiness: MutableState<StorageReadinessState>? = null) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 HomeScreen(
@@ -51,9 +55,27 @@ class HomeScreenComposeTest {
                     onRequestStorageAccess = { events += "grant" },
                     onOpenPrivateFiles = { events += "private" },
                     onOpenStorageDetails = { events += "details" },
+                    storageReadiness = readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
+                    onRetryStorage = { events += "retry" },
                 )
             }
         }
+    }
+
+    @Test
+    fun unresolvedCheckAndFailureNeverOfferPermissionGrantAndRetryKeepsVolumeNavigation() {
+        val readiness = mutableStateOf<StorageReadinessState>(StorageReadinessState.Loading(StorageSnapshot(false, listOf(phone))))
+        show(hasAccess = false, readiness = readiness)
+        compose.onNodeWithTag("permission_warning_card").assertDoesNotExist()
+        compose.onNodeWithTag("storage_readiness_loading").assertExists()
+        compose.runOnIdle { readiness.value = StorageReadinessState.Failed(StorageSnapshot(false, listOf(phone))) }
+        compose.onNodeWithTag("permission_warning_card").assertDoesNotExist()
+        compose.onNodeWithTag("storage_readiness_retry").performClick()
+        compose.onNodeWithTag("volume_item_primary").performScrollTo().performClick()
+        assertEquals(listOf("retry", "volume:primary"), events)
+        compose.runOnIdle { readiness.value = StorageReadinessState.Ready(StorageSnapshot(false, listOf(phone))) }
+        compose.onNodeWithTag("permission_warning_card").assertExists()
+        compose.onNodeWithTag("storage_readiness_retry").assertDoesNotExist()
     }
 
     @Test

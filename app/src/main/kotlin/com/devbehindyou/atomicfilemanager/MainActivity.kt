@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
@@ -58,6 +59,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicHomeHeader
@@ -117,9 +119,12 @@ import com.devbehindyou.atomicfilemanager.ui.shortcuts.OpenTarget
 import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupLoader
 import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupScreen
 import com.devbehindyou.atomicfilemanager.ui.startup.SettingsStartupState
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessContent
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessLoader
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 import com.devbehindyou.atomicfilemanager.ui.util.DebugJank
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -289,35 +294,26 @@ fun AtomicAppContent(
     }
     var pendingVolumeId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var volumes by remember { mutableStateOf<List<StorageVolumeInfo>>(emptyList()) }
-    var hasStorageAccess by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val storageLoader = remember(context, scope) {
+        StorageReadinessLoader(scope) {
+            val access = SharedStorageAccess.isGranted(context)
+            StorageSnapshot(access, loadVolumes(context, access))
+        }
+    }
+    val storageReadiness by storageLoader.state.collectAsState()
+    val volumes = storageReadiness.snapshot?.volumes.orEmpty()
+    val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPalette by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     fun notify(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
 
-    fun checkAccess(): Boolean {
-        return runCatching { SharedStorageAccess.isGranted(context) }.getOrDefault(false)
-    }
-
-    // Volume enumeration calls StatFs and lists mount points, so it runs on IO
-    // (ALL_IN_ONE_PLAN.md §16.2 H1). A newer refresh cancels an older one.
-    val volumeJob = remember { mutableStateOf<Job?>(null) }
-
-    fun refreshVolumes() {
-        volumeJob.value?.cancel()
-        volumeJob.value =
-            scope.launch {
-                val access = checkAccess()
-                val loaded = withContext(Dispatchers.IO) { loadVolumes(context, access) }
-                hasStorageAccess = access
-                volumes = loaded
-            }
-    }
+    // Access and volume metadata publish together after the IO read; unresolved is not denied.
+    fun refreshVolumes() = storageLoader.refresh()
 
     LaunchedEffect(volumes) {
         val pending = volumes.firstOrNull { it.id == pendingVolumeId }
@@ -724,6 +720,8 @@ fun AtomicAppContent(
             currentTab = currentTab,
             volumes = volumes,
             hasStorageAccess = hasStorageAccess,
+            storageReadiness = storageReadiness,
+            onRetryStorage = ::refreshVolumes,
             browseTabs = browseTabs,
             onBrowseTabsChange = updateBrowseTabs,
             settingsRepository = settingsRepository,
@@ -859,17 +857,29 @@ private fun MainScreenContent(
     currentTab: NavigationTab,
     volumes: List<StorageVolumeInfo>,
     hasStorageAccess: Boolean,
+    storageReadiness: StorageReadinessState,
+    onRetryStorage: () -> Unit,
     browseTabs: BrowseTabsState,
     onBrowseTabsChange: ((BrowseTabsState) -> BrowseTabsState) -> Unit,
     settingsRepository: SettingsRepository,
     privateLocked: Boolean,
     callbacks: ShellCallbacks,
 ) {
+    if (storageReadiness.snapshot == null && currentTab in setOf(NavigationTab.HOME, NavigationTab.STORAGE)) {
+        StorageReadinessContent(
+            state = storageReadiness,
+            onRetry = onRetryStorage,
+            modifier = Modifier.fillMaxSize().padding(AtomicSpacing.s16),
+        )
+        return
+    }
     when (currentTab) {
         NavigationTab.HOME -> {
             HomeScreen(
                 volumes = volumes,
                 hasStorageAccess = hasStorageAccess,
+                storageReadiness = storageReadiness,
+                onRetryStorage = onRetryStorage,
                 onNavigateToVolume = callbacks.onBrowseVolume,
                 onNavigateToCategory = callbacks.onCategorySelected,
                 onOpenPrivateFiles = callbacks.onOpenPrivateFiles,
@@ -927,7 +937,16 @@ private fun MainScreenContent(
             SettingsScreen(
                 settingsRepository = settingsRepository,
                 hasStorageAccess = hasStorageAccess,
-                onRequestStorageAccess = callbacks.onRequestStorageAccess,
+                storageAccessStatus = when (storageReadiness) {
+                    is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
+                    is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
+                    is StorageReadinessState.Ready -> null
+                },
+                onRequestStorageAccess = if (storageReadiness is StorageReadinessState.Ready) {
+                    callbacks.onRequestStorageAccess
+                } else {
+                    onRetryStorage
+                },
                 onClearScanCache = callbacks.onClearScanCache,
                 onNotify = callbacks.onNotify,
             )
