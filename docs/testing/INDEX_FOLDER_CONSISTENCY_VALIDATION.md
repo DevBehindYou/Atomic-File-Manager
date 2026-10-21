@@ -19,3 +19,9 @@ Root coordinates serialized validation. Required: formatting/static analysis, `R
 ## Current host evidence
 
 The combined browse/index run `build/audit-tools/browse-index-consistency-retry-validation.log` passed formatting, ktlint and detekt, then 48 selected cases with no failures/errors/skips. Its index subset is 21 `RoomSearchIndexTest` cases, 8 file-backed `SearchIndexReconciliationTest` cases across API27/34, and 1 existing `AtomicDatabaseMigrationTest` case. Debug and instrumentation APKs compiled; final Android Lint is still running, so the overall command is not yet a recorded pass. The exported schema has no diff. This combined integration check does not replace isolated current-head PR CI or physical recovery acceptance.
+
+## CI teardown follow-up
+
+PR #67 run `39616679288` completed 940 tests with one failure before `BrowseNavigationIdentityTest.switchingStorageKeepsCopyAndMoveClipboardsAndBackHistory` entered its test body. Its report records a cancelled `Dispatchers.Default` continuation accessing Main after `Dispatchers.resetMain()`. Both navigation tests cancelled their model without joining its children, unlike the already corrected sort-loading fixture.
+
+The follow-up waits for each navigation model's cancellation to finish before resetting Main. Existing navigation and clipboard assertions remain intact. A regression uses a real model and IO listing whose cancellation cleanup waits on a controlled gate; teardown must stay suspended until that cleanup finishes. No sleeps, exception suppression or production-index changes are introduced. This follow-up has not yet been built or run; serialized host checks and a fresh complete CI run remain required.
