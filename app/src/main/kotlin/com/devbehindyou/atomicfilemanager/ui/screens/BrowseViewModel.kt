@@ -491,18 +491,16 @@ class BrowseViewModel(
         nodeIds: List<FileNodeId>,
         toTrash: Boolean = false,
     ) {
-        viewModelScope.launch {
-            val op =
-                FileOperation(
-                    id = OperationId.random(),
-                    type = if (toTrash) OperationType.TRASH else OperationType.DELETE,
-                    sources = nodeIds,
-                    destination = null,
-                    options = OperationOptions(),
-                    createdAt = System.currentTimeMillis(),
-                )
-            runOperation(op)
-        }
+        val op =
+            FileOperation(
+                id = OperationId.random(),
+                type = if (toTrash) OperationType.TRASH else OperationType.DELETE,
+                sources = nodeIds.toList(),
+                destination = null,
+                options = OperationOptions(),
+                createdAt = System.currentTimeMillis(),
+            )
+        runOperation(op)
     }
 
     fun copySelected() {
