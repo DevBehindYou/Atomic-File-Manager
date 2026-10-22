@@ -14,6 +14,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
 import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
+import com.devbehindyou.atomicfilemanager.domain.repository.FolderSortMemory
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import com.devbehindyou.atomicfilemanager.domain.repository.TransferBubbleRepository
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
@@ -31,6 +32,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -38,6 +40,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.rules.ExternalResource
 import org.robolectric.Shadows.shadowOf
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Real BrowseViewModels and queue, with a listing suspended until its owner cancels it. */
@@ -48,6 +51,9 @@ class BrowsePaneFixture : ExternalResource() {
     val started = AtomicInteger()
     val cancelled = AtomicInteger()
     val completed = AtomicInteger()
+    val listedFolders = ConcurrentLinkedQueue<FileNodeId>()
+    var listingItems: List<FileNode>? = null
+    var listingUpdates: Flow<FileResult<List<FileNode>>>? = null
     var factories = 0
         private set
 
@@ -58,8 +64,11 @@ class BrowsePaneFixture : ExternalResource() {
         object : StorageBackend by memory {
             override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
                 flow {
+                    listedFolders += id
                     started.incrementAndGet()
                     try {
+                        val updates = listingUpdates
+                        if (updates == null) listingItems?.let { emit(FileResult.Success(it)) } else emitAll(updates)
                         awaitCancellation()
                     } finally {
                         cancelled.incrementAndGet()
@@ -89,6 +98,7 @@ class BrowsePaneFixture : ExternalResource() {
     fun factory(
         folder: FileNodeId,
         startVisible: Boolean = true,
+        folderSorts: FolderSortMemory? = null,
     ): ViewModelProvider.Factory {
         factories++
         return BrowseViewModel.provideFactory(
@@ -100,6 +110,7 @@ class BrowsePaneFixture : ExternalResource() {
             deleteFileUseCase = DeleteFileUseCase { backend },
             operationQueue = queue,
             transferBubbleRepository = UnusedBubbles(),
+            folderSorts = folderSorts,
             startVisible = startVisible,
         )
     }

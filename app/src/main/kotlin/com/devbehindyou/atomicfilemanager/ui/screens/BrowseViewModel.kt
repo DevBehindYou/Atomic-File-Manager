@@ -138,6 +138,9 @@ class BrowseViewModel(
                 knownBreadcrumbs = pending?.breadcrumbs ?: current.breadcrumbs,
                 retainSelection = target == current.currentFolderId,
             )
+            // loadDirectory cancels the previous filter. Reapply cached rows after scheduling it,
+            // so a held/failed refresh cannot leave visible rows using settings changed while hidden.
+            if (target == current.currentFolderId) refilter()
         }
     }
 
@@ -180,8 +183,12 @@ class BrowseViewModel(
                 val rememberedSort =
                     sortWrites.withLock { folderSorts?.get(folderId.raw) }
                         ?.let { name -> SortOption.entries.firstOrNull { it.name == name } }
-                if (sortRevision == requestedSortRevision && rememberedSort != null) {
+                if (sortRevision == requestedSortRevision && rememberedSort != null &&
+                    rememberedSort != _uiState.value.sortOption
+                ) {
                     _uiState.update { it.copy(sortOption = rememberedSort) }
+                    // Restored order may arrive after the resume filter, before any new provider batch.
+                    if (retainSelection) refilter()
                 }
 
                 val folder = (getNodeUseCase(folderId) as? FileResult.Success)?.value
@@ -272,6 +279,7 @@ class BrowseViewModel(
      */
     private fun refilter() {
         filterJob?.cancel()
+        if (!visible) return
         filterJob =
             viewModelScope.launch {
                 val requested = _uiState.value
