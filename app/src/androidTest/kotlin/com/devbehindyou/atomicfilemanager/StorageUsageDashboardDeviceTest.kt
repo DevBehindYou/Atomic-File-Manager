@@ -33,44 +33,48 @@ class StorageUsageDashboardDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun mountedCapacityMatchesNativeFilesystemStatsIncludingRemovableStorage() = runBlocking(Dispatchers.IO) {
-        val context = compose.activity.applicationContext
-        val manager = checkNotNull(context.getSystemService(StorageManager::class.java))
-        val nativeVolumes = manager.storageVolumes.filter { it.state == Environment.MEDIA_MOUNTED }
-        assertTrue("This device must have mounted internal storage", nativeVolumes.any { it.isPrimary })
-        val appDirectories = if (Build.VERSION.SDK_INT < 30) context.getExternalFilesDirs(null) else emptyArray()
-        val probes = nativeVolumes.mapNotNull { volume ->
-            val directory = if (Build.VERSION.SDK_INT >= 30) {
-                volume.directory
-            } else {
-                appDirectories.filterNotNull().firstOrNull { manager.getStorageVolume(it) == volume }
-            }
-            directory?.takeIf { it.canRead() } ?: context.filesDir.takeIf { volume.isPrimary }
-        }.map { it.canonicalFile }.distinct()
-        val before = readNativeCapacity(probes)
-        val source = LocalStorageUsageSource(
-            volumesNow = { StorageVolumes.enumerate(context) },
-            primaryPath = { context.filesDir.absolutePath },
-        )
-        val actual = source.plan(StorageVolumes.enumerate(context)).capacity
-        val after = readNativeCapacity(probes)
-        assertEquals("Mounted removable storage must participate too", nativeVolumes.size, actual.mountedVolumes)
-        assertEquals(
-            "Unreadable mounted volumes remain explicit",
-            nativeVolumes.size - probes.size,
-            actual.unknownVolumes,
-        )
-        assertEquals("Total capacity must remain stable while sampling", before.first, after.first)
-        assertEquals("Dashboard total must sum native filesystem totals", before.first, actual.totalBytes)
-        val tolerance = max(64L * 1024 * 1024, actual.totalBytes / 1_000)
-        val low = minOf(before.second, after.second) - tolerance
-        val high = maxOf(before.second, after.second) + tolerance
-        assertTrue(
-            "Free capacity should match native samples within background-write tolerance",
-            actual.freeBytes in low..high,
-        )
-        assertEquals(actual.totalBytes - actual.freeBytes, actual.usedBytes)
-    }
+    fun mountedCapacityMatchesNativeFilesystemStatsIncludingRemovableStorage() =
+        runBlocking(Dispatchers.IO) {
+            val context = compose.activity.applicationContext
+            val manager = checkNotNull(context.getSystemService(StorageManager::class.java))
+            val nativeVolumes = manager.storageVolumes.filter { it.state == Environment.MEDIA_MOUNTED }
+            assertTrue("This device must have mounted internal storage", nativeVolumes.any { it.isPrimary })
+            val appDirectories = if (Build.VERSION.SDK_INT < 30) context.getExternalFilesDirs(null) else emptyArray()
+            val probes =
+                nativeVolumes.mapNotNull { volume ->
+                    val directory =
+                        if (Build.VERSION.SDK_INT >= 30) {
+                            volume.directory
+                        } else {
+                            appDirectories.filterNotNull().firstOrNull { manager.getStorageVolume(it) == volume }
+                        }
+                    directory?.takeIf { it.canRead() } ?: context.filesDir.takeIf { volume.isPrimary }
+                }.map { it.canonicalFile }.distinct()
+            val before = readNativeCapacity(probes)
+            val source =
+                LocalStorageUsageSource(
+                    volumesNow = { StorageVolumes.enumerate(context) },
+                    primaryPath = { context.filesDir.absolutePath },
+                )
+            val actual = source.plan(StorageVolumes.enumerate(context)).capacity
+            val after = readNativeCapacity(probes)
+            assertEquals("Mounted removable storage must participate too", nativeVolumes.size, actual.mountedVolumes)
+            assertEquals(
+                "Unreadable mounted volumes remain explicit",
+                nativeVolumes.size - probes.size,
+                actual.unknownVolumes,
+            )
+            assertEquals("Total capacity must remain stable while sampling", before.first, after.first)
+            assertEquals("Dashboard total must sum native filesystem totals", before.first, actual.totalBytes)
+            val tolerance = max(64L * 1024 * 1024, actual.totalBytes / 1_000)
+            val low = minOf(before.second, after.second) - tolerance
+            val high = maxOf(before.second, after.second) + tolerance
+            assertTrue(
+                "Free capacity should match native samples within background-write tolerance",
+                actual.freeBytes in low..high,
+            )
+            assertEquals(actual.totalBytes - actual.freeBytes, actual.usedBytes)
+        }
 
     @Test
     fun actualStorageTabShowsEveryCategoryRefreshesAndSurvivesNavigationAndRecreation() {

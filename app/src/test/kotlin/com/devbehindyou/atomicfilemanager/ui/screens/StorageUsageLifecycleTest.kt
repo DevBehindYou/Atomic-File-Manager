@@ -50,36 +50,46 @@ class StorageUsageLifecycleTest {
         val pendingEntered = CompletableDeferred<Unit>()
         val pendingCancelled = CompletableDeferred<Unit>()
         val activePlans = AtomicInteger()
-        val source = object : StorageUsageSource {
-            override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
-                if (volumes.single().id == "second") {
-                    activePlans.incrementAndGet()
-                    pendingEntered.complete(Unit)
-                    try {
-                        awaitCancellation()
-                    } finally {
-                        activePlans.decrementAndGet()
-                        pendingCancelled.complete(Unit)
+        val source =
+            object : StorageUsageSource {
+                override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
+                    if (volumes.single().id == "second") {
+                        activePlans.incrementAndGet()
+                        pendingEntered.complete(Unit)
+                        try {
+                            awaitCancellation()
+                        } finally {
+                            activePlans.decrementAndGet()
+                            pendingCancelled.complete(Unit)
+                        }
                     }
+                    return StorageUsagePlan("first", listOf(firstRoot), StorageCapacity(1_000, 100, 1), 0)
                 }
-                return StorageUsagePlan("first", listOf(firstRoot), StorageCapacity(1_000, 100, 1), 0)
-            }
 
-            override fun list(directory: String) = flowOf<FileResult<List<StorageUsageEntry>>>(
-                FileResult.Success(listOf(
-                    StorageUsageEntry(File(firstRoot, "test.pdf").path, "test.pdf", 600, false, false),
-                )),
-            )
-        }
-        val owner = object : LifecycleOwner {
-            val registry = LifecycleRegistry.createUnsafe(this)
-            override val lifecycle: Lifecycle get() = registry
-        }
+                override fun list(directory: String) =
+                    flowOf<FileResult<List<StorageUsageEntry>>>(
+                        FileResult.Success(
+                            listOf(
+                                StorageUsageEntry(File(firstRoot, "test.pdf").path, "test.pdf", 600, false, false),
+                            ),
+                        ),
+                    )
+            }
+        val owner =
+            object : LifecycleOwner {
+                val registry = LifecycleRegistry.createUnsafe(this)
+                override val lifecycle: Lifecycle get() = registry
+            }
         owner.registry.currentState = Lifecycle.State.CREATED
-        val volumes = mutableStateOf(listOf(StorageVolumeInfo(
-            "first", "Internal", StorageType.INTERNAL_SHARED, 1_000, 100, false, true,
-            FileNodeId.file(firstRoot), false,
-        )))
+        val volumes =
+            mutableStateOf(
+                listOf(
+                    StorageVolumeInfo(
+                        "first", "Internal", StorageType.INTERNAL_SHARED, 1_000, 100, false, true,
+                        FileNodeId.file(firstRoot), false,
+                    ),
+                ),
+            )
         val visible = mutableStateOf(true)
         val repository = StorageUsageRepository(source)
         val finished = MutableSharedFlow<OperationSnapshot>()
@@ -100,16 +110,18 @@ class StorageUsageLifecycleTest {
             }
             compose.onNodeWithTag("storage_readable_total").assertTextEquals("600.0 B · 1 files found")
             compose.runOnIdle {
-                volumes.value = listOf(volumes.value.single().copy(
-                    id = "second", rootNodeId = FileNodeId.file(secondRoot),
-                ))
+                volumes.value =
+                    listOf(
+                        volumes.value.single().copy(
+                            id = "second", rootNodeId = FileNodeId.file(secondRoot),
+                        ),
+                    )
             }
             compose.waitUntil(5_000) { pendingEntered.isCompleted }
             assertEquals(1, activePlans.get())
             compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
         } catch (failure: Throwable) {
             bodyFailure = failure
-            throw failure
         } finally {
             try {
                 compose.runOnIdle {
@@ -122,9 +134,11 @@ class StorageUsageLifecycleTest {
                 if (pendingEntered.isCompleted) assertTrue(pendingCancelled.isCompleted)
             } catch (cleanupFailure: Throwable) {
                 // Keep the original scope/assertion failure visible if teardown also fails.
-                bodyFailure?.addSuppressed(cleanupFailure) ?: throw cleanupFailure
+                val original = bodyFailure
+                if (original == null) bodyFailure = cleanupFailure else original.addSuppressed(cleanupFailure)
             }
         }
+        bodyFailure?.let { throw it }
     }
 
     @Test
