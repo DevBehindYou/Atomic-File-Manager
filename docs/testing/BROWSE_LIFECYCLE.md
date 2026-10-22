@@ -17,7 +17,7 @@ continues to do so, while accepted mutation work drains on its original model.
 
 ## Accepted work and retirement contract
 
-`BrowseViewModel` counts accepted create, rename, bubble metadata, bubble transfer/cleanup and
+`BrowseViewModel` delegates to its internal `BrowseAcceptedWork` helper, which counts accepted create, rename, bubble metadata, bubble transfer/cleanup and
 sort-save jobs synchronously before launching them in its existing `viewModelScope`. A completion
 handler releases the count after success, returned failure, coroutine failure or cancellation,
 including cancellation before the body starts. Background listings, filters and operation
@@ -33,7 +33,7 @@ after an A-to-B-to-A root change. Primary Activity models do not use this contra
 future owner must distinguish permanent closure from ordinary hiding/configuration changes.
 
 This retains the existing Main-owned mutation scope; it adds neither a global scope nor blanket
-NonCancellable mutations. Existing sort writes still start UNDISTPATCHED and serialize inside
+NonCancellable mutations. Existing sort writes still start UNDISPATCHED and serialize inside
 their existing NonCancellable mutex block. External scope cancellation keeps its prior meaning;
 retirement itself waits instead of cancelling accepted work. A provider operation that never
 returns can retain its retired model until it finishes or is otherwise cancelled. This is not
@@ -53,7 +53,6 @@ controlled retirement suite separately uses a real in-memory node for rename suc
 already-cancelled jobs, one-shot callbacks, ordered NonCancellable sort saves, bubble failure and
 successful transfer through held cleanup, plus idle abandonment with independently queued work.
 
-Validation is pending parent-run serialized host checks. The parent owns RED on unchanged
-production using the frozen consumer fixture/tests, followed by GREEN and existing lifecycle,
-sort, queue and Browse tests. No host, CI, device, frame-time or memory-improvement pass is
-claimed for this slice until its exact evidence is recorded.
+The frozen old-source composition consumers reproduce both failures; all 59 selected corrected host cases, static checks, APKs and debug Lint now pass. See [the validation record](BROWSE_SECONDARY_DRAIN_VALIDATION.md) for exact source, hashes, retained negative evidence and pending CI/device limits.
+
+
