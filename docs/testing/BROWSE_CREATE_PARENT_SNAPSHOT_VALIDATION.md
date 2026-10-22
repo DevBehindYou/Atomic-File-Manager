@@ -1,6 +1,6 @@
 # Browse create-folder acceptance target — narrow prerequisite
 
-Prepared 22 October 2026 from accepted feature integration `dbb43f0`. This candidate changes only the argument captured by `BrowseViewModel.createFolder`; host execution, review and CI remain pending.
+Prepared 22 October 2026 from accepted feature integration `dbb43f0`, then synchronized with accepted tab-session integration `e60d8e7`. [PR #74](https://github.com/DevBehindYou/Atomic-File-Manager/pull/74) changes only the argument captured by `BrowseViewModel.createFolder`. Focused host execution and independent source review pass; final-head CI and guarded integration remain required.
 
 ## Problem and change
 
@@ -25,6 +25,16 @@ The parent owns serialized execution. First add only `BrowseCreateFolderTargetTe
 gradle :app:testDebugUnitTest --tests com.devbehindyou.atomicfilemanager.ui.screens.BrowseCreateFolderTargetTest
 ```
 
-The acceptance-race case must fail because the backend receives Destination rather than the original parent. The late-success case is a behavior-preservation regression and should already pass. Restore the two-line production fix and rerun both cases, related primary navigation/state and sort cases, static checks and applicable compilation gates. These commands describe pending work; no red/green, build or CI result is claimed here. The parent will synchronize accepted dependencies and record exact-source evidence before publishing or merging a focused PR.
+The acceptance-race case must fail because the backend receives Destination rather than the original parent. The late-success case is a behavior-preservation regression and should already pass. Restore the two-line production fix and rerun both cases, related primary navigation/state and sort cases, static checks and applicable compilation gates. This section defines the procedure; actual red/green, build and review results are recorded below. Source synchronization and publication do not replace final-head CI or a guarded integration trial.
 
 This prerequisite does not solve retained model accumulation or accepted mutations surviving model retirement. Those remain separate Phase 0 slices. It adds no complete milestone to the fixed 13-item progress denominator and does not complete main/release acceptance.
+
+## Executed checkpoint — 22 October
+
+The regression first ran against unchanged production app tree `9ec9b8dc8acda01fe5e37fb9e72eaf95876b1c64` with only the new test added. `browse-create-parent-red-validation.log` exits 1 in 54s: 2 cases, exactly 1 expected failure, no errors/skips. The backend receives `file:/mem/1` instead of accepted parent `file:/mem/0`. The late-success preservation case already passes. Original XML is retained as `browse-create-parent-red-test-results.xml`.
+
+With the fix, root source `ecabeea` and synchronized PR source share app tree `015a80f1e0235d4989044473663b4ca7d1fb05f0`. `browse-create-parent-green-validation.log` exits 0 in 6m46s: all 30 focused cases pass without failures/errors/skips (2 create-target, 3 navigation identity, 11 sort-loading, 2 real session-model, 8 STARTED lifecycle, 1 primary state and 3 visibility). ktlint/detekt, debug/AndroidTest packaging and debug Lint pass. Lint reports 0 errors, 154 existing warnings and 1 hint. Saved result JSON and host artifact metadata are under `build/audit-tools/browse-create-parent-*`.
+
+Debug APK SHA-256: `9A2E929061F5D182E7AD2ACE7F0AF0D2264915CF939C3F2171A74EA7724D220E`; test APK: `BED18771E468D770764FB3AD9DDA1742D9ED6A55381E23C79E298858E589ACC8`. These are host-built artifacts, not new physical mutation acceptance. The installed and phone-tested startup/Analysis/tab checkpoint remains the separately recorded `9ec9b8d` app tree; its four native cases must not be relabeled as tests of this new source. No real user file, directory, permission or preference was changed for these regressions.
+
+Independent source review found no remaining blocker in this narrow change. Final-head CI, review-thread inspection, accepted dependency state and a clean guarded merge trial remain required. Broader leases/pruning/provider/release acceptance stays open.
