@@ -60,7 +60,7 @@ class MobileNavigationDeviceTest {
             assertEquals(FileViewMode.GRID, repository.settings.value.fileViewMode)
             compose.onNodeWithTag("browse_options_button").performClick()
             compose.onNodeWithText("Sort by").performClick()
-            compose.onNodeWithText("Size").assertIsDisplayed()
+            compose.onNodeWithText("Size descending").performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Back to file options").performClick()
             compose.onNodeWithText("Show hidden files").performClick()
             assertEquals(!original.showHiddenFiles, repository.settings.value.showHiddenFiles)

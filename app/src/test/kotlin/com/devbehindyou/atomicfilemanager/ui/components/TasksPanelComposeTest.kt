@@ -49,8 +49,10 @@ class TasksPanelComposeTest {
             }
         }
         compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth - AtomicSpacing.s32)
+        assertCenteredHeader()
         compose.runOnIdle { availableWidth.value += AtomicSpacing.s32 }
         compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth)
+        assertCenteredHeader()
     }
 
     @Test
@@ -86,5 +88,13 @@ class TasksPanelComposeTest {
         compose.onNodeWithText("No tasks running").assertExists()
         compose.onNodeWithContentDescription("All operations →").performClick()
         compose.runOnIdle { assertEquals(1, opened) }
+    }
+
+    private fun assertCenteredHeader() {
+        val leading = compose.onNodeWithTag("tasks_leading").fetchSemanticsNode().boundsInRoot
+        val trailing = compose.onNodeWithTag("tasks_trailing").fetchSemanticsNode().boundsInRoot
+        val title = compose.onNodeWithTag("tasks_heading").fetchSemanticsNode().boundsInRoot
+        assertEquals(leading.width, trailing.width, 0f)
+        assertEquals((leading.right + trailing.left) / 2f, title.center.x, 1f)
     }
 }
