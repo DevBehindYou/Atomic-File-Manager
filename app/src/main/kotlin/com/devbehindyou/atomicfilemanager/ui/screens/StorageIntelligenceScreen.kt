@@ -290,21 +290,26 @@ internal fun StorageIntelligenceContent(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    AtomicText(
-                        if (scanError) {
-                            "Cleanup analysis could not finish. Try again."
-                        } else {
-                            "Cleanup hasn't been analyzed. Start a scan when you need suggestions."
-                        },
-                        AtomicTextRole.BodySecondary,
-                        Modifier.testTag("cleanup_unscanned"),
-                    )
-                    AtomicButton(
-                        "Analyze storage",
-                        onClick = ::startScan,
-                        enabled = !fileTypesRunning,
-                        modifier = Modifier.testTag("start_cleanup_analysis"),
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+                    ) {
+                        AtomicText(
+                            if (scanError) {
+                                "Cleanup analysis could not finish. Try again."
+                            } else {
+                                "Cleanup hasn't been analyzed. Start a scan when you need suggestions."
+                            },
+                            AtomicTextRole.BodySecondary,
+                            Modifier.testTag("cleanup_unscanned"),
+                        )
+                        AtomicButton(
+                            "Analyze storage",
+                            onClick = ::startScan,
+                            enabled = !fileTypesRunning,
+                            modifier = Modifier.fillMaxWidth().testTag("start_cleanup_analysis"),
+                        )
+                    }
                 }
             }
             if (analysisResult.isPartial && !isScanning) {
