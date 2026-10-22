@@ -36,7 +36,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -142,7 +141,7 @@ class MainActivity : FragmentActivity() {
     private val externalOpen = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splash = installSplashScreen()
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // After recreation the route stack is already restored; don't push the same screen again.
         externalOpen.value =
@@ -157,11 +156,7 @@ class MainActivity : FragmentActivity() {
 
         val app = application as AtomicApp
         val startup = SettingsStartupLoader(lifecycleScope) { app.container.settingsRepository }
-        var appContentReady = false
-        splash.setKeepOnScreenCondition {
-            val state = startup.state.value
-            state is SettingsStartupState.Loading || (state is SettingsStartupState.Ready && !appContentReady)
-        }
+        // Loading and failure UI must draw without waiting for a later Compose frame.
         startup.start()
         setContent {
             val startupState by startup.state.collectAsState()
@@ -175,7 +170,6 @@ class MainActivity : FragmentActivity() {
                 return@setContent
             }
             val settings by ready.repository.settings.collectAsState()
-            SideEffect { appContentReady = true }
             val darkTheme =
                 when (settings.themeMode) {
                     ThemeMode.SYSTEM -> isSystemInDarkTheme()
