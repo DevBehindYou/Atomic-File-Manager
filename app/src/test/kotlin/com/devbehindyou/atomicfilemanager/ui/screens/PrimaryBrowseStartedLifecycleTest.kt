@@ -212,7 +212,10 @@ class PrimaryBrowseStartedLifecycleTest {
                 override suspend fun get(folderRaw: String): String? =
                     if (sortReads.incrementAndGet() == 1) SortOption.NAME.name else restoredSort.await()
 
-                override suspend fun set(folderRaw: String, value: String): Unit = error("No sort write is expected")
+                override suspend fun set(
+                    folderRaw: String,
+                    value: String,
+                ): Unit = error("No sort write is expected")
             }
         val owner = owner()
         val model = model(sorts)
