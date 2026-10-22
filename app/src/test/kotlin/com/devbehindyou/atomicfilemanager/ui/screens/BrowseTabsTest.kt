@@ -92,8 +92,9 @@ class BrowseTabsTest {
 
     @Test
     fun `malformed optional sessions preserve usable legacy tabs and never become key syntax`() {
-        val saved = "1\u001E0\u001F0\u001FInternal\u001F$home\u001Fbad-token" +
-            "\u001E1\u001F0\u001FPhotos\u001Ffile:/photos\u001Ftab0:"
+        val saved =
+            "1\u001E0\u001F0\u001FInternal\u001F$home\u001Fbad-token" +
+                "\u001E1\u001F0\u001FPhotos\u001Ffile:/photos\u001Ftab0:"
         val restored = BrowseTabsState.decode(saved, home)
         assertEquals(listOf(0, 1), restored.tabs.map { it.id })
         assertEquals(listOf("", "tab1:"), restored.tabs.map { it.stateKey })

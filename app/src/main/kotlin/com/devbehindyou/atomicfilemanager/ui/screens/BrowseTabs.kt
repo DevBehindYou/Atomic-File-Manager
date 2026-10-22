@@ -35,8 +35,10 @@ data class BrowseTab(
         }
 }
 
-internal fun primaryBrowseViewModelKey(tabKey: String, initialFolderId: FileNodeId): String =
-    "browse:$tabKey${initialFolderId.raw}"
+internal fun primaryBrowseViewModelKey(
+    tabKey: String,
+    initialFolderId: FileNodeId,
+): String = "browse:$tabKey${initialFolderId.raw}"
 
 /**
  * Browse tabs (ALL_IN_ONE_PLAN.md 2.4): up to [MAX] tabs, each with its own view model. Pure so
@@ -57,9 +59,10 @@ data class BrowseTabsState(
         if (!canOpenMore) return this
         val id = (tabs.maxOf { it.id }) + 1
         val at = tabs.indexOfFirst { it.id == activeId } + 1
-        val next = tabs.toMutableList().apply {
-            add(at, BrowseTab(id, folderRaw, title = title, sessionId = UUID.randomUUID().toString()))
-        }
+        val next =
+            tabs.toMutableList().apply {
+                add(at, BrowseTab(id, folderRaw, title = title, sessionId = UUID.randomUUID().toString()))
+            }
         return BrowseTabsState(next, id)
     }
 

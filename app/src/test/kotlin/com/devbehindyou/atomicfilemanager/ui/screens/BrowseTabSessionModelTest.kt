@@ -46,10 +46,11 @@ class BrowseTabSessionModelTest {
     @Test
     fun reopeningTheSameNumericTabAndFolderCannotResurrectClosedNavigationOrClipboard() {
         compose.setContent {}
-        val source = FileNode(
-            FileNodeId.file("/session-source.txt"), "source.txt", "source.txt", "text/plain", 1, 1,
-            false, false, fixture.root, StorageType.INTERNAL_PRIVATE, AccessFlags.READ_ONLY, null, null,
-        )
+        val source =
+            FileNode(
+                FileNodeId.file("/session-source.txt"), "source.txt", "source.txt", "text/plain", 1, 1,
+                false, false, fixture.root, StorageType.INTERNAL_PRIVATE, AccessFlags.READ_ONLY, null, null,
+            )
         fixture.listingItems = listOf(source)
         val opened = BrowseTabsState.single(fixture.root.raw).open(fixture.root.raw)
         val oldTab = opened.active
@@ -114,7 +115,8 @@ class BrowseTabSessionModelTest {
             assertEquals("first tab", firstModel.uiState.value.searchQuery)
             assertEquals("second tab", secondModel.uiState.value.searchQuery)
             assertEquals(
-                "browse:${fixture.root.raw}", primaryBrowseViewModelKey(opened.tabs.first().stateKey, fixture.root),
+                "browse:${fixture.root.raw}",
+                primaryBrowseViewModelKey(opened.tabs.first().stateKey, fixture.root),
             )
         }
     }
