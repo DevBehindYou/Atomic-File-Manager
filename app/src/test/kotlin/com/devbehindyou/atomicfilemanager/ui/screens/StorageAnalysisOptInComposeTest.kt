@@ -58,42 +58,45 @@ class StorageAnalysisOptInComposeTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun openingAnalysisShowsUnscannedActionsWithoutStartingEitherScanner() = withFixture { fixture ->
-        compose.onNodeWithContentDescription("Analyze file types").assertExists()
-        compose.onNodeWithTag("cleanup_unscanned").assertExists()
-        compose.onNodeWithTag("refresh_storage_usage").assertIsEnabled()
-        compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
-        compose.runOnIdle {
+    fun openingAnalysisShowsUnscannedActionsWithoutStartingEitherScanner() =
+        withFixture { fixture ->
+            compose.onNodeWithContentDescription("Analyze file types").assertExists()
+            compose.onNodeWithTag("cleanup_unscanned").assertExists()
+            compose.onNodeWithTag("refresh_storage_usage").assertIsEnabled()
+            compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
+            compose.runOnIdle {
+                assertEquals(0, fixture.usagePlans.get())
+                assertEquals(0, fixture.usageStarts.get())
+                assertEquals(0, fixture.deepStarts.get())
+                assertEquals(0, fixture.finished.subscriptionCount.value)
+            }
+        }
+
+    @Test
+    fun fileTypeActionStartsOnlyMetadataBlocksCleanupAndCancelsWhenAnalysisLeaves() =
+        withFixture { fixture ->
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
+            compose.waitForIdle()
+            compose.waitUntil(5_000) { fixture.usageStarts.get() == 1 }
+            compose.onNodeWithTag("analyze_cleanup_button").assertIsNotEnabled()
+            assertEquals(1, fixture.usagePlans.get())
+            assertEquals(0, fixture.deepStarts.get())
+            assertEquals(1, fixture.activeUsage.get())
+            fixture.expectUsageCancellation = true
+        }
+
+    @Test
+    fun cleanupActionStartsOnlyDeepAnalysisAndDisablesFileTypeAction() =
+        withFixture { fixture ->
+            compose.onNodeWithTag("analyze_cleanup_button").performClick()
+            compose.waitForIdle()
+            compose.waitUntil(5_000) { fixture.deepStarts.get() == 1 }
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsNotEnabled()
             assertEquals(0, fixture.usagePlans.get())
             assertEquals(0, fixture.usageStarts.get())
-            assertEquals(0, fixture.deepStarts.get())
-            assertEquals(0, fixture.finished.subscriptionCount.value)
+            assertEquals(1, fixture.activeDeep.get())
+            fixture.expectDeepCancellation = true
         }
-    }
-
-    @Test
-    fun fileTypeActionStartsOnlyMetadataBlocksCleanupAndCancelsWhenAnalysisLeaves() = withFixture { fixture ->
-        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
-        compose.waitForIdle()
-        compose.waitUntil(5_000) { fixture.usageStarts.get() == 1 }
-        compose.onNodeWithTag("analyze_cleanup_button").assertIsNotEnabled()
-        assertEquals(1, fixture.usagePlans.get())
-        assertEquals(0, fixture.deepStarts.get())
-        assertEquals(1, fixture.activeUsage.get())
-        fixture.expectUsageCancellation = true
-    }
-
-    @Test
-    fun cleanupActionStartsOnlyDeepAnalysisAndDisablesFileTypeAction() = withFixture { fixture ->
-        compose.onNodeWithTag("analyze_cleanup_button").performClick()
-        compose.waitForIdle()
-        compose.waitUntil(5_000) { fixture.deepStarts.get() == 1 }
-        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsNotEnabled()
-        assertEquals(0, fixture.usagePlans.get())
-        assertEquals(0, fixture.usageStarts.get())
-        assertEquals(1, fixture.activeDeep.get())
-        fixture.expectDeepCancellation = true
-    }
 
     @Test
     fun recentCleanupResultIsShownWithoutStartingANewScanOnEntry() {
@@ -115,40 +118,45 @@ class StorageAnalysisOptInComposeTest {
     }
 
     @Test
-    fun changingAnalysisRootCancelsMetadataAndRequiresAnotherExplicitAction() = withFixture { fixture ->
-        val secondRoot = runBlocking(Dispatchers.IO) {
-            (fixture.memory.createDirectory(fixture.memory.rootId, "second") as FileResult.Success).value.id
+    fun changingAnalysisRootCancelsMetadataAndRequiresAnotherExplicitAction() =
+        withFixture { fixture ->
+            val secondRoot =
+                runBlocking(Dispatchers.IO) {
+                    (fixture.memory.createDirectory(fixture.memory.rootId, "second") as FileResult.Success).value.id
+                }
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
+            compose.waitForIdle()
+            compose.waitUntil(5_000) { fixture.usageStarts.get() == 1 }
+            compose.onNodeWithTag("analyze_cleanup_button").assertIsNotEnabled()
+            fixture.expectUsageCancellation = true
+
+            compose.runOnIdle { fixture.rootId.value = secondRoot }
+            compose.waitForIdle()
+            compose.waitUntil(5_000) {
+                fixture.usageCancelled.isCompleted && fixture.activeUsage.get() == 0 &&
+                    fixture.finished.subscriptionCount.value == 0
+            }
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("Analyze file types").assertExists()
+            compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
+            assertEquals(1, fixture.usagePlans.get())
+            assertEquals(1, fixture.usageStarts.get())
+            assertEquals(0, fixture.deepStarts.get())
+
+            compose.onNodeWithTag("analyze_cleanup_button").performClick()
+            compose.waitForIdle()
+            compose.waitUntil(5_000) { fixture.deepStarts.get() == 1 }
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsNotEnabled()
+            assertEquals(listOf(secondRoot), fixture.deepRoots.toList())
+            assertEquals(1, fixture.activeDeep.get())
+            assertEquals(1, fixture.usageStarts.get())
+            fixture.expectDeepCancellation = true
         }
-        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
-        compose.waitForIdle()
-        compose.waitUntil(5_000) { fixture.usageStarts.get() == 1 }
-        compose.onNodeWithTag("analyze_cleanup_button").assertIsNotEnabled()
-        fixture.expectUsageCancellation = true
 
-        compose.runOnIdle { fixture.rootId.value = secondRoot }
-        compose.waitForIdle()
-        compose.waitUntil(5_000) {
-            fixture.usageCancelled.isCompleted && fixture.activeUsage.get() == 0 &&
-                fixture.finished.subscriptionCount.value == 0
-        }
-        compose.waitForIdle()
-        compose.onNodeWithContentDescription("Analyze file types").assertExists()
-        compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
-        assertEquals(1, fixture.usagePlans.get())
-        assertEquals(1, fixture.usageStarts.get())
-        assertEquals(0, fixture.deepStarts.get())
-
-        compose.onNodeWithTag("analyze_cleanup_button").performClick()
-        compose.waitForIdle()
-        compose.waitUntil(5_000) { fixture.deepStarts.get() == 1 }
-        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsNotEnabled()
-        assertEquals(listOf(secondRoot), fixture.deepRoots.toList())
-        assertEquals(1, fixture.activeDeep.get())
-        assertEquals(1, fixture.usageStarts.get())
-        fixture.expectDeepCancellation = true
-    }
-
-    private fun withFixture(fixture: Fixture = Fixture(), assertions: (Fixture) -> Unit) {
+    private fun withFixture(
+        fixture: Fixture = Fixture(),
+        assertions: (Fixture) -> Unit,
+    ) {
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides fixture.owner) {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
@@ -219,40 +227,49 @@ class StorageAnalysisOptInComposeTest {
         val deepRoots = ConcurrentLinkedQueue<FileNodeId>()
         val finished = MutableSharedFlow<OperationSnapshot>()
         private val root = File("analysis-usage-root").absolutePath
-        val volumes = listOf(StorageVolumeInfo(
-            "primary", "Internal", StorageType.INTERNAL_SHARED, 1_000, 200, false, true,
-            FileNodeId.file(root), false,
-        ))
-        private val backend = object : StorageBackend by memory {
-            override fun listChildren(id: FileNodeId) = flow<FileResult<List<FileNode>>> {
-                deepRoots.add(id)
-                deepStarts.incrementAndGet()
-                activeDeep.incrementAndGet()
-                try {
-                    if (blockDeep.get()) awaitCancellation() else emitAll(memory.listChildren(id))
-                } finally {
-                    if (blockDeep.get()) deepCancelled.complete(Unit)
-                    activeDeep.decrementAndGet()
-                }
+        val volumes =
+            listOf(
+                StorageVolumeInfo(
+                    "primary", "Internal", StorageType.INTERNAL_SHARED, 1_000, 200, false, true,
+                    FileNodeId.file(root), false,
+                ),
+            )
+        private val backend =
+            object : StorageBackend by memory {
+                override fun listChildren(id: FileNodeId) =
+                    flow<FileResult<List<FileNode>>> {
+                        deepRoots.add(id)
+                        deepStarts.incrementAndGet()
+                        activeDeep.incrementAndGet()
+                        try {
+                            if (blockDeep.get()) awaitCancellation() else emitAll(memory.listChildren(id))
+                        } finally {
+                            if (blockDeep.get()) deepCancelled.complete(Unit)
+                            activeDeep.decrementAndGet()
+                        }
+                    }
             }
-        }
         val analyzer = StorageAnalyzerUseCase({ backend }, ReadFileContentUseCase { backend })
-        val repository = StorageUsageRepository(object : StorageUsageSource {
-            override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
-                usagePlans.incrementAndGet()
-                return StorageUsagePlan("primary", listOf(root), StorageCapacity(1_000, 200, 1), 0)
-            }
+        val repository =
+            StorageUsageRepository(
+                object : StorageUsageSource {
+                    override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
+                        usagePlans.incrementAndGet()
+                        return StorageUsagePlan("primary", listOf(root), StorageCapacity(1_000, 200, 1), 0)
+                    }
 
-            override fun list(directory: String) = flow<FileResult<List<StorageUsageEntry>>> {
-                usageStarts.incrementAndGet()
-                activeUsage.incrementAndGet()
-                try {
-                    awaitCancellation()
-                } finally {
-                    usageCancelled.complete(Unit)
-                    activeUsage.decrementAndGet()
-                }
-            }
-        })
+                    override fun list(directory: String) =
+                        flow<FileResult<List<StorageUsageEntry>>> {
+                            usageStarts.incrementAndGet()
+                            activeUsage.incrementAndGet()
+                            try {
+                                awaitCancellation()
+                            } finally {
+                                usageCancelled.complete(Unit)
+                                activeUsage.decrementAndGet()
+                            }
+                        }
+                },
+            )
     }
 }

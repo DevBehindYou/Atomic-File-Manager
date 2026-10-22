@@ -82,7 +82,11 @@ class StorageUsageCapacityTest {
 
     private fun nodeId(path: String): FileNodeId = FileNodeId.file(File("capacity-snapshot", path).absolutePath)
 
-    private fun volume(id: String, total: Long, free: Long) = StorageVolumeInfo(
+    private fun volume(
+        id: String,
+        total: Long,
+        free: Long,
+    ) = StorageVolumeInfo(
         id = id,
         label = id,
         type = StorageType.SD_CARD,

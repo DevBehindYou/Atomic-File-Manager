@@ -23,9 +23,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,28 +54,28 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSect
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicStatTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarningBox
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
+import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
+import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.OperationId
 import com.devbehindyou.atomicfilemanager.domain.model.OperationOptions
+import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisCategory
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisResult
+import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.domain.usecase.CleanupRules
 import com.devbehindyou.atomicfilemanager.domain.usecase.StorageAnalyzerUseCase
-import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
-import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
-import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
-import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Wording for the cleanup confirm; pure so it is unit-tested. */
@@ -138,11 +138,16 @@ fun StorageIntelligenceScreen(
         finished = app.container.operationQueue.finished,
         retentionDays = settings.trashRetentionDays,
         onTrash = { targets ->
-            app.container.operationQueue.runAndAwait(FileOperation(
-                id = OperationId.random(), type = OperationType.TRASH,
-                sources = targets.map { it.id }, destination = null, options = OperationOptions(),
-                createdAt = System.currentTimeMillis(),
-            ))
+            app.container.operationQueue.runAndAwait(
+                FileOperation(
+                    id = OperationId.random(),
+                    type = OperationType.TRASH,
+                    sources = targets.map { it.id },
+                    destination = null,
+                    options = OperationOptions(),
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
         },
         onNavigateBack = onNavigateBack,
         modifier = modifier,
@@ -178,45 +183,53 @@ internal fun StorageIntelligenceContent(
     var scannedAt by remember(rootId) { mutableStateOf<Long?>(null) }
     var selected by remember(rootId) { mutableStateOf(emptySet<String>()) }
     var showConfirmDelete by remember(rootId) { mutableStateOf(false) }
-    val fileTypes = rememberStorageUsageAnalysis(
-        volumes, usageRepository, finished,
-        allowScan = !isScanning && volumesReady,
-        onRunningChange = { fileTypesRunning = it },
-        onRequest = { !isScanning },
-        analysisKey = rootId,
-    )
+    val fileTypes =
+        rememberStorageUsageAnalysis(
+            volumes,
+            usageRepository,
+            finished,
+            allowScan = !isScanning && volumesReady,
+            onRunningChange = { fileTypesRunning = it },
+            onRequest = { !isScanning },
+            analysisKey = rootId,
+        )
 
     fun startScan() {
         if (isScanning || fileTypesRunning) return
         isScanning = true
         scanError = false
         scannedFilesCount = 0
-        scanJob = coroutineScope.launch {
-            try {
-            analyzer.analyze(rootId).collect { progress ->
-                scannedFilesCount = progress.scannedFilesCount
-                if (progress.isComplete) {
-                    analysisResult = progress.result ?: StorageAnalysisResult(isPartial = true)
-                    scannedAt = System.currentTimeMillis()
-                    selected = StorageCleanupSelection.initialSelection(analysisResult, currentCategory)
+        scanJob =
+            coroutineScope.launch {
+                try {
+                    analyzer.analyze(rootId).collect { progress ->
+                        scannedFilesCount = progress.scannedFilesCount
+                        if (progress.isComplete) {
+                            analysisResult = progress.result ?: StorageAnalysisResult(isPartial = true)
+                            scannedAt = System.currentTimeMillis()
+                            selected = StorageCleanupSelection.initialSelection(analysisResult, currentCategory)
+                        }
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    scanError = true
+                } finally {
+                    isScanning = false
                 }
             }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                scanError = true
-            } finally {
-                isScanning = false
-            }
-        }
     }
 
     DisposableEffect(owner, rootId) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) scanJob?.cancel()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) scanJob?.cancel()
+            }
         owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer); scanJob?.cancel() }
+        onDispose {
+            owner.lifecycle.removeObserver(observer)
+            scanJob?.cancel()
+        }
     }
 
     LaunchedEffect(rootId) {
@@ -278,13 +291,17 @@ internal fun StorageIntelligenceContent(
                     )
                 } else {
                     AtomicText(
-                        if (scanError) "Cleanup analysis could not finish. Try again."
-                        else "Cleanup hasn't been analyzed. Start a scan when you need suggestions.",
+                        if (scanError) {
+                            "Cleanup analysis could not finish. Try again."
+                        } else {
+                            "Cleanup hasn't been analyzed. Start a scan when you need suggestions."
+                        },
                         AtomicTextRole.BodySecondary,
                         Modifier.testTag("cleanup_unscanned"),
                     )
                     AtomicButton(
-                        "Analyze storage", onClick = ::startScan,
+                        "Analyze storage",
+                        onClick = ::startScan,
                         enabled = !fileTypesRunning,
                         modifier = Modifier.testTag("start_cleanup_analysis"),
                     )
@@ -298,28 +315,34 @@ internal fun StorageIntelligenceContent(
                     )
                 }
             }
-            if (scanError && scannedAt != null && !isScanning) item {
-                AtomicWarningBox("Analysis stopped", "Previous cleanup results are shown. Analyze again to update.")
+            if (scanError && scannedAt != null && !isScanning) {
+                item {
+                    AtomicWarningBox("Analysis stopped", "Previous cleanup results are shown. Analyze again to update.")
+                }
             }
-            if (scannedAt != null || isScanning) item {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-                ) {
-                    StorageAnalysisCategory.entries.forEach { category ->
-                        AtomicChip(
-                            label = "${category.label} ${StorageCleanupSelection.count(analysisResult, category)}",
-                            selected = currentCategory == category,
-                            onSelectedChange = {
-                                currentCategory = category
-                                selected = StorageCleanupSelection.initialSelection(analysisResult, category)
-                            },
-                        )
+            if (scannedAt != null || isScanning) {
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+                    ) {
+                        StorageAnalysisCategory.entries.forEach { category ->
+                            AtomicChip(
+                                label = "${category.label} ${StorageCleanupSelection.count(analysisResult, category)}",
+                                selected = currentCategory == category,
+                                onSelectedChange = {
+                                    currentCategory = category
+                                    selected = StorageCleanupSelection.initialSelection(analysisResult, category)
+                                },
+                            )
+                        }
                     }
                 }
             }
-            if (scannedAt != null || isScanning) item {
-                AtomicText(CleanupRules.reason(currentCategory), AtomicTextRole.BodySecondary)
+            if (scannedAt != null || isScanning) {
+                item {
+                    AtomicText(CleanupRules.reason(currentCategory), AtomicTextRole.BodySecondary)
+                }
             }
             if (isScanning) {
                 item { AtomicEmptyState(message = "Results appear when the scan finishes.") }

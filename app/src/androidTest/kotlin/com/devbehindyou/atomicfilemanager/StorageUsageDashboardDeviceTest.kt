@@ -2,17 +2,17 @@ package com.devbehindyou.atomicfilemanager
 
 import android.app.Activity
 import android.app.Application
-import android.os.Bundle
-import android.util.Log
-import android.view.WindowManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
 import android.os.storage.StorageManager
+import android.util.Log
+import android.view.WindowManager
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -43,9 +43,10 @@ class StorageUsageDashboardDeviceTest {
         runBlocking(Dispatchers.IO) {
             val context = compose.activity.applicationContext
             val manager = checkNotNull(context.getSystemService(StorageManager::class.java))
-        val nativeVolumes = manager.storageVolumes.filter {
-            it.state == Environment.MEDIA_MOUNTED || it.state == Environment.MEDIA_MOUNTED_READ_ONLY
-        }
+            val nativeVolumes =
+                manager.storageVolumes.filter {
+                    it.state == Environment.MEDIA_MOUNTED || it.state == Environment.MEDIA_MOUNTED_READ_ONLY
+                }
             assertTrue("This device must have mounted internal storage", nativeVolumes.any { it.isPrimary })
             val appDirectories = if (Build.VERSION.SDK_INT < 30) context.getExternalFilesDirs(null) else emptyArray()
             val probes =
@@ -87,15 +88,28 @@ class StorageUsageDashboardDeviceTest {
     @Test
     fun storageStaysLightweightAndAnalysisRequiresAnExplicitFileTypeRequest() {
         val application = compose.activity.application
-        val lifecycleLog = object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, state: Bundle?) = lifecycle("created", activity)
-            override fun onActivityStarted(activity: Activity) = lifecycle("started", activity)
-            override fun onActivityResumed(activity: Activity) = lifecycle("resumed", activity)
-            override fun onActivityPaused(activity: Activity) = lifecycle("paused", activity)
-            override fun onActivityStopped(activity: Activity) = lifecycle("stopped", activity)
-            override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = lifecycle("saved", activity)
-            override fun onActivityDestroyed(activity: Activity) = lifecycle("destroyed", activity)
-        }
+        val lifecycleLog =
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityCreated(
+                    activity: Activity,
+                    state: Bundle?,
+                ) = lifecycle("created", activity)
+
+                override fun onActivityStarted(activity: Activity) = lifecycle("started", activity)
+
+                override fun onActivityResumed(activity: Activity) = lifecycle("resumed", activity)
+
+                override fun onActivityPaused(activity: Activity) = lifecycle("paused", activity)
+
+                override fun onActivityStopped(activity: Activity) = lifecycle("stopped", activity)
+
+                override fun onActivitySaveInstanceState(
+                    activity: Activity,
+                    state: Bundle,
+                ) = lifecycle("saved", activity)
+
+                override fun onActivityDestroyed(activity: Activity) = lifecycle("destroyed", activity)
+            }
         var originallyKeptAwake = false
         var keepAwakeApplied = false
         var lifecycleLogRegistered = false
@@ -180,7 +194,10 @@ class StorageUsageDashboardDeviceTest {
         Log.i("StorageUsageTest", "stage=$name scenario=${compose.activityRule.scenario.state}")
     }
 
-    private fun lifecycle(event: String, activity: Activity) {
+    private fun lifecycle(
+        event: String,
+        activity: Activity,
+    ) {
         if (activity is MainActivity) {
             Log.i(
                 "StorageUsageTest",

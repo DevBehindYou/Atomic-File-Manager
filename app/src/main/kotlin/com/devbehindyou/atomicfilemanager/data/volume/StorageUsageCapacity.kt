@@ -22,10 +22,11 @@ fun storageCapacity(volumes: List<StorageVolumeInfo>): StorageCapacity {
     }
 
     mounted.forEachIndexed { index, volume ->
-        val keys = buildList {
-            if (volume.id.isNotBlank()) add("id:${volume.id}")
-            capacityPath(volume)?.let { add("path:$it") }
-        }
+        val keys =
+            buildList {
+                if (volume.id.isNotBlank()) add("id:${volume.id}")
+                capacityPath(volume)?.let { add("path:$it") }
+            }
         for (key in keys) {
             val previous = identities.putIfAbsent(key, index)
             if (previous != null) parents[root(index)] = root(previous)
@@ -36,9 +37,10 @@ fun storageCapacity(volumes: List<StorageVolumeInfo>): StorageCapacity {
     var free = 0L
     var unknown = 0
     for (indices in groups.values) {
-        val known = indices.asSequence().map(mounted::get).firstOrNull {
-            it.totalBytes > 0 && it.freeBytes in 0..it.totalBytes
-        }
+        val known =
+            indices.asSequence().map(mounted::get).firstOrNull {
+                it.totalBytes > 0 && it.freeBytes in 0..it.totalBytes
+            }
         if (known == null || Long.MAX_VALUE - total < known.totalBytes) {
             unknown++
         } else {
@@ -52,8 +54,9 @@ fun storageCapacity(volumes: List<StorageVolumeInfo>): StorageCapacity {
 private fun capacityPath(volume: StorageVolumeInfo): String? {
     val node = volume.rootNodeId?.takeIf { it.prefix == FileNodeId.Prefix.FILE } ?: return null
     val raw = node.raw.removePrefix(FileNodeId.Prefix.FILE.scheme)
-    val absolute = raw.startsWith('/') ||
-        (raw.length >= 3 && raw[0].isLetter() && raw[1] == ':' && raw[2] in "/\\")
+    val absolute =
+        raw.startsWith('/') ||
+            (raw.length >= 3 && raw[0].isLetter() && raw[1] == ':' && raw[2] in "/\\")
     if (!absolute) return null
     return try {
         val path = Paths.get(raw)

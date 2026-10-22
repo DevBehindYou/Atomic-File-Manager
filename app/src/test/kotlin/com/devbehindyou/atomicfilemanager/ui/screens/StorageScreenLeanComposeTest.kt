@@ -34,15 +34,19 @@ class StorageScreenLeanComposeTest {
         val app = RuntimeEnvironment.getApplication() as AtomicApp
         val original = app.container
         val field = AtomicApp::class.java.getDeclaredField("container").apply { isAccessible = true }
-        val guarded = object : AppContainer by original {
-            override val storageUsageRepository: StorageUsageRepository
-                get() = error("Storage must not construct the recursive file-type scanner")
-            override val storageAnalyzerUseCase: StorageAnalyzerUseCase
-                get() = error("Storage must not construct the deep cleanup scanner")
-        }
+        val guarded =
+            object : AppContainer by original {
+                override val storageUsageRepository: StorageUsageRepository
+                    get() = error("Storage must not construct the recursive file-type scanner")
+                override val storageAnalyzerUseCase: StorageAnalyzerUseCase
+                    get() = error("Storage must not construct the deep cleanup scanner")
+            }
         val root = FileNodeId.file("/example")
-        val volume = StorageVolumeInfo("primary", "Internal", StorageType.INTERNAL_SHARED,
-            1_000, 400, false, true, root, false)
+        val volume =
+            StorageVolumeInfo(
+                "primary", "Internal", StorageType.INTERNAL_SHARED,
+                1_000, 400, false, true, root, false,
+            )
         var opened: FileNodeId? = null
         field.set(app, guarded)
         try {
