@@ -1,5 +1,10 @@
 package com.devbehindyou.atomicfilemanager
 
+import android.app.Activity
+import android.app.Application
+import android.os.Bundle
+import android.util.Log
+import android.view.WindowManager
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
@@ -7,6 +12,7 @@ import android.os.storage.StorageManager
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -79,32 +85,107 @@ class StorageUsageDashboardDeviceTest {
         }
 
     @Test
-    fun actualStorageTabShowsEveryCategoryRefreshesAndSurvivesNavigationAndRecreation() {
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("tab_storage").fetchSemanticsNodes().isNotEmpty() }
+    fun storageStaysLightweightAndAnalysisRequiresAnExplicitFileTypeRequest() {
+        val application = compose.activity.application
+        val lifecycleLog = object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, state: Bundle?) = lifecycle("created", activity)
+            override fun onActivityStarted(activity: Activity) = lifecycle("started", activity)
+            override fun onActivityResumed(activity: Activity) = lifecycle("resumed", activity)
+            override fun onActivityPaused(activity: Activity) = lifecycle("paused", activity)
+            override fun onActivityStopped(activity: Activity) = lifecycle("stopped", activity)
+            override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = lifecycle("saved", activity)
+            override fun onActivityDestroyed(activity: Activity) = lifecycle("destroyed", activity)
+        }
+        var originallyKeptAwake = false
+        var keepAwakeApplied = false
+        var lifecycleLogRegistered = false
         try {
+            application.registerActivityLifecycleCallbacks(lifecycleLog)
+            lifecycleLogRegistered = true
+            compose.activityRule.scenario.onActivity {
+                originallyKeptAwake = it.window.attributes.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
+                it.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                keepAwakeApplied = true
+            }
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("tab_storage").fetchSemanticsNodes().isNotEmpty() }
+            stage("open-lightweight-storage")
             compose.onNodeWithTag("tab_storage").performClick()
-            awaitTerminalBreakdown()
+            compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
             compose.onNodeWithTag("storage_capacity_summary").performScrollTo().assertIsDisplayed()
+            openAnalysis()
+            assertAnalysisIsUnrequested()
+            stage("request-file-types")
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled().performClick()
+            awaitTerminalBreakdown()
+            stage("check-eleven-categories")
             for (category in StorageUsageCategory.entries) {
                 compose.onNodeWithTag("storage_usage_${category.name}").performScrollTo().assertIsDisplayed()
             }
+            stage("refresh-file-types")
             compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled().performClick()
             // A small directory can finish between frames; do not require seeing a transient spinner.
             compose.waitForIdle()
             awaitTerminalBreakdown()
-            compose.onNodeWithTag("tab_home").performClick()
-            compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
-            compose.onNodeWithTag("tab_storage").performClick()
-            awaitTerminalBreakdown()
-            recreateActivity()
+            stage("return-to-storage")
+            compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
             compose.onNodeWithTag("storage_screen").assertIsDisplayed()
-            compose.onNodeWithTag("storage_usage_dashboard").assertExists()
-            // Recreation can legitimately start a new scan; navigation away must remain responsive.
+            compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
+            openAnalysis()
+            assertAnalysisIsUnrequested()
+            stage("recreate-unrequested-analysis")
+            recreateActivity()
+            compose.activityRule.scenario.onActivity {
+                it.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            assertAnalysisIsUnrequested()
+            stage("leave-analysis")
+            compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
             compose.onNodeWithTag("tab_home").performClick()
             compose.onNodeWithTag("home_screen").assertIsDisplayed()
             compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
         } finally {
+            if (lifecycleLogRegistered) application.unregisterActivityLifecycleCallbacks(lifecycleLog)
+            runCatching {
+                compose.activityRule.scenario.onActivity {
+                    if (keepAwakeApplied && !originallyKeptAwake) {
+                        it.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
+            }
             runCatching { compose.onNodeWithTag("tab_home").performClick() }
+        }
+    }
+
+    private fun openAnalysis() {
+        stage("open-analysis")
+        compose.onNodeWithTag("open_storage_intelligence_button").performScrollTo().performClick()
+        compose.onNodeWithTag("storage_intelligence_screen").assertIsDisplayed()
+    }
+
+    private fun assertAnalysisIsUnrequested() {
+        compose.waitUntil(15_000) {
+            val button = compose.onAllNodesWithTag("refresh_storage_usage").fetchSemanticsNodes().singleOrNull()
+            button != null && !button.config.contains(SemanticsProperties.Disabled)
+        }
+        compose.onNodeWithTag("storage_intelligence_screen").assertIsDisplayed()
+        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled()
+            .assertContentDescriptionEquals("Analyze file types")
+        compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
+        StorageUsageCategory.entries.forEach {
+            compose.onNodeWithTag("storage_usage_${it.name}").assertDoesNotExist()
+        }
+    }
+
+    private fun stage(name: String) {
+        Log.i("StorageUsageTest", "stage=$name scenario=${compose.activityRule.scenario.state}")
+    }
+
+    private fun lifecycle(event: String, activity: Activity) {
+        if (activity is MainActivity) {
+            Log.i(
+                "StorageUsageTest",
+                "activity=$event focus=${activity.hasWindowFocus()} finishing=${activity.isFinishing}",
+            )
         }
     }
 

@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicLong
 
-enum class StorageUsagePhase { SCANNING, COMPLETE, PARTIAL, FAILED, NO_STORAGE }
+enum class StorageUsagePhase { IDLE, SCANNING, COMPLETE, PARTIAL, FAILED, NO_STORAGE, CANCELLED }
 
 data class StorageUsageUpdate(
     val phase: StorageUsagePhase = StorageUsagePhase.SCANNING,

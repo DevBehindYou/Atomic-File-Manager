@@ -17,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,7 +51,7 @@ import com.devbehindyou.atomicfilemanager.data.backend.network.DiscoveredServer
 import com.devbehindyou.atomicfilemanager.data.backend.network.NetworkCredentialsStore
 import com.devbehindyou.atomicfilemanager.data.backend.network.NsdServerDiscovery
 import com.devbehindyou.atomicfilemanager.data.backend.network.ServerDiscovery
-import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
+import com.devbehindyou.atomicfilemanager.data.volume.storageCapacity
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkProtocol
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkServerConfig
@@ -67,8 +66,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
 /**
- * Storage (ATOMIC_UI_PLAN.md §7.4, canvas "Storage"): free space on the main volume, a card with
- * a meter per volume, storage analysis, app cache, and network servers.
+ * Storage uses the supplied volume snapshot only: combined capacity, volume cards, tools and servers.
+ * Recursive file and cleanup analysis belongs to the explicit actions in Analysis.
  */
 @Composable
 fun StorageScreen(
@@ -115,10 +114,6 @@ fun StorageScreen(
         }
     }
 
-    val cacheSize by produceState(initialValue = 0L) {
-        value = withContext(Dispatchers.IO) { StorageVolumes.getAppCacheSize(context) }
-    }
-
     Column(
         modifier =
             modifier
@@ -130,13 +125,7 @@ fun StorageScreen(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
             AtomicSectionLabel("Storage usage")
-            if (app != null) {
-                StorageUsageDashboard(
-                    volumes,
-                    app.container.storageUsageRepository,
-                    app.container.operationQueue.finished,
-                )
-            }
+            StorageCapacitySummary(remember(volumes) { storageCapacity(volumes) })
             AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
             volumes.forEach { volume -> StorageVolumeCard(volume, onBrowse = { onBrowseVolume(volume) }) }
         }
@@ -148,7 +137,7 @@ fun StorageScreen(
                 AtomicTextRole.BodySecondary,
             )
             AtomicButton(
-                "Analyze storage",
+                "Open Analysis",
                 onClick = {
                     val primaryRoot =
                         volumes.firstOrNull()?.rootNodeId ?: FileNodeId.file(
@@ -159,7 +148,6 @@ fun StorageScreen(
                 leadingIcon = AtomicIcons.Cleanup,
                 modifier = Modifier.fillMaxWidth().testTag("open_storage_intelligence_button"),
             )
-            AtomicText("App cache · ${FileUtils.formatBytes(cacheSize)}", AtomicTextRole.MonoMeta)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
@@ -259,8 +247,7 @@ fun StorageScreen(
         ShizukuLabsSection(onBrowseFolder = onBrowseFolder)
 
         AtomicText(
-            "Capacity covers mounted filesystems. The file breakdown covers readable shared folders; " +
-                "Android keeps some system and app data private.",
+            "Capacity covers mounted filesystems. Open Analysis for file types and cleanup when needed.",
             AtomicTextRole.BodySecondary,
         )
     }

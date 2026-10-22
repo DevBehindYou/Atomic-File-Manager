@@ -47,53 +47,56 @@ class StorageVolumesTest {
     }
 
     @Test
-    fun readWriteAndReadOnlyVolumesAreMountedAndOnlyThoseContributeToUsage() = runBlocking(Dispatchers.IO) {
-        val readWrite = temporary.newFolder("read-write").canonicalFile
-        val readOnly = temporary.newFolder("read-only").canonicalFile
-        val removed = temporary.newFolder("removed").canonicalFile
-        addVolume("rw", readWrite, Environment.MEDIA_MOUNTED, primary = true, blocks = 1_000, available = 200)
-        addVolume("ro", readOnly, Environment.MEDIA_MOUNTED_READ_ONLY, blocks = 2_000, available = 300)
-        addVolume("removed", removed, Environment.MEDIA_UNMOUNTED, blocks = 500, available = 50)
-        // Deliberately reverse the platform's volume order to check API 27's real manager mapping.
-        context.externalDirectories = listOf(appDirectory(readOnly), appDirectory(removed), appDirectory(readWrite))
+    fun readWriteAndReadOnlyVolumesAreMountedAndOnlyThoseContributeToUsage() =
+        runBlocking(Dispatchers.IO) {
+            val readWrite = temporary.newFolder("read-write").canonicalFile
+            val readOnly = temporary.newFolder("read-only").canonicalFile
+            val removed = temporary.newFolder("removed").canonicalFile
+            addVolume("rw", readWrite, Environment.MEDIA_MOUNTED, primary = true, blocks = 1_000, available = 200)
+            addVolume("ro", readOnly, Environment.MEDIA_MOUNTED_READ_ONLY, blocks = 2_000, available = 300)
+            addVolume("removed", removed, Environment.MEDIA_UNMOUNTED, blocks = 500, available = 50)
+            // Deliberately reverse the platform's volume order to check API 27's real manager mapping.
+            context.externalDirectories = listOf(appDirectory(readOnly), appDirectory(removed), appDirectory(readWrite))
 
-        val volumes = StorageVolumes.enumerate(context).associateBy { it.id }
-        assertTrue(checkNotNull(volumes["rw"]).isMounted)
-        val card = checkNotNull(volumes["ro"])
-        assertTrue(card.isMounted)
-        assertFalse(card.requiresGrant)
-        assertEquals(readOnly, rootFile(checkNotNull(card.rootNodeId).raw))
-        assertEquals(2_000L * ShadowStatFs.BLOCK_SIZE, card.totalBytes)
-        assertEquals(300L * ShadowStatFs.BLOCK_SIZE, card.freeBytes)
-        assertFalse(checkNotNull(volumes["removed"]).isMounted)
+            val volumes = StorageVolumes.enumerate(context).associateBy { it.id }
+            assertTrue(checkNotNull(volumes["rw"]).isMounted)
+            val card = checkNotNull(volumes["ro"])
+            assertTrue(card.isMounted)
+            assertFalse(card.requiresGrant)
+            assertEquals(readOnly, rootFile(checkNotNull(card.rootNodeId).raw))
+            assertEquals(2_000L * ShadowStatFs.BLOCK_SIZE, card.totalBytes)
+            assertEquals(300L * ShadowStatFs.BLOCK_SIZE, card.freeBytes)
+            assertFalse(checkNotNull(volumes["removed"]).isMounted)
 
-        val plan = LocalStorageUsageSource(primaryPath = { context.filesDir.absolutePath })
-            .plan(volumes.values.toList())
-        assertEquals(2, plan.capacity.mountedVolumes)
-        assertEquals(3_000L * ShadowStatFs.BLOCK_SIZE, plan.capacity.totalBytes)
-        assertEquals(500L * ShadowStatFs.BLOCK_SIZE, plan.capacity.freeBytes)
-        assertEquals(setOf(readWrite.path, readOnly.path), plan.roots.toSet())
-    }
+            val plan =
+                LocalStorageUsageSource(primaryPath = { context.filesDir.absolutePath })
+                    .plan(volumes.values.toList())
+            assertEquals(2, plan.capacity.mountedVolumes)
+            assertEquals(3_000L * ShadowStatFs.BLOCK_SIZE, plan.capacity.totalBytes)
+            assertEquals(500L * ShadowStatFs.BLOCK_SIZE, plan.capacity.freeBytes)
+            assertEquals(setOf(readWrite.path, readOnly.path), plan.roots.toSet())
+        }
 
     @Test
-    fun readOnlyMountDoesNotBypassTheExistingSharedStorageGrant() = runBlocking(Dispatchers.IO) {
-        val root = temporary.newFolder("read-only-denied").canonicalFile
-        addVolume("ro", root, Environment.MEDIA_MOUNTED_READ_ONLY, blocks = 2_000, available = 300)
-        context.externalDirectories = listOf(appDirectory(root))
-        setGranted(false)
+    fun readOnlyMountDoesNotBypassTheExistingSharedStorageGrant() =
+        runBlocking(Dispatchers.IO) {
+            val root = temporary.newFolder("read-only-denied").canonicalFile
+            addVolume("ro", root, Environment.MEDIA_MOUNTED_READ_ONLY, blocks = 2_000, available = 300)
+            context.externalDirectories = listOf(appDirectory(root))
+            setGranted(false)
 
-        val card = StorageVolumes.enumerate(context).single()
-        assertTrue(card.isMounted)
-        assertTrue(card.requiresGrant)
-        assertNull(card.rootNodeId)
-        // Native capacity may be known even when listing access has not been granted.
-        assertEquals(2_000L * ShadowStatFs.BLOCK_SIZE, card.totalBytes)
-        val plan = LocalStorageUsageSource(primaryPath = { context.filesDir.absolutePath }).plan(listOf(card))
-        assertEquals(1, plan.capacity.mountedVolumes)
-        assertEquals(0, plan.capacity.unknownVolumes)
-        assertEquals(1, plan.unavailableRoots)
-        assertTrue(plan.roots.isEmpty())
-    }
+            val card = StorageVolumes.enumerate(context).single()
+            assertTrue(card.isMounted)
+            assertTrue(card.requiresGrant)
+            assertNull(card.rootNodeId)
+            // Native capacity may be known even when listing access has not been granted.
+            assertEquals(2_000L * ShadowStatFs.BLOCK_SIZE, card.totalBytes)
+            val plan = LocalStorageUsageSource(primaryPath = { context.filesDir.absolutePath }).plan(listOf(card))
+            assertEquals(1, plan.capacity.mountedVolumes)
+            assertEquals(0, plan.capacity.unknownVolumes)
+            assertEquals(1, plan.unavailableRoots)
+            assertTrue(plan.roots.isEmpty())
+        }
 
     @Test
     fun legacyMissingDirectoryMappingIsUnavailableWhileModernDirectoryDiscoveryRemainsSupported() {
@@ -137,12 +140,13 @@ class StorageVolumesTest {
         blocks: Int,
         available: Int,
     ) {
-        val volume = StorageVolumeBuilder(id, root, id, Process.myUserHandle(), state)
-            .setFsUuid(id)
-            .setIsPrimary(primary)
-            .setIsRemovable(!primary)
-            .setIsEmulated(primary)
-            .build()
+        val volume =
+            StorageVolumeBuilder(id, root, id, Process.myUserHandle(), state)
+                .setFsUuid(id)
+                .setIsPrimary(primary)
+                .setIsRemovable(!primary)
+                .setIsEmulated(primary)
+                .build()
         shadowOf(manager).addStorageVolume(volume)
         ShadowStatFs.registerStats(root, blocks, available, available)
     }
@@ -171,9 +175,16 @@ class StorageVolumesTest {
 
         override fun getExternalFilesDirs(type: String?): Array<File> = externalDirectories.toTypedArray()
 
-        override fun checkPermission(permission: String, pid: Int, uid: Int): Int =
-            if (permission == Manifest.permission.READ_EXTERNAL_STORAGE) readPermission
-            else super.checkPermission(permission, pid, uid)
+        override fun checkPermission(
+            permission: String,
+            pid: Int,
+            uid: Int,
+        ): Int =
+            if (permission == Manifest.permission.READ_EXTERNAL_STORAGE) {
+                readPermission
+            } else {
+                super.checkPermission(permission, pid, uid)
+            }
     }
 
     /** Keep Android's suffix separators on Windows while the real manager still sees native absolute paths. */

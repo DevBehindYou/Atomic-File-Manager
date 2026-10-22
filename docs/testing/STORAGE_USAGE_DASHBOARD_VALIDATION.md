@@ -1,49 +1,42 @@
-# Storage usage dashboard candidate
+# Storage capacity and on-demand Analysis candidate
 
-Date: 22 October 2026. Source implementation and independent review are complete; host compilation, static checks, unit/Compose execution and phone validation are **pending**. No timings or pass rate are claimed here.
+Date: 22 October 2026. The latest opt-in behavior is source-complete but host/native validation is **pending**. Earlier automatic-dashboard results below are historical and do not validate this new behavior.
 
-## Scope and meaning
+## Current behavior
 
-- Storage shows combined total/used/free filesystem capacity for mounted internal, SD and USB local volumes. A reliable volume identity or corroborated canonical path alias prevents duplicate capacity; distinct UUIDs are never collapsed just because a FUSE device number matches. Unknown or unrepresentable capacity remains explicitly unknown.
-- A separate readable shared-file breakdown contains eleven exclusive families: images, videos, audio, PDFs, office documents, archives, APKs, text/code, e-books, fonts and Other. Hidden files participate. Extensions/MIME metadata classify files without decoding their contents; the local enumerator supplies names and metadata only.
-- Category percentages use observed logical shared-file bytes, not total physical capacity. Private apps, system storage, inaccessible folders, links and filesystem overhead are not claimed as an exact breakdown. The unattributed used-space value is an estimate; unknown capacity or logical sizes exceeding physical usage suppress it.
-- Existing volume cards, explicit deep-analysis tools, cache controls and network controls remain available. The automatic dashboard never invokes duplicate hashing or uses the hidden-skipping search index as all-file truth.
+Storage uses only the supplied mounted-volume snapshot for combined total/used/free capacity and volume cards. Its pure `storageCapacity(volumes)` helper does no filesystem IO or recursive work. Storage does not construct either analysis repository/use case, collect the metadata scanner, or calculate a recursive app-cache size. Tools and network controls remain available; Open Analysis opens the existing Analysis route.
 
-## Work, cache and cancellation
+Opening Analysis reads an already cached deep-cleanup result, if available, but starts neither scan. Unscanned cleanup shows an explicit message and Analyze storage action, with no zero-savings success claim. Analyze file types explicitly starts the bounded metadata scan; Analyze storage/Rescan explicitly starts deep cleanup. Their admission guards prevent simultaneous scans, including requests arriving before the next recomposition. Active requests cancel on STOP/disposal and do not restart automatically on return. Scrolling through the lazy list does not dispose scan ownership or discard results. Root changes reset the root-owned scan lease, cached cleanup display, selections and errors. Cleanup invalidates its cached suggestions after the queued action and does not automatically start another scan.
 
-The collector runs on IO only while the Storage composable is visible and its lifecycle is STARTED. Leaving the screen cancels the scan and operation-finished subscription. Returning revalidates because operations may have completed while hidden. Visible completed operations and manual refresh bypass freshness. Storage/root/grant changes immediately clear the displayed scope; returning to an earlier scope still rescans.
+The file-type breakdown remains eleven exclusive families: images, videos, audio, PDFs, office documents, archives, APKs, text/code, e-books, fonts and Other. Hidden accessible files participate. Category percentages use their combined logical sizes, not physical disk capacity. System, private app and inaccessible data are not claimed as an exact file-type breakdown. Other used space is an estimate; unknown capacity or logical sizes exceeding physical usage suppress it.
 
-The local source emits batches of at most 128 entries. The walker holds aggregate counts plus bounded path sets/queues, never an entire tree of FileNodes: 250,000 entries, 25,000 directories, depth 64, a 30-second planning deadline and a separate 30-second walk deadline. Progress emits at most roughly every 250 ms. Explicit empty success can complete; silence, denied or mixed failed listings, skipped links, budget exhaustion, unknown capacity or concurrent invalidation remain partial. External coroutine cancellation propagates.
+## Work and cache bounds
 
-One last complete result has a monotonic 120-second TTL. A separate single terminal aggregate may retain partial observations as clearly stale evidence while retrying; it never validates freshness or becomes a complete result. Failed planning, explicit refresh and mount/grant/root changes invalidate freshness. Failed or cancelled scans never publish a new complete cache.
+The metadata source reads directory entries and attributes only, in batches of at most 128. The walker stores aggregate counts plus bounded path sets/queues: 250,000 entries, 25,000 directories, depth 64, a 30-second planning deadline and separate 30-second walk deadline. Work runs on IO. Explicit empty success can complete; silence, failures, skipped links, bounds, unknown capacity or concurrent invalidation remain partial. Files may change during a walk, so totals describe observations rather than a transactional filesystem snapshot.
 
-Filesystem metadata syscalls are synchronous on IO. Cancellation/deadlines are checked between calls and batch entries; a blocked kernel/filesystem call itself is not forcibly interrupted. Files may also change independently during a walk, so the UI describes observed totals rather than a transactional filesystem snapshot. No user files are mutated, no new permissions/dependencies are introduced, and no content hashes or deep decodes occur.
+A complete result alone can validate the repository's monotonic 120-second TTL; one additional terminal aggregate can retain clearly stale partial observations. Explicit UI requests bypass TTL. Errors, cancelled scans and changed mount/grant/root scopes do not become fresh complete evidence. No content hashing, content decoding or user-file mutation occurs in file-type analysis. Deep cleanup is a separate explicit action and retains its existing duplicate-analysis behavior.
 
-## Added regression targets (not yet executed)
+Blocking filesystem syscalls cannot be forcibly interrupted; cancellation is checked between calls and entries. Volume capacity deduplicates reliable IDs or corroborated aliases, never distinct UUIDs merely sharing FUSE device numbers or identical capacity. Unknown/unrepresentable capacity stays explicit. Read-only mounted volumes remain available for browsing/accounting without granting write access or bypassing permissions. Legacy unsupported root discovery stays unavailable rather than guessing paths.
 
-- `StorageUsageTest`: 31 cases including exclusive families, hidden/unknown names, MIME fallback/normalization, denominator separation, overflow and unavailable remainder.
-- `StorageUsageRepositoryTest`: 16 tests for explicit empty success, denied/silent/mixed failures, recovery within TTL, bounded/hanging planning and listing, cancellation, entry/directory/depth limits, duplicate roots/entries, invalidation during work, changed scopes, grant loss/restoration and retained partial evidence.
-- `LocalStorageUsageSourceTest`: 7 tests using real temporary filesystem metadata, hidden batching, missing/empty directories, symlink exclusion, aliases/UUIDs, mounted unknown/denied coverage, and physical-capacity overflow. The symlink test explicitly skips if the host disallows creating links.
-- `StorageUsagePanelComposeTest`: 4 tests for capacity/category scope, actual refresh dispatch with stale complete data, unknown capacity, and retained partial evidence labeled as partial while scanning.
-- `StorageUsageLifecycleTest`: 2 tests for actual scan and finished-event subscriber lifetimes across STARTED/STOPPED, and immediate scope reset while the new storage plan remains suspended.
+## Focused regression sources
 
-Recommended serialized host check: format/static checks, these five test classes, debug and AndroidTest APK packaging, then Lint. Phone follow-up should verify internal+SD capacity, category meters, partial Android/private-folder coverage, refresh, screen background/return, and storage/grant changes. Run against owned fixture files and preserve unrelated user files.
+- `StorageUsageTest`: 31 family, metadata, denominator, overflow and estimate cases.
+- `StorageUsageRepositoryTest`: 16 empty/failure/retry, cancellation, bounded work, scope restoration and retained-evidence cases.
+- `LocalStorageUsageSourceTest`: 7 real temporary-directory metadata cases; the link case explicitly skips when the host disallows creating links.
+- `StorageVolumesTest`: 4 platform fixtures on each of API 27 and 34 (8 cases), covering RW/RO/unmounted, permission gating, unsupported legacy discovery and unreadable roots.
+- `StorageUsageCapacityTest`: 8 pure snapshot aggregation cases with unknown/overflow, aliases and distinct identities.
+- `StorageUsagePanelComposeTest`: 4 capacity/category scope and partial/unknown display cases.
+- `StorageUsageLifecycleTest`: explicit requests are required before walking or subscribing; STOP cancels and return does not restart; changed scope clears prior totals and requires another request before a gated new plan.
+- `StorageAnalysisOptInComposeTest`: real injected Analysis content proves no scan on entry, explicit separate actions, mutual exclusion, disposal cancellation, cached cleanup without a new traversal, and root-owned request lifetime.
+- `StorageScreenLeanComposeTest`: actual Storage screen renders capacity and opens Analysis while guarded analysis getters fail if accessed.
+- `StorageAnalyzerUseCaseTest`: adds invalidation coverage so stale cleanup suggestions cannot be returned after a cleanup action.
 
-Independent source review found and resolved stale scope display, unbounded suspended planning and A→B→A permission-cache reuse. `git diff --check` passes; full host/device acceptance is still required before publication or merge.
+Latest sources have not been executed by this agent. Recommended serialized acceptance: format/static checks, focused data/Compose classes, existing affected cleanup tests, debug and AndroidTest APK packaging, then Lint.
 
-## Native dashboard candidate
+## Native candidate and historical evidence
 
-`StorageUsageDashboardDeviceTest` adds two instrumentation cases, not yet compiled or run on a phone:
+`StorageUsageDashboardDeviceTest` contains two focused native cases. Capacity compares the production source with independent StorageManager/StatFs samples before/after, allowing free-space drift of the greater of 64 MiB or 0.1% of total. The UI case now checks that Storage has capacity but no file-type panel, Analysis opens unrequested, an explicit file-type request renders all eleven families, refresh remains usable, and return/recreation require a new request. It does not start deep cleanup on the phone. A test-local keep-screen-on flag is restored and lifecycle/stage breadcrumbs help diagnose lost roots; no device preferences or grants change. This is a fixture guard, not a claimed diagnosis of the previous hierarchy loss.
 
-- Reads current mounted internal/removable capacity through the production local source and independently samples native `StorageManager`/`StatFs` probes before and after. Mounted unreadable volumes remain counted as unknown. Total capacity must match; free capacity allows background-write drift of the greater of 64 MiB or 0.1% of total capacity. No permissions or grants are changed.
-- Uses the actual MainActivity Storage tab and real metadata scan, accepts a complete or truthful partial breakdown within 80 seconds per wait, scrolls to all eleven category rows, dispatches manual refresh, leaves/returns, and recreates the Activity. Recreation must retain the Storage screen and permit immediate navigation away. Refresh is a native dispatch/terminal-state smoke check; the separate deterministic host test verifies callback dispatch. The device case deliberately does not require observing a transient scanning state or identical live totals.
+Historical pre-opt-in host run `storage-usage-dashboard-acceptance-validation.log` passed static checks, 67 focused cases, APK packaging and Lint in 9m27s. Read-only follow-up `storage-readonly-mount-validation.log` passed static checks and 62 data cases (including 8 API27/34 volume fixtures) in 2m30s. These do not validate the latest opt-in changes.
 
-The native cases create no shared-storage fixtures, alter no settings, and perform no root/shell operations. They read mounted metadata and leave the UI on Home. They do not exercise grant revocation, physical unmount, true process death or OS background scheduling. Run the focused instrumentation class after host compilation/static/unit checks; native acceptance remains pending.
-
-## Read-only mounted storage follow-up
-
-The volume enumerator and native capacity oracle now include Android's `MEDIA_MOUNTED_READ_ONLY` state alongside `MEDIA_MOUNTED`. This makes readable read-only media available for browsing and metadata accounting; it does not grant write access or bypass existing shared-storage permissions.
-
-`StorageVolumesTest` adds four real `StorageManager` enumeration fixtures on each of API 27 and 34 (eight host cases, execution pending). They cover RW/RO/unmounted capacity aggregation, denied grants with known physical capacity, unsupported legacy directory discovery versus modern discovery, and mounted-but-unreadable directory coverage. Fixtures use Robolectric's cached `StorageVolumeBuilder`, real disposable temporary directories and registered `StatFs` values. The Android suffix shim preserves the platform path contract on Windows hosts. No production directory-discovery or permission rules were changed.
-
-The already captured phone run covers the ordinary mounted state; no physical read-only device acceptance is claimed. Its native capacity case passed, but its UI case lost the Compose hierarchy after returning to Storage and remains a validation blocker under investigation.
+The old native capacity case passed on the connected phone. Its old UI case failed after returning to Storage with No compose hierarchies after 284 seconds; no crash was captured in the retained logs. The failure remains historical and unresolved until the revised candidate passes a controlled native run. The phone's 30-minute timeout does not establish screen-off as its cause. No physical read-only device, grant-revocation, unmount, true process-death or OS-background-scheduling acceptance is claimed. The revised native run is pending; no failing acceptance is merge-ready.

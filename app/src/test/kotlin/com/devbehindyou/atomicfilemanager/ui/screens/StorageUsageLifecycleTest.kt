@@ -1,13 +1,20 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import android.app.Application
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -30,6 +37,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,7 +104,9 @@ class StorageUsageLifecycleTest {
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                    if (visible.value) StorageUsageDashboard(volumes.value, repository, finished)
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        if (visible.value) StorageUsageDashboard(volumes.value, repository, finished)
+                    }
                 }
             }
         }
@@ -104,6 +114,9 @@ class StorageUsageLifecycleTest {
         try {
             // Attach the owner before STARTED, matching the controlled lifecycle fixture below.
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.STARTED }
+            compose.onNodeWithTag("storage_usage_status")
+                .assertTextEquals("Analyze file types when you need a breakdown.")
+            compose.onNodeWithTag("refresh_storage_usage").performClick()
             compose.waitUntil(5_000) {
                 val node = compose.onAllNodesWithTag("storage_readable_total").fetchSemanticsNodes().singleOrNull()
                 node?.config?.get(SemanticsProperties.Text)?.any { it.text == "600.0 B · 1 files found" } == true
@@ -118,6 +131,10 @@ class StorageUsageLifecycleTest {
                     )
             }
             // Apply the state-driven recomposition before polling a signal produced only on IO.
+            compose.waitForIdle()
+            compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
+            assertFalse(pendingEntered.isCompleted)
+            compose.onNodeWithTag("refresh_storage_usage").assertIsEnabled().performClick()
             compose.waitForIdle()
             compose.waitUntil(5_000) { pendingEntered.isCompleted }
             assertEquals(1, activePlans.get())
@@ -174,7 +191,9 @@ class StorageUsageLifecycleTest {
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                    StorageUsageDashboard(emptyList(), repository, finished)
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        StorageUsageDashboard(emptyList(), repository, finished)
+                    }
                 }
             }
         }
@@ -182,6 +201,11 @@ class StorageUsageLifecycleTest {
             assertEquals(0, starts.get())
             owner.registry.currentState = Lifecycle.State.STARTED
         }
+        compose.waitForIdle()
+        assertEquals(0, starts.get())
+        assertEquals(0, finished.subscriptionCount.value)
+        compose.onNodeWithTag("refresh_storage_usage").performClick()
+        compose.waitForIdle()
         compose.waitUntil(5_000) { starts.get() == 1 && finished.subscriptionCount.value == 1 }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
         compose.waitUntil(5_000) { cancelled.get() == 1 && finished.subscriptionCount.value == 0 }
@@ -189,6 +213,11 @@ class StorageUsageLifecycleTest {
             assertEquals(1, starts.get())
             owner.registry.currentState = Lifecycle.State.STARTED
         }
+        compose.waitForIdle()
+        assertEquals(1, starts.get())
+        assertEquals(0, finished.subscriptionCount.value)
+        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled().performClick()
+        compose.waitForIdle()
         compose.waitUntil(5_000) { starts.get() == 2 }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.DESTROYED }
         compose.waitUntil(5_000) { cancelled.get() == 2 && finished.subscriptionCount.value == 0 }

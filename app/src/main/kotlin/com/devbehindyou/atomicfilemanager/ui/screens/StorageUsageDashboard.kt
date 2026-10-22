@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
@@ -46,59 +44,90 @@ import com.devbehindyou.atomicfilemanager.domain.model.StorageUsageCategory
 import com.devbehindyou.atomicfilemanager.domain.model.StorageUsageSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import java.util.Locale
 
-/** Collection and operation-finished invalidation exist only while this screen is STARTED. */
-@OptIn(ExperimentalCoroutinesApi::class)
+/** Recursive work requires an explicit request and ends when the visible analysis is stopped. */
 @Composable
 internal fun StorageUsageDashboard(
     volumes: List<StorageVolumeInfo>,
     repository: StorageUsageRepository,
     finished: Flow<OperationSnapshot>,
+    allowScan: Boolean = true,
+    onRunningChange: (Boolean) -> Unit = {},
 ) {
+    val controls = rememberStorageUsageAnalysis(volumes, repository, finished, allowScan, onRunningChange)
+    StorageUsagePanel(controls.update, onRefresh = controls.start, allowRefresh = controls.enabled)
+}
+
+internal data class StorageUsageControls(
+    val update: StorageUsageUpdate,
+    val enabled: Boolean,
+    val start: () -> Unit,
+)
+
+/** Hoisted above lazy items so scrolling does not dispose the requested analysis or its result. */
+@Composable
+internal fun rememberStorageUsageAnalysis(
+    volumes: List<StorageVolumeInfo>,
+    repository: StorageUsageRepository,
+    finished: Flow<OperationSnapshot>,
+    allowScan: Boolean,
+    onRunningChange: (Boolean) -> Unit,
+    onRequest: () -> Boolean = { true },
+    analysisKey: Any? = null,
+): StorageUsageControls {
     val owner = LocalLifecycleOwner.current
-    val refresh = remember(repository, owner) { Channel<Unit>(Channel.CONFLATED) }
     val scopeKey = volumes.map { "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}" }.sorted()
-    var update by remember(repository, scopeKey) { mutableStateOf(StorageUsageUpdate()) }
-    DisposableEffect(refresh, owner, repository) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) repository.invalidate()
+    var update by remember(repository, scopeKey, analysisKey) {
+        mutableStateOf(StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
+    }
+    var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
+    // Keep an old session's cancellation callback tied to its own owner after a root change.
+    val notifyRunning = remember(repository, scopeKey, analysisKey) { mutableStateOf(onRunningChange) }
+    notifyRunning.value = onRunningChange
+    LaunchedEffect(repository, scopeKey, owner, requested, analysisKey) {
+        if (!requested) return@LaunchedEffect
+        try {
+            owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    coroutineScope {
+                        val invalidation = launch { finished.collect { repository.invalidate() } }
+                        try {
+                            repository.scan(volumes, refresh = true).collect { update = it }
+                        } finally {
+                            invalidation.cancelAndJoin()
+                        }
+                    }
+                } finally {
+                    requested = false
+                }
             }
-        owner.lifecycle.addObserver(observer)
-        onDispose {
-            owner.lifecycle.removeObserver(observer)
-            refresh.close()
-            // Finished events are intentionally not collected off-screen. Revalidate on return
-            // so a copy/move completed while hidden cannot leave a fresh-looking cached result.
+        } finally {
             repository.invalidate()
+            if (update.phase == StorageUsagePhase.SCANNING) update = update.copy(phase = StorageUsagePhase.CANCELLED)
+            notifyRunning.value(false)
         }
     }
-    LaunchedEffect(repository, volumes, owner, refresh) {
-        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            merge(flowOf(false), refresh.receiveAsFlow().map { true }, finished.map { true }).collectLatest { force ->
-                val previous = update.current?.takeIf { it.complete } ?: update.lastGood
-                val observed = update.current ?: update.previousObserved
-                update = StorageUsageUpdate(lastGood = previous, previousObserved = observed)
-                repository.scan(volumes, refresh = force).collect { update = it }
-            }
+    return StorageUsageControls(update, enabled = allowScan && !requested, start = {
+        if (allowScan && !requested && onRequest()) {
+            val previous = update.current?.takeIf { it.complete } ?: update.lastGood
+            val observed = update.current ?: update.previousObserved
+            update = StorageUsageUpdate(lastGood = previous, previousObserved = observed)
+            requested = true
+            notifyRunning.value(true)
         }
-    }
-    StorageUsagePanel(update, onRefresh = { refresh.trySend(Unit) })
+    })
 }
 
 @Composable
 internal fun StorageUsagePanel(
     update: StorageUsageUpdate,
     onRefresh: () -> Unit,
+    allowRefresh: Boolean = true,
 ) {
     val current = update.current
     val previous =
@@ -112,7 +141,7 @@ internal fun StorageUsagePanel(
         Modifier.fillMaxWidth().testTag("storage_usage_dashboard"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
     ) {
-        if (capacity == null) {
+        if (capacity == null && update.phase != StorageUsagePhase.IDLE) {
             AtomicText(
                 if (update.phase == StorageUsagePhase.FAILED) {
                     "Mounted storage capacity could not be read."
@@ -121,8 +150,8 @@ internal fun StorageUsagePanel(
                 },
                 AtomicTextRole.BodySecondary,
             )
-        } else {
-            CapacitySummary(capacity)
+        } else if (capacity != null) {
+            StorageCapacitySummary(capacity)
         }
         AtomicSectionLabel("Readable shared files")
         AtomicText(usageStatus(update), AtomicTextRole.BodySecondary, Modifier.testTag("storage_usage_status"))
@@ -165,9 +194,13 @@ internal fun StorageUsagePanel(
             )
         }
         AtomicButton(
-            if (update.phase == StorageUsagePhase.SCANNING) "Scanning shared files…" else "Refresh storage usage",
+            when (update.phase) {
+                StorageUsagePhase.SCANNING -> "Scanning files…"
+                StorageUsagePhase.IDLE -> "Analyze file types"
+                else -> "Refresh file types"
+            },
             onClick = onRefresh,
-            enabled = update.phase != StorageUsagePhase.SCANNING,
+            enabled = allowRefresh && update.phase != StorageUsagePhase.SCANNING,
             variant = AtomicButtonVariant.Ghost,
             leadingIcon = AtomicIcons.Refresh,
             modifier = Modifier.fillMaxWidth().testTag("refresh_storage_usage"),
@@ -176,7 +209,7 @@ internal fun StorageUsagePanel(
 }
 
 @Composable
-private fun CapacitySummary(capacity: StorageCapacity) {
+internal fun StorageCapacitySummary(capacity: StorageCapacity) {
     val colors = Atomic.colors
     Column(
         Modifier.fillMaxWidth().background(colors.surfaceCard, AtomicShape.md)
@@ -269,6 +302,7 @@ private fun UsageCategoryRow(
 internal fun usageStatus(update: StorageUsageUpdate): String {
     val current = update.current
     return when (update.phase) {
+        StorageUsagePhase.IDLE -> "Analyze file types when you need a breakdown."
         StorageUsagePhase.SCANNING -> "Scanning files · ${current?.scannedFiles ?: 0} files found."
         StorageUsagePhase.COMPLETE ->
             "Readable-folder scan complete. System and private app data are outside this breakdown."
@@ -288,6 +322,7 @@ internal fun usageStatus(update: StorageUsageUpdate): String {
             }
         StorageUsagePhase.FAILED -> "Storage usage could not be read. Refresh to retry; no empty result is assumed."
         StorageUsagePhase.NO_STORAGE -> "No mounted local storage is available. Reconnect storage, then refresh."
+        StorageUsagePhase.CANCELLED -> "Scan stopped. Analyze file types again when ready."
     }
 }
 

@@ -59,6 +59,14 @@ class StorageAnalyzerUseCaseTest {
         }
 
     @Test
+    fun `cleanup invalidation stops cached suggestions being offered without a new request`() = runTest {
+        analyzer.analyze(backend.rootId).toList()
+        assertTrue(analyzer.lastAnalysis(backend.rootId) != null)
+        analyzer.invalidate(backend.rootId)
+        assertNull(analyzer.lastAnalysis(backend.rootId))
+    }
+
+    @Test
     fun `detects large files exceeding specified threshold`() =
         runTest {
             val smallData = ByteArray(1024) { 1 }

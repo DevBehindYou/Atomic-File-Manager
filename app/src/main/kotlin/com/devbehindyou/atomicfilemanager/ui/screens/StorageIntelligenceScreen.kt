@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,11 +25,16 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
@@ -57,10 +63,20 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisCategory
 import com.devbehindyou.atomicfilemanager.domain.model.StorageAnalysisResult
 import com.devbehindyou.atomicfilemanager.domain.usecase.CleanupRules
+import com.devbehindyou.atomicfilemanager.domain.usecase.StorageAnalyzerUseCase
+import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
+import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
+import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
+import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 
 /** Wording for the cleanup confirm; pure so it is unit-tested. */
 internal object CleanupText {
@@ -108,41 +124,105 @@ fun StorageIntelligenceScreen(
     modifier: Modifier = Modifier,
     onOpenFile: ((FileNode) -> Unit)? = null,
 ) {
-    BackHandler(onBack = onNavigateBack)
     val app = LocalContext.current.applicationContext as AtomicApp
-    val coroutineScope = rememberCoroutineScope()
     val settings by app.container.settingsRepository.settings.collectAsState()
+    val volumes by produceState<List<StorageVolumeInfo>?>(initialValue = null, key1 = app) {
+        value = withContext(Dispatchers.IO) { StorageVolumes.enumerate(app) }
+    }
+    StorageIntelligenceContent(
+        rootId = rootId,
+        analyzer = app.container.storageAnalyzerUseCase,
+        usageRepository = app.container.storageUsageRepository,
+        volumes = volumes.orEmpty(),
+        volumesReady = volumes != null,
+        finished = app.container.operationQueue.finished,
+        retentionDays = settings.trashRetentionDays,
+        onTrash = { targets ->
+            app.container.operationQueue.runAndAwait(FileOperation(
+                id = OperationId.random(), type = OperationType.TRASH,
+                sources = targets.map { it.id }, destination = null, options = OperationOptions(),
+                createdAt = System.currentTimeMillis(),
+            ))
+        },
+        onNavigateBack = onNavigateBack,
+        modifier = modifier,
+        onOpenFile = onOpenFile,
+    )
+}
 
-    var isScanning by remember { mutableStateOf(false) }
-    var scannedFilesCount by remember { mutableIntStateOf(0) }
+@Composable
+internal fun StorageIntelligenceContent(
+    rootId: FileNodeId,
+    analyzer: StorageAnalyzerUseCase,
+    usageRepository: StorageUsageRepository,
+    volumes: List<StorageVolumeInfo>,
+    finished: Flow<OperationSnapshot>,
+    retentionDays: Int,
+    onTrash: suspend (List<FileNode>) -> Unit,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenFile: ((FileNode) -> Unit)? = null,
+    volumesReady: Boolean = true,
+) {
+    BackHandler(onBack = onNavigateBack)
+    val coroutineScope = rememberCoroutineScope()
+    val owner = LocalLifecycleOwner.current
+
+    var isScanning by remember(rootId) { mutableStateOf(false) }
+    var fileTypesRunning by remember(rootId) { mutableStateOf(false) }
+    var scanJob by remember(rootId) { mutableStateOf<Job?>(null) }
+    var scanError by remember(rootId) { mutableStateOf(false) }
+    var scannedFilesCount by remember(rootId) { mutableIntStateOf(0) }
     var currentCategory by rememberSaveable { mutableStateOf(StorageAnalysisCategory.LARGE_FILES) }
-    var analysisResult by remember { mutableStateOf(StorageAnalysisResult()) }
-    var scannedAt by remember { mutableStateOf<Long?>(null) }
-    var selected by remember { mutableStateOf(emptySet<String>()) }
-    var showConfirmDelete by remember { mutableStateOf(false) }
+    var analysisResult by remember(rootId) { mutableStateOf(StorageAnalysisResult()) }
+    var scannedAt by remember(rootId) { mutableStateOf<Long?>(null) }
+    var selected by remember(rootId) { mutableStateOf(emptySet<String>()) }
+    var showConfirmDelete by remember(rootId) { mutableStateOf(false) }
+    val fileTypes = rememberStorageUsageAnalysis(
+        volumes, usageRepository, finished,
+        allowScan = !isScanning && volumesReady,
+        onRunningChange = { fileTypesRunning = it },
+        onRequest = { !isScanning },
+        analysisKey = rootId,
+    )
 
     fun startScan() {
+        if (isScanning || fileTypesRunning) return
         isScanning = true
+        scanError = false
         scannedFilesCount = 0
-        coroutineScope.launch {
-            app.container.storageAnalyzerUseCase.analyze(rootId).collect { progress ->
+        scanJob = coroutineScope.launch {
+            try {
+            analyzer.analyze(rootId).collect { progress ->
                 scannedFilesCount = progress.scannedFilesCount
                 if (progress.isComplete) {
                     analysisResult = progress.result ?: StorageAnalysisResult(isPartial = true)
                     scannedAt = System.currentTimeMillis()
                     selected = StorageCleanupSelection.initialSelection(analysisResult, currentCategory)
-                    isScanning = false
                 }
+            }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                scanError = true
+            } finally {
+                isScanning = false
             }
         }
     }
 
+    DisposableEffect(owner, rootId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) scanJob?.cancel()
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer); scanJob?.cancel() }
+    }
+
     LaunchedEffect(rootId) {
         // A recent result is shown again at once; Rescan walks the storage on request (§16.2 H6).
-        val last = app.container.storageAnalyzerUseCase.lastAnalysis(rootId)
-        if (last == null) {
-            startScan()
-        } else {
+        val last = analyzer.lastAnalysis(rootId)
+        if (last != null) {
             analysisResult = last.result
             scannedAt = last.scannedAt
             selected = StorageCleanupSelection.initialSelection(last.result, currentCategory)
@@ -159,7 +239,8 @@ fun StorageIntelligenceScreen(
             .fillMaxSize()
             .background(Atomic.colors.background)
             .statusBarsPadding()
-            .navigationBarsPadding(),
+            .navigationBarsPadding()
+            .testTag("storage_intelligence_screen"),
     ) {
         AtomicPushedHeader(
             onBack = onNavigateBack,
@@ -167,9 +248,10 @@ fun StorageIntelligenceScreen(
             actions = {
                 AtomicIconButton(
                     AtomicIcons.Refresh,
-                    "Rescan storage",
+                    if (scannedAt == null) "Analyze storage" else "Rescan storage",
                     onClick = { if (!isScanning) startScan() },
-                    enabled = !isScanning,
+                    enabled = !isScanning && !fileTypesRunning,
+                    modifier = Modifier.testTag("analyze_cleanup_button"),
                 )
             },
         )
@@ -178,10 +260,14 @@ fun StorageIntelligenceScreen(
             contentPadding = PaddingValues(AtomicSpacing.s16),
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
         ) {
+            item(key = "file-types") {
+                StorageUsagePanel(fileTypes.update, onRefresh = fileTypes.start, allowRefresh = fileTypes.enabled)
+            }
+            item { AtomicSectionLabel("Cleanup analysis") }
             item {
                 if (isScanning) {
                     AtomicLoading("Scanning · $scannedFilesCount files")
-                } else {
+                } else if (scannedAt != null) {
                     AtomicStatTile(
                         value = FileUtils.formatBytes(analysisResult.totalPotentialSavingsBytes),
                         caption =
@@ -189,6 +275,18 @@ fun StorageIntelligenceScreen(
                                 AnalysisAge.suffix(scannedAt, System.currentTimeMillis()),
                         featured = true,
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    AtomicText(
+                        if (scanError) "Cleanup analysis could not finish. Try again."
+                        else "Cleanup hasn't been analyzed. Start a scan when you need suggestions.",
+                        AtomicTextRole.BodySecondary,
+                        Modifier.testTag("cleanup_unscanned"),
+                    )
+                    AtomicButton(
+                        "Analyze storage", onClick = ::startScan,
+                        enabled = !fileTypesRunning,
+                        modifier = Modifier.testTag("start_cleanup_analysis"),
                     )
                 }
             }
@@ -200,7 +298,10 @@ fun StorageIntelligenceScreen(
                     )
                 }
             }
-            item {
+            if (scanError && scannedAt != null && !isScanning) item {
+                AtomicWarningBox("Analysis stopped", "Previous cleanup results are shown. Analyze again to update.")
+            }
+            if (scannedAt != null || isScanning) item {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
@@ -217,10 +318,12 @@ fun StorageIntelligenceScreen(
                     }
                 }
             }
-            item { AtomicText(CleanupRules.reason(currentCategory), AtomicTextRole.BodySecondary) }
+            if (scannedAt != null || isScanning) item {
+                AtomicText(CleanupRules.reason(currentCategory), AtomicTextRole.BodySecondary)
+            }
             if (isScanning) {
                 item { AtomicEmptyState(message = "Results appear when the scan finishes.") }
-            } else {
+            } else if (scannedAt != null) {
                 categoryItems(
                     result = analysisResult,
                     category = currentCategory,
@@ -252,6 +355,7 @@ fun StorageIntelligenceScreen(
                         "Move to Trash",
                         onClick = { showConfirmDelete = true },
                         variant = AtomicButtonVariant.Destructive,
+                        enabled = !isScanning && !fileTypesRunning,
                     )
                 }
             }
@@ -260,7 +364,6 @@ fun StorageIntelligenceScreen(
 
     if (showConfirmDelete) {
         val targets = selectedNodes
-        val retentionDays = settings.trashRetentionDays
         AtomicConfirmSheet(
             label = "Cleanup",
             headline = "Move ${targets.size} items to Trash?",
@@ -269,22 +372,12 @@ fun StorageIntelligenceScreen(
             destructive = true,
             onConfirm = {
                 coroutineScope.launch {
-                    val op =
-                        FileOperation(
-                            id = OperationId.random(),
-                            type = OperationType.TRASH,
-                            // Ids come straight from the scanned nodes; they are already full FileNodeIds.
-                            sources = targets.map { it.id },
-                            destination = null,
-                            options = OperationOptions(),
-                            createdAt = System.currentTimeMillis(),
-                        )
-                    // Runs through the queue and waits, so the rescan sees the result. (Calling the
-                    // engine directly only built a cold Flow that nobody collected: nothing was deleted.)
-                    app.container.operationQueue.runAndAwait(op)
+                    onTrash(targets)
                     showConfirmDelete = false
                     selected = emptySet()
-                    startScan()
+                    analyzer.invalidate(rootId)
+                    analysisResult = StorageAnalysisResult()
+                    scannedAt = null
                 }
             },
             onDismiss = { showConfirmDelete = false },
