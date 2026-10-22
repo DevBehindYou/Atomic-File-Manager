@@ -1,6 +1,6 @@
 # Storage capacity and on-demand Analysis candidate
 
-Date: 22 October 2026. The latest opt-in behavior passes focused host and native validation on combined checkout `6421207`. PR #69 head `7bd7715` passes CI `39747936604`; synchronization/documentation revisions require their own fresh current-head checks before merge. Earlier automatic-dashboard results below remain historical.
+Date: 22 October 2026. The latest opt-in behavior passes focused host and native validation on combined checkout `6421207`. Final PR #69 head `d8dca8b` passes CI `39751056024`, review and a clean guarded trial, then merged into feature integration as `32a506eeda0c749b661b9885ce8a79d66eb01c4b`. Earlier automatic-dashboard results below remain historical.
 
 ## Current behavior
 
