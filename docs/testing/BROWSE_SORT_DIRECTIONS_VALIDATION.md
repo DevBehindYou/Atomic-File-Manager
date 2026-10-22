@@ -1,6 +1,6 @@
 # Browse sort directions and folder header
 
-Prepared against PR #66 source `80f98ea`; validation record updated 22 October 2026. Focused host and physical API34 checks pass. This branch remains stacked on the unmerged visibility slice; isolated current-head CI and integration are separate gates.
+Prepared against PR #66 source `80f98ea`; validation record updated 22 October 2026. The combined host and physical API34 checkpoints below retain their original artifact scope. PR #68 subsequently passed current-head CI and a clean guarded trial, then merged into feature integration; this is separate from main/release acceptance.
 
 Files offers six explicit choices in this order: Name A–Z, Name Z–A, Date ascending, Date descending, Size ascending and Size descending. The existing persisted names `NAME`, `DATE_MODIFIED` and `SIZE` still mean ascending name, descending date and descending size. Three additional names represent the inverse choices; no stored preference is renamed or migrated.
 
@@ -29,4 +29,6 @@ Installed debug APK SHA256: `7AB8B77A5564787F23180AB3CE4E437FA2BC74F87752849EE12
 
 The wrapper originally returned exit 1 after all four cases passed because its final reporting assigned PowerShell's reserved `$HOME` variable. The helper was corrected without rerunning unchanged app cases. Read-only finalization separately verifies the Home capture, retained access and removed handler (`browse-layout-phone-finalization.exit=0`); the original wrapper error log is retained.
 
-No measured speedup, font-scale-2/RTL/short-landscape phone acceptance, or completion of the broader optimization plan is claimed. New current-head CI, resolved review and a clean dependent merge remain required before integration.
+PR #68's original head `9a19b22` passed CI `39667919058`. After #66 was accepted, #68 was synchronized with the accepted target and retargeted to `codex/feature-upgrade-base` at `2cca7db`; current-head CI `39671762451` passed. Review and a clean guarded trial preceded integration merge `7c8ebe19fe5e4c7d9349eb2a31a265bdc68a4705` on 22 October 2026 at 02:37:50 UTC. These checks do not relabel the combined phone APK as an isolated branch artifact.
+
+No measured speedup, font-scale-2/RTL/short-landscape phone acceptance, completion of the broader optimization plan, or main/release acceptance is claimed.

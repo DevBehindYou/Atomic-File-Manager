@@ -33,12 +33,12 @@ Each row is a deliverable, potentially split into small reviewable changes. Comp
 
 | ID | Priority / state | Deliverable | Dependencies | Exit evidence |
 | --- | --- | --- | --- | --- |
-| U01 | P0 / host verified; phone pending | Bundled In-app plugins inventory with eight real feature entries, details, Back/Close and limitations | Existing viewers | 10 focused tests, debug APK, ktlint/detekt and debug Lint pass; no phone connected at check |
-| U02 | P0 / planned | Trustworthy benchmark setup and fixtures | Existing benchmark module; available test device for runs | Setup fails on missing destination/items; known corpus; trace boundaries; baseline with device/build metadata |
+| U01 | P0 / accepted into feature integration | Bundled In-app plugins inventory with eight real feature entries, details, Back/Close and limitations | Existing viewers | Focused host checks, full CI, API34 surface, independent review and PR #61 merge pass; release acceptance remains separate |
+| U02 | P0 / partial; measured smoke failed, provider repair host/device pass | Trustworthy benchmark setup and fixtures | Existing benchmark module; available test device for runs | Setup fails on missing destination/items; known corpus; trace boundaries; baseline with device/build metadata |
 | U03 | P0 / planned | Folder listing responsiveness and explicit partial state | U02 measurements | First-content/full-list/frame/allocation comparison; correct final sort, cancellation, selection and clipboard |
-| U04 | P0 / planned | Startup access state and screen ownership | Existing M05/M12 work | No false denied banner while access is resolving; no redundant hidden-pane work; recreation/navigation tests |
-| U05 | P0 / planned | Index consistency, durable scanning and analysis cache | U02; schema design | Interrupted scan resumes correctly; stale/denied/deleted states differ; query and memory evidence; migration tests |
-| U06 | P0 / planned | File-opening router and defaults settings | Existing preview/export helpers | Once/always/reset/missing-handler flows, MIME precedence and safe URI-grant tests |
+| U04 | P0 / partial; storage-readiness and Browse visibility slices integrated | Startup access state and screen ownership | Existing M05/M12 work | No false denied banner while access is resolving; no redundant hidden-pane work; recreation/navigation tests |
+| U05 | P0 / partial; folder-consistency slice #67 integrated, durable scan/cache work open | Index consistency, durable scanning and analysis cache | U02; schema design | Interrupted scan resumes correctly; stale/denied/deleted states differ; query and memory evidence; migration tests |
+| U06 | P0 / partial; opening-policy slice #64 integrated, wider matrix pending | File-opening router and defaults settings | Existing preview/export helpers | Once/always/reset/missing-handler flows, MIME precedence and safe URI-grant tests |
 | U07 | P1 / planned | Unified storage-account contracts and Add storage surface | Existing backends; U06 for remote opening | Honest connection methods, per-account identity/capabilities, isolated credentials/cache; no dead Connect controls |
 | U08 | P1 / planned | First direct cloud connector end to end | U07; provider/scope decision and registration | Auth, pagination, account isolation, transfer, reconnect, quota/throttle and conflict tests against sandbox account |
 | U09 | P1 / planned | Media and image viewer improvements | U06; performance budgets | Resume/rotation/subtitles/track controls as supported; high-resolution and corrupt-input tests |
