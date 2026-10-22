@@ -8,7 +8,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
@@ -60,7 +59,7 @@ class StorageAnalysisOptInComposeTest {
 
     @Test
     fun openingAnalysisShowsUnscannedActionsWithoutStartingEitherScanner() = withFixture { fixture ->
-        compose.onNodeWithText("Analyze file types").assertExists()
+        compose.onNodeWithContentDescription("Analyze file types").assertExists()
         compose.onNodeWithTag("cleanup_unscanned").assertExists()
         compose.onNodeWithTag("refresh_storage_usage").assertIsEnabled()
         compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
@@ -105,7 +104,7 @@ class StorageAnalysisOptInComposeTest {
         fixture.blockDeep.set(true)
         withFixture(fixture) {
             compose.onNodeWithTag("cleanup_unscanned").assertDoesNotExist()
-            compose.onNodeWithText("You could free", substring = true).assertExists()
+            compose.onNodeWithContentDescription("You could free", substring = true).assertExists()
             compose.onNodeWithContentDescription("Rescan storage").assertIsEnabled()
             compose.runOnIdle {
                 assertEquals(1, fixture.deepStarts.get())
@@ -133,7 +132,7 @@ class StorageAnalysisOptInComposeTest {
                 fixture.finished.subscriptionCount.value == 0
         }
         compose.waitForIdle()
-        compose.onNodeWithText("Analyze file types").assertExists()
+        compose.onNodeWithContentDescription("Analyze file types").assertExists()
         compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
         assertEquals(1, fixture.usagePlans.get())
         assertEquals(1, fixture.usageStarts.get())
