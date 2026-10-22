@@ -892,7 +892,7 @@ private fun MainScreenContent(
         NavigationTab.BROWSE -> {
             val tab = browseTabs.active
             // A fresh composition per tab, so dialogs and scroll state don't leak between tabs.
-            key(tab.id) {
+            key(tab.id, tab.sessionId) {
                 BrowseScreen(
                     initialFolderId = FileNodeId(tab.folderRaw),
                     storage =
@@ -909,7 +909,7 @@ private fun MainScreenContent(
                     openRequest = tab.openRequest,
                     onNotify = callbacks.onNotify,
                     onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
-                    tabKey = if (tab.id == 0) "" else "tab${tab.id}:",
+                    tabKey = tab.stateKey,
                     tabStrip = {
                         BrowseTabStrip(
                             state = browseTabs,
