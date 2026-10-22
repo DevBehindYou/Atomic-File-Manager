@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -41,12 +42,13 @@ class StorageUsagePanelComposeTest {
         compose.onNodeWithText("Used").assertExists()
         compose.onNodeWithText("Free").assertExists()
         compose.onNodeWithText("800.0 B").assertExists()
-        compose.onNodeWithTag("storage_readable_total").assertTextContains("600.0 B")
+        compose.onNodeWithTag("storage_readable_total").assertTextEquals("600.0 B · 6 files found")
         compose.onNodeWithContentDescription(
             "PDFs, 16.7% of observed shared-file bytes",
         ).performScrollTo().assertExists()
         compose.onNodeWithTag("storage_usage_OTHER").performScrollTo().assertExists()
-        compose.onNodeWithTag("storage_unattributed_estimate").performScrollTo().assertTextContains("200.0 B")
+        compose.onNodeWithTag("storage_unattributed_estimate").performScrollTo()
+            .assertTextContains("200.0 B", substring = true)
     }
 
     @Test
@@ -54,8 +56,9 @@ class StorageUsagePanelComposeTest {
         var refreshed = 0
         val partial = snapshot().copy(categories = emptyMap(), scannedFiles = 0, unreadable = 3, complete = false)
         show(StorageUsageUpdate(StorageUsagePhase.PARTIAL, partial, snapshot())) { refreshed++ }
-        compose.onNodeWithTag("storage_usage_status").assertTextContains("3 unreadable/unavailable")
-        compose.onNodeWithTag("storage_readable_total").assertTextContains("600.0 B")
+        compose.onNodeWithTag("storage_usage_status")
+            .assertTextEquals("Partial results · 3 unreadable/unavailable folders · 0 skipped links.")
+        compose.onNodeWithTag("storage_readable_total").assertTextEquals("600.0 B · 6 files found")
         compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled().performClick()
         assertEquals(1, refreshed)
     }
@@ -67,15 +70,16 @@ class StorageUsagePanelComposeTest {
         compose.onNodeWithText("Capacity unavailable. Grant access or reconnect storage, then refresh.").assertExists()
         compose.onNodeWithText("Total").assertDoesNotExist()
         compose.onNodeWithText("Free").assertDoesNotExist()
-        compose.onNodeWithTag("storage_usage_status").assertTextContains("Some mounted capacity is unknown")
+        compose.onNodeWithTag("storage_usage_status")
+            .assertTextContains("Some mounted capacity is unknown", substring = true)
     }
 
     @Test
     fun incompletePreviousEvidenceIsExplicitlyPartialAndDoesNotBecomeCompleteWhileRefreshing() {
         show(StorageUsageUpdate(previousObserved = snapshot().copy(complete = false, unreadable = 1)))
-        compose.onNodeWithTag("storage_readable_total").assertTextContains("600.0 B")
+        compose.onNodeWithTag("storage_readable_total").assertTextEquals("600.0 B · 6 files found")
         compose.onNodeWithText("Showing the previous partial file breakdown", substring = true).assertExists()
-        compose.onNodeWithTag("storage_usage_status").assertTextContains("Scanning files")
+        compose.onNodeWithTag("storage_usage_status").assertTextEquals("Scanning files · 0 files found.")
         compose.onNodeWithText("Readable-folder scan complete", substring = true).assertDoesNotExist()
     }
 
