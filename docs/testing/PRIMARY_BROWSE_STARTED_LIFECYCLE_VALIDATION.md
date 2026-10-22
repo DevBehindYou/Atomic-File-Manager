@@ -1,6 +1,6 @@
 # Primary Browse STARTED lifecycle — U04 follow-up
 
-Prepared 22 October 2026 against accepted feature integration `7c8ebe1`. This source increment is separate from the accepted composition-visibility PR #66. Host static checks, test execution, APK packaging, current-head CI and physical background/return acceptance are **pending**. No test pass, speed-up or complete U04 milestone is claimed.
+Checked 22 October 2026. This source increment is separate from the accepted composition-visibility PR #66. PR #70 head `4cc1a35` passes current-head CI `39745799708`; focused host checks and physical background/return/recreation pass as recorded below. No measured speed-up or complete U04 milestone is claimed.
 
 ## Behavior and boundaries
 
@@ -43,7 +43,13 @@ Then run the named native case on the authorized device, record source/APK hashe
 
 Independent source review found no blockers in the lifecycle/request ordering, observer removal or deferred filtering. Its diagnostic suggestion was applied: the native helper retains an original background-entry failure and suppresses a simultaneous resume failure rather than masking the first error. Source review is not a substitute for the pending build and runtime checks above.
 
-Parent review then identified the held/failed-refresh cached-filter gap. Independent follow-up review also confirmed the delayed remembered-sort ordering case. Both source corrections and the four held/failure cases are now included; a fresh independent source review found no remaining blocker in this resume path. Ordinary refresh calls without `retainSelection` retain their pre-existing behavior and are not claimed as an expanded sort-consistency fix. All eight host cases and the extended native case still need execution.
+Parent review then identified the held/failed-refresh cached-filter gap. Independent follow-up review also confirmed the delayed remembered-sort ordering case. Both source corrections and the four held/failure cases are now included; a fresh independent source review found no remaining blocker in this resume path. Ordinary refresh calls without `retainSelection` retain their pre-existing behavior and are not claimed as an expanded sort-consistency fix.
+
+## Verified checkpoint
+
+`primary-browse-started-validation.log` exits 0 in 2m22s: static checks and all 48 selected cases pass (17 ordering, 3 navigation identity, 5 pane lifecycle, 11 sort loading, 8 new STARTED lifecycle, 1 primary state and 3 visibility cases), with no failures/errors/skips. CI at `4cc1a35` passes full unit/APK packaging and static analysis including debug/release Lint; its manual emulator job is skipped, not a phone result.
+
+On 22 October the extended native case passes on the authorized API34 phone together with the two Storage/Analysis cases (3 tests in 16.98s). Combined checkout `6421207` has identical Browse source/test files to this PR and adds the independent Storage candidate. Debug APK SHA-256 is `45C39BFC4BC76C4D45504C02EF8B2E0D6C7BCAC1215B986803AFD95203350865`; AndroidTest SHA-256 is `79CDA75A78EB03559B125E9FC13C315B2715F4E4AFFB6EFB7956BDF05A4AE924`. Logs are under `build/audit-tools/device-preview-tools/storage-analysis-acceptance/`. The post-test screenshot helper initially failed on selected-tab handling; separate corrected finalization exits 0 in `storage-analysis-phone-finalization.log`, verifies the actual selected Home tab and unchanged access, and confirms removal of the test-only handler. No native case is relabeled or rerun to hide that reporting failure. These results cover the named lifecycle slice, not the broader pending U04 provider/ownership/process-death gates.
 
 ## API references
 
