@@ -18,4 +18,18 @@ This slice prevents closed-session reuse; it does **not** prune retained Activit
 - Two `BrowseTabSessionModelTest` cases use the actual production model-key helper and retained real BrowseViewModels. They require fresh state on reopening a closed session even with a reused numeric ID/root, and reuse of surviving/restored open sessions without leaking clipboard/search/history.
 - Parent-serialized ktlint/detekt, focused tab/session/primary lifecycle/state tests, APK packaging and Lint remain pending. A phone close/reopen and recreation check, independent review, exact-head CI and clean trial merge remain acceptance gates.
 
+## Prepared native close/reopen case
+
+`BrowseTabSessionDeviceTest.closingHighestTabAndReopeningSameFolderCreatesFreshStateAcrossRecreation` exercises the production `MainActivity` tab wiring. It opens Target with the actual long-press → More actions → New tab commands, stages an in-memory clipboard through Copy, enters Child, closes the highest active tab, and reopens the same Target folder through the same UI. Both Target child rows must return, its clipboard bar must be absent, and activity recreation must preserve that fresh Target state. One Back press must then reach Home, proving the closed tab's Child → Target history was not restored. The surviving primary tab must retain its model, clipboard, search and own parent history after selection and recreation.
+
+The native case deliberately stages clipboard/navigation in the closed tab. Closed-tab search/selection isolation and numeric-ID reuse are proven by the focused host tests; this case does not claim to stage or inspect those fields independently on the phone. No restricted Activity store enumeration or reflection is used.
+
+The fixture creates only six empty directories beneath a unique `context.cacheDir/browse-session-<UUID>` root. It records successful directory creation, verifies the exact canonical cache parent and containment before cleanup, and removes only those empty owned directories in reverse order. It never invokes Paste, touches shared storage, changes settings or grants permissions. Teardown attempts Home restoration and retains any original test/creation failure, attaching cleanup failures as suppressed exceptions. No recursive delete is used.
+
+The native source and this section are prepared only: no native compilation, packaging or phone pass is claimed here. The parent owns serialized build, installation, execution, test-APK removal and exact-head evidence. After building and installing the matching app and test APKs, the narrow runner command is:
+
+```powershell
+adb shell am instrument -w -r -e class com.devbehindyou.atomicfilemanager.BrowseTabSessionDeviceTest com.devbehindyou.atomicfilemanager.test/androidx.test.runner.AndroidJUnitRunner
+```
+
 The fixed feature denominator remains 8% host verified / 8% accepted (1/13). This partial U04 source increment earns no full milestone credit and is not main/release completion. The deleted recurring automation remains deleted.
