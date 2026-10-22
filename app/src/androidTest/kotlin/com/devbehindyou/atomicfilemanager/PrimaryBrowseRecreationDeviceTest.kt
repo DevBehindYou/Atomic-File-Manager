@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ApplicationProvider
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /** Reads disposable app-private folders; copying only stages an in-memory clipboard. */
 @RunWith(AndroidJUnit4::class)
@@ -66,6 +68,10 @@ class PrimaryBrowseRecreationDeviceTest {
             awaitFolder(model, childId)
             compose.onNodeWithTag("tab_home").performClick()
             compose.onNodeWithTag("tab_browse").performClick()
+            awaitFolder(model, childId)
+            assertSame(clipboard, model.uiState.value.clipboard)
+
+            backgroundAndReturn()
             awaitFolder(model, childId)
             assertSame(clipboard, model.uiState.value.clipboard)
 
@@ -116,6 +122,32 @@ class PrimaryBrowseRecreationDeviceTest {
         } finally {
             worker.shutdownNow()
         }
+        compose.waitForIdle()
+    }
+
+    private fun backgroundAndReturn() {
+        compose.waitForIdle()
+        val worker = Executors.newSingleThreadExecutor()
+        var failure: Throwable? = null
+        try {
+            worker.submit { compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED) }
+                .get(10, TimeUnit.SECONDS)
+        } catch (backgroundFailure: Throwable) {
+            failure = backgroundFailure
+        } finally {
+            // Restore the Activity even when entering the background fails or times out.
+            val resumeFailure =
+                runCatching {
+                    worker.submit { compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED) }
+                        .get(10, TimeUnit.SECONDS)
+                }.exceptionOrNull()
+            worker.shutdownNow()
+            if (resumeFailure != null) {
+                val original = failure
+                if (original == null) failure = resumeFailure else original.addSuppressed(resumeFailure)
+            }
+        }
+        failure?.let { throw it }
         compose.waitForIdle()
     }
 }

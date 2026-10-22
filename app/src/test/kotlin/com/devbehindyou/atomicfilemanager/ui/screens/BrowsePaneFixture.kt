@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.rules.ExternalResource
 import org.robolectric.Shadows.shadowOf
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Real BrowseViewModels and queue, with a listing suspended until its owner cancels it. */
@@ -48,6 +49,8 @@ class BrowsePaneFixture : ExternalResource() {
     val started = AtomicInteger()
     val cancelled = AtomicInteger()
     val completed = AtomicInteger()
+    val listedFolders = ConcurrentLinkedQueue<FileNodeId>()
+    var listingItems: List<FileNode>? = null
     var factories = 0
         private set
 
@@ -58,8 +61,10 @@ class BrowsePaneFixture : ExternalResource() {
         object : StorageBackend by memory {
             override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
                 flow {
+                    listedFolders += id
                     started.incrementAndGet()
                     try {
+                        listingItems?.let { emit(FileResult.Success(it)) }
                         awaitCancellation()
                     } finally {
                         cancelled.incrementAndGet()

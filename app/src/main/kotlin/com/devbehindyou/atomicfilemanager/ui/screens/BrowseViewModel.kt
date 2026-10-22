@@ -272,6 +272,7 @@ class BrowseViewModel(
      */
     private fun refilter() {
         filterJob?.cancel()
+        if (!visible) return
         filterJob =
             viewModelScope.launch {
                 val requested = _uiState.value
