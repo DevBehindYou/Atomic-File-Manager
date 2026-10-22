@@ -113,7 +113,7 @@ fun BrowseScreen(
                         folderSorts = app.container.folderSortMemory,
                         startVisible = false,
                     ),
-                )["browse:$tabKey${initialFolderId.raw}", BrowseViewModel::class.java]
+                )[primaryBrowseViewModelKey(tabKey, initialFolderId), BrowseViewModel::class.java]
             }
         },
 ) {
