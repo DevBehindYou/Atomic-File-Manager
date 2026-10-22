@@ -4,19 +4,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 
-/** The Activity retains primary state; its listing and observers belong to the visible screen. */
+/** Retain primary state while expensive work belongs to a composed, STARTED screen. */
 @Composable
 internal fun PrimaryBrowseVisibility(
     viewModel: BrowseViewModel,
     openRequest: Int,
 ) {
-    DisposableEffect(viewModel, openRequest) {
-        viewModel.onVisible(openRequest)
-        onDispose { viewModel.onHidden() }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(viewModel, openRequest, lifecycle) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> viewModel.onVisible(openRequest)
+                    Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> viewModel.onHidden()
+                    else -> Unit
+                }
+            }
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) viewModel.onHidden()
+        // addObserver catches up synchronously, including ON_START for an already-started owner.
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            viewModel.onHidden()
+        }
     }
 }
 
