@@ -30,3 +30,12 @@ Filesystem metadata syscalls are synchronous on IO. Cancellation/deadlines are c
 Recommended serialized host check: format/static checks, these five test classes, debug and AndroidTest APK packaging, then Lint. Phone follow-up should verify internal+SD capacity, category meters, partial Android/private-folder coverage, refresh, screen background/return, and storage/grant changes. Run against owned fixture files and preserve unrelated user files.
 
 Independent source review found and resolved stale scope display, unbounded suspended planning and A→B→A permission-cache reuse. `git diff --check` passes; full host/device acceptance is still required before publication or merge.
+
+## Native dashboard candidate
+
+`StorageUsageDashboardDeviceTest` adds two instrumentation cases, not yet compiled or run on a phone:
+
+- Reads current mounted internal/removable capacity through the production local source and independently samples native `StorageManager`/`StatFs` probes before and after. Mounted unreadable volumes remain counted as unknown. Total capacity must match; free capacity allows background-write drift of the greater of 64 MiB or 0.1% of total capacity. No permissions or grants are changed.
+- Uses the actual MainActivity Storage tab and real metadata scan, accepts a complete or truthful partial breakdown within 80 seconds per wait, scrolls to all eleven category rows, dispatches manual refresh, leaves/returns, and recreates the Activity. Recreation must retain the Storage screen and permit immediate navigation away. Refresh is a native dispatch/terminal-state smoke check; the separate deterministic host test verifies callback dispatch. The device case deliberately does not require observing a transient scanning state or identical live totals.
+
+The native cases create no shared-storage fixtures, alter no settings, and perform no root/shell operations. They read mounted metadata and leave the UI on Home. They do not exercise grant revocation, physical unmount, true process death or OS background scheduling. Run the focused instrumentation class after host compilation/static/unit checks; native acceptance remains pending.
