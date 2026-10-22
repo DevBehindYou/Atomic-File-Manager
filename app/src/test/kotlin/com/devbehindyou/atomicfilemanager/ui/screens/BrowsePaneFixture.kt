@@ -14,6 +14,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
 import com.devbehindyou.atomicfilemanager.domain.model.OperationType
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
+import com.devbehindyou.atomicfilemanager.domain.repository.FolderSortMemory
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import com.devbehindyou.atomicfilemanager.domain.repository.TransferBubbleRepository
 import com.devbehindyou.atomicfilemanager.domain.testing.InMemoryBackend
@@ -31,6 +32,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -51,6 +53,7 @@ class BrowsePaneFixture : ExternalResource() {
     val completed = AtomicInteger()
     val listedFolders = ConcurrentLinkedQueue<FileNodeId>()
     var listingItems: List<FileNode>? = null
+    var listingUpdates: Flow<FileResult<List<FileNode>>>? = null
     var factories = 0
         private set
 
@@ -64,7 +67,8 @@ class BrowsePaneFixture : ExternalResource() {
                     listedFolders += id
                     started.incrementAndGet()
                     try {
-                        listingItems?.let { emit(FileResult.Success(it)) }
+                        val updates = listingUpdates
+                        if (updates == null) listingItems?.let { emit(FileResult.Success(it)) } else emitAll(updates)
                         awaitCancellation()
                     } finally {
                         cancelled.incrementAndGet()
@@ -94,6 +98,7 @@ class BrowsePaneFixture : ExternalResource() {
     fun factory(
         folder: FileNodeId,
         startVisible: Boolean = true,
+        folderSorts: FolderSortMemory? = null,
     ): ViewModelProvider.Factory {
         factories++
         return BrowseViewModel.provideFactory(
@@ -105,6 +110,7 @@ class BrowsePaneFixture : ExternalResource() {
             deleteFileUseCase = DeleteFileUseCase { backend },
             operationQueue = queue,
             transferBubbleRepository = UnusedBubbles(),
+            folderSorts = folderSorts,
             startVisible = startVisible,
         )
     }

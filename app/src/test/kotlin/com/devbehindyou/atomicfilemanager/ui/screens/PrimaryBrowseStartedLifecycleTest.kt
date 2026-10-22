@@ -12,9 +12,14 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
+import com.devbehindyou.atomicfilemanager.domain.repository.FolderSortMemory
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import org.junit.After
@@ -28,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -169,14 +175,101 @@ class PrimaryBrowseStartedLifecycleTest {
     }
 
     @Test
-    fun filterChangesWhileStoppedAreRetainedWithoutStartingBackgroundFiltering() {
+    fun queryChangedWhileStoppedFiltersCachedRowsBeforeAHeldRefreshFails() {
+        assertDeferredFilterSurvivesFailedRefresh(
+            item(),
+            change = { it.onSearchQueryChanged("absent") },
+            assertSetting = { assertEquals("absent", it.searchQuery) },
+        )
+    }
+
+    @Test
+    fun hiddenFileSettingChangedWhileStoppedFiltersCachedRowsBeforeAHeldRefreshFails() {
+        assertDeferredFilterSurvivesFailedRefresh(
+            item(hidden = true),
+            change = { it.setShowHiddenFiles(false) },
+            assertSetting = { assertTrue(!it.showHiddenFiles) },
+            initialise = { it.setShowHiddenFiles(true) },
+        )
+    }
+
+    @Test
+    fun categoryChangedWhileStoppedFiltersCachedRowsBeforeAHeldRefreshFails() {
+        assertDeferredFilterSurvivesFailedRefresh(
+            item(),
+            change = { it.setFileFilter(BrowseFileFilter.IMAGES) },
+            assertSetting = { assertEquals(BrowseFileFilter.IMAGES, it.fileFilter) },
+        )
+    }
+
+    @Test
+    fun delayedRestoredSortReappliesCachedQueryResultsBeforeTheProviderRefreshFails() {
+        val sortReads = AtomicInteger()
+        val restoredSort = CompletableDeferred<String?>()
+        val releaseFailure = CompletableDeferred<Unit>()
+        val sorts =
+            object : FolderSortMemory {
+                override suspend fun get(folderRaw: String): String? =
+                    if (sortReads.incrementAndGet() == 1) SortOption.NAME.name else restoredSort.await()
+
+                override suspend fun set(folderRaw: String, value: String): Unit = error("No sort write is expected")
+            }
+        val owner = owner()
+        val model = model(sorts)
+        val alpha = item(name = "visible-a.txt")
+        val beta = item(name = "visible-b.txt")
+        val other = item(name = "other.txt")
+        val entries = listOf(alpha, beta, other)
+        fixture.listingItems = entries
+        compose.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides owner) { PrimaryBrowseVisibility(model, 0) }
+        }
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.STARTED }
+        awaitCondition { model.uiState.value.filteredItems == listOf(other, alpha, beta) }
+        compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
+        awaitCondition { fixture.cancelled.get() == 1 && noScreenWork(model) }
+        compose.runOnIdle {
+            fixture.listingUpdates =
+                flow {
+                    releaseFailure.await()
+                    emit(FileResult.Failure(FileError.AccessDenied(null)))
+                }
+            model.onSearchQueryChanged("visible")
+            owner.registry.currentState = Lifecycle.State.STARTED
+        }
+        awaitCondition { sortReads.get() == 2 && model.uiState.value.filteredItems == listOf(alpha, beta) }
+        compose.runOnIdle {
+            assertEquals(1, fixture.started.get())
+            assertTrue(model.uiState.value.isRefreshing)
+            restoredSort.complete(SortOption.NAME_DESCENDING.name)
+        }
+        awaitCondition { fixture.started.get() == 2 && model.uiState.value.filteredItems == listOf(beta, alpha) }
+        compose.runOnIdle {
+            assertEquals(SortOption.NAME_DESCENDING, model.uiState.value.sortOption)
+            assertEquals(entries, model.uiState.value.rawItems)
+            assertEquals("visible", model.uiState.value.searchQuery)
+            assertTrue(model.uiState.value.isRefreshing)
+            releaseFailure.complete(Unit)
+        }
+        awaitCondition { model.uiState.value.errorMessage != null && !model.uiState.value.isRefreshing }
+        compose.runOnIdle {
+            assertEquals(listOf(beta, alpha), model.uiState.value.filteredItems)
+            assertEquals(entries, model.uiState.value.rawItems)
+            assertEquals(2, fixture.started.get())
+            assertEquals(2, sortReads.get())
+        }
+    }
+
+    private fun assertDeferredFilterSurvivesFailedRefresh(
+        item: FileNode,
+        change: (BrowseViewModel) -> Unit,
+        assertSetting: (BrowseUiState) -> Unit,
+        initialise: (BrowseViewModel) -> Unit = {},
+    ) {
         val owner = owner()
         val model = model()
-        val item =
-            FileNode(
-                FileNodeId.file("/visible.txt"), "visible.txt", "visible.txt", "text/plain", 1, 1,
-                false, false, fixture.root, StorageType.INTERNAL_PRIVATE, AccessFlags.READ_ONLY, null, null,
-            )
+        val releaseFailure = CompletableDeferred<Unit>()
+        initialise(model)
         fixture.listingItems = listOf(item)
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) { PrimaryBrowseVisibility(model, 0) }
@@ -185,21 +278,52 @@ class PrimaryBrowseStartedLifecycleTest {
         awaitCondition { model.uiState.value.filteredItems == listOf(item) }
         compose.runOnIdle { owner.registry.currentState = Lifecycle.State.CREATED }
         awaitCondition { fixture.cancelled.get() == 1 && noScreenWork(model) }
-        compose.runOnIdle { model.onSearchQueryChanged("absent") }
+        compose.runOnIdle {
+            fixture.listingUpdates =
+                flow {
+                    releaseFailure.await()
+                    emit(FileResult.Failure(FileError.AccessDenied(null)))
+                }
+            change(model)
+        }
         // Join any wrongly launched filter too, so an asynchronous empty result cannot escape the assertion.
         awaitCondition { noScreenWork(model) }
         compose.runOnIdle {
-            assertEquals("absent", model.uiState.value.searchQuery)
+            assertSetting(model.uiState.value)
             assertEquals(listOf(item), model.uiState.value.filteredItems)
             owner.registry.currentState = Lifecycle.State.STARTED
         }
         awaitCondition { fixture.started.get() == 2 && model.uiState.value.filteredItems.isEmpty() }
+        compose.runOnIdle {
+            assertTrue(model.uiState.value.isRefreshing)
+            assertEquals(listOf(item), model.uiState.value.rawItems)
+            assertSetting(model.uiState.value)
+            assertEquals(2, fixture.started.get())
+            releaseFailure.complete(Unit)
+        }
+        awaitCondition { model.uiState.value.errorMessage != null && !model.uiState.value.isRefreshing }
+        compose.runOnIdle {
+            assertTrue(model.uiState.value.filteredItems.isEmpty())
+            assertEquals(listOf(item), model.uiState.value.rawItems)
+            assertEquals(fixture.root, model.uiState.value.currentFolderId)
+            assertSetting(model.uiState.value)
+            assertEquals(2, fixture.started.get())
+        }
     }
+
+    private fun item(
+        hidden: Boolean = false,
+        name: String = if (hidden) ".hidden.txt" else "visible.txt",
+    ): FileNode =
+        FileNode(
+            FileNodeId.file("/$name"), name, name, "text/plain", 1, 1,
+            false, hidden, fixture.root, StorageType.INTERNAL_PRIVATE, AccessFlags.READ_ONLY, null, null,
+        )
 
     private fun owner(): StartedBrowseOwner = StartedBrowseOwner().also { owners += it }
 
-    private fun model(): BrowseViewModel {
-        val factory = fixture.factory(fixture.root, startVisible = false)
+    private fun model(sorts: FolderSortMemory? = null): BrowseViewModel {
+        val factory = fixture.factory(fixture.root, startVisible = false, folderSorts = sorts)
         return ViewModelProvider(store, factory)["primary", BrowseViewModel::class.java]
             .also { if (it !in models) models += it }
     }
