@@ -117,6 +117,8 @@ class StorageUsageLifecycleTest {
                         ),
                     )
             }
+            // Apply the state-driven recomposition before polling a signal produced only on IO.
+            compose.waitForIdle()
             compose.waitUntil(5_000) { pendingEntered.isCompleted }
             assertEquals(1, activePlans.get())
             compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
@@ -128,6 +130,7 @@ class StorageUsageLifecycleTest {
                     visible.value = false
                     owner.registry.currentState = Lifecycle.State.DESTROYED
                 }
+                compose.waitForIdle()
                 compose.waitUntil(5_000) {
                     activePlans.get() == 0 && (!pendingEntered.isCompleted || pendingCancelled.isCompleted)
                 }
