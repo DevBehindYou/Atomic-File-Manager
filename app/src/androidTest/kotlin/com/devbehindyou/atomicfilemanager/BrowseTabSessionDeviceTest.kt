@@ -101,14 +101,15 @@ class BrowseTabSessionDeviceTest {
             failure = testFailure
         } finally {
             Log.i("TabSessionTest", "stage=teardown")
-            failure = preserveFailure(failure) {
-                compose.runOnIdle {
-                    survivor?.clearSelection()
-                    survivor?.clearClipboard()
+            failure =
+                preserveFailure(failure) {
+                    compose.runOnIdle {
+                        survivor?.clearSelection()
+                        survivor?.clearClipboard()
+                    }
+                    compose.onNodeWithTag("tab_home").performClick()
+                    awaitTag("home_screen")
                 }
-                compose.onNodeWithTag("tab_home").performClick()
-                awaitTag("home_screen")
-            }
             failure = preserveFailure(failure) { removeFixture(context, fixture) }
         }
         failure?.let { throw it }
