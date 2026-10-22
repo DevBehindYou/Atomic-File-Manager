@@ -97,4 +97,10 @@ Non-mutating contract cases cover unique/bounded names and thumbnail budgets at 
 - [Shared-media ownership, DATA and relative paths](https://developer.android.com/training/data-storage/shared/media).
 - [MacrobenchmarkScope launch and iteration contract](https://developer.android.com/reference/androidx/benchmark/macro/MacrobenchmarkScope): primitive launch extras are supported; the launcher category is required for modern Android; null iteration identifies non-measurement work.
 
-No baseline profile, speed-up percentage, p95/p99 target pass, API27 folder result or complete U02 milestone is claimed by this source increment.
+## Current CI and existing-trace diagnosis — 22 October 2026
+
+Repair documentation head `e705ebc` passed static analysis but failed CI `39670109383`: 924 app cases ran and the Browse navigation teardown case failed after resetting Main while cancellation was still pending. The accepted index slice already contained the joined-teardown correction. Integrating the accepted feature base produced `9a48eee`, which passed static analysis and full unit/APK CI `39671870513`. No production benchmark metric or assertion was removed to obtain this pass.
+
+Read-only inspection of the previously captured opening iteration 000 found 122 frame-timeline rows: 61 attributed to SurfaceFlinger and 61 to System UI. The target process is present with ART/profile-saver activity, but it has no captured `Choreographer#doFrame`, `DrawFrame` or target frame-timeline rows. The stored trace configuration includes `gfx`/`view`, wildcard atrace apps and the SurfaceFlinger frame-timeline data source. The trace also reports 12 `slice_out_of_order` and 13 `sorter_push_event_out_of_order` errors. These observations narrow the missing-frame evidence; they do not establish its root cause or validate a performance baseline. Logs: `device-preview-tools/benchmark-100-smoke/trace-000-frame-details.log` and `trace-000-config.log`, using the existing trace and cached trace processor only. No new measured scenario or corpus was run for this diagnosis.
+
+No baseline profile, speed-up percentage, p95/p99 target pass, API27 folder result or complete U02 milestone is claimed by this source increment. The PR remains a draft while the measured opening/scrolling acceptance is unresolved.
