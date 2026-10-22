@@ -23,3 +23,7 @@ There is no default-settings fallback, timeout, new dependency, permission chang
 The parent owns serialized validation: prove the new regression fails against the old MainActivity, then passes with the fix; rerun settings-loader, preference-preservation, loading/failure UI and pending-intent recreation tests; run static checks, APK packaging and Lint; perform a native cold launch and repeat the four-case device run against recorded matching APK hashes. Independent review, exact-current-head CI and a clean trial merge remain acceptance gates.
 
 The existing fixed feature ledger remains 8% host verified / 8% accepted (1/13). This priority correction adds no completed feature milestone and does not complete main/release acceptance. The deleted recurring automation remains deleted.
+
+## Reproduction checkpoint
+
+Before applying the fix, the actual Activity regression failed at its expected draw-cancellation assertion on both API27 and API34 (2 failures, 0 errors/skips; `startup-first-frame-red-validation.log`, exit1, 1m5s). This used the combined checkout with the unchanged old startup gate, not an isolated phone artifact. Corrected-source host/static/APK/Lint checks and a native cold launch are still pending. The original four-case native runner was deliberately stopped during its first Activity launch after diagnostics; that interruption is not a spontaneous crash or a test pass. The phone recovered to Home, its test handler was removed and all-files access stayed allowed.
