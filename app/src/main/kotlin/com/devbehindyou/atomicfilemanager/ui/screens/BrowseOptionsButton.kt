@@ -50,6 +50,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpa
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.modifiers.hardShadow
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
+import com.devbehindyou.atomicfilemanager.ui.components.BalancedPopupHeader
 
 private enum class BrowseOptionsPage(val title: String) {
     MAIN("File options"),
@@ -123,17 +124,14 @@ internal fun BrowseOptionsButton(
                         .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
                         .padding(AtomicSpacing.s12).testTag("browse_options_popup"),
                 ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        if (page != BrowseOptionsPage.MAIN) {
-                            AtomicIconButton(
-                                AtomicIcons.Back,
-                                "Back to file options",
-                                { page = BrowseOptionsPage.MAIN },
-                            )
-                        }
-                        AtomicText(page.title, AtomicTextRole.MonoLabel, Modifier.weight(1f), color = colors.accentText)
-                        AtomicIconButton(AtomicIcons.Close, "Close file options", { expanded = false })
-                    }
+                    BalancedPopupHeader(
+                        title = page.title,
+                        closeDescription = "Close file options",
+                        onClose = { expanded = false },
+                        testTagPrefix = "browse_options",
+                        onBack = if (page != BrowseOptionsPage.MAIN) ({ page = BrowseOptionsPage.MAIN }) else null,
+                        backDescription = "Back to file options",
+                    )
                     AtomicDivider()
                     val scroll = remember(page) { ScrollState(0) }
                     Column(Modifier.weight(1f, fill = false).verticalScroll(scroll)) {
