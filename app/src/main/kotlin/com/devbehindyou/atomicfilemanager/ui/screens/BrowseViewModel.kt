@@ -38,9 +38,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class SortOption(val label: String) {
-    NAME("Name"),
-    DATE_MODIFIED("Date modified"),
-    SIZE("Size"),
+    // Existing enum names are persisted per folder; keep their original directions.
+    NAME("Name A–Z"),
+    NAME_DESCENDING("Name Z–A"),
+    DATE_MODIFIED_ASCENDING("Date ascending"),
+    DATE_MODIFIED("Date descending"),
+    SIZE_ASCENDING("Size ascending"),
+    SIZE("Size descending"),
 }
 
 enum class ClipboardOp { COPY, MOVE }

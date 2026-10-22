@@ -40,6 +40,17 @@ class BrowseOptionsComposeTest {
     private var hiddenOpened = 0
 
     @Test
+    fun popupHeadingsStayCenteredBetweenEqualControlAreasOnMainAndSubpages() {
+        show(fontScale = 1.5f)
+        open()
+        assertBalancedPopupHeading()
+        compose.onNodeWithContentDescription("Back to file options").assertDoesNotExist()
+        compose.onNodeWithText("View").performClick()
+        compose.onNodeWithContentDescription("Back to file options").assertExists()
+        assertBalancedPopupHeading()
+    }
+
+    @Test
     fun popupWrapsItsOptionsAndShrinksForTheShortViewPage() {
         // Large text makes the main page exceed the minimum width even with host font metrics.
         show(fontScale = 1.5f)
@@ -67,13 +78,38 @@ class BrowseOptionsComposeTest {
         compose.runOnIdle { assertEquals(FileViewMode.GRID, viewMode.value) }
         open()
         compose.onNodeWithText("Sort by").performClick()
-        compose.onNodeWithText("Date modified").performClick()
+        compose.onNodeWithText("Date descending").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(SortOption.DATE_MODIFIED, sort.value) }
         open()
         compose.onNodeWithText("Filter").performClick()
         compose.onNodeWithText("Images").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(BrowseFileFilter.IMAGES, filter.value) }
         compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+    }
+
+    @Test
+    fun allSixSortDirectionsReportTheirChoiceAndRestoreTheSelectedRadio() {
+        val choices =
+            listOf(
+                "Name A–Z" to SortOption.NAME,
+                "Name Z–A" to SortOption.NAME_DESCENDING,
+                "Date ascending" to SortOption.DATE_MODIFIED_ASCENDING,
+                "Date descending" to SortOption.DATE_MODIFIED,
+                "Size ascending" to SortOption.SIZE_ASCENDING,
+                "Size descending" to SortOption.SIZE,
+            )
+        show()
+        for ((label, option) in choices) {
+            open()
+            compose.onNodeWithText("Sort by").performClick()
+            compose.onNodeWithText(label).performScrollTo().performClick()
+            compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+            compose.runOnIdle { assertEquals(option, sort.value) }
+            open()
+            compose.onNodeWithText("Sort by").performClick()
+            compose.onNodeWithText(label).performScrollTo().assertIsSelected()
+            compose.onNodeWithContentDescription("Close file options").performClick()
+        }
     }
 
     @Test
@@ -131,5 +167,16 @@ class BrowseOptionsComposeTest {
 
     private fun open() {
         compose.onNodeWithTag("browse_options_button").performClick()
+    }
+
+    private fun assertBalancedPopupHeading() {
+        val leading = compose.onNodeWithTag("browse_options_leading").fetchSemanticsNode().boundsInRoot
+        val trailing = compose.onNodeWithTag("browse_options_trailing").fetchSemanticsNode().boundsInRoot
+        val title = compose.onNodeWithTag("browse_options_heading").fetchSemanticsNode().boundsInRoot
+        val popup = compose.onNodeWithTag("browse_options_popup").fetchSemanticsNode().boundsInRoot
+        assertEquals("Back and close areas must reserve equal width", leading.width, trailing.width, 0f)
+        assertEquals("Title must center between the controls", (leading.right + trailing.left) / 2f, title.center.x, 1f)
+        assertTrue("Title must not overlap the controls", title.left >= leading.right && title.right <= trailing.left)
+        assertTrue("Controls must stay inside the popup", leading.left >= popup.left && trailing.right <= popup.right)
     }
 }
