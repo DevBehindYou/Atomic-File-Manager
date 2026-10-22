@@ -1,6 +1,6 @@
 # Storage capacity and on-demand Analysis candidate
 
-Date: 22 October 2026. The latest opt-in behavior is source-complete but host/native validation is **pending**. Earlier automatic-dashboard results below are historical and do not validate this new behavior.
+Date: 22 October 2026. The latest opt-in behavior passes focused host and native validation on combined checkout `6421207`. PR #69 head `7bd7715` passes CI `39747936604`; synchronization/documentation revisions require their own fresh current-head checks before merge. Earlier automatic-dashboard results below remain historical.
 
 ## Current behavior
 
@@ -31,7 +31,7 @@ Blocking filesystem syscalls cannot be forcibly interrupted; cancellation is che
 - `StorageScreenLeanComposeTest`: actual Storage screen renders capacity and opens Analysis while guarded analysis getters fail if accessed.
 - `StorageAnalyzerUseCaseTest`: adds invalidation coverage so stale cleanup suggestions cannot be returned after a cleanup action.
 
-Latest sources have not been executed by this agent. Recommended serialized acceptance: format/static checks, focused data/Compose classes, existing affected cleanup tests, debug and AndroidTest APK packaging, then Lint.
+`storage-analysis-validation.log` records exit 0 in 6m24s: ktlint/detekt, all **101 focused cases** (zero failures/errors/skips), debug and AndroidTest APK packaging, and Android Lint pass. The thirteen class counts are 7 source, 8 capacity, 16 repository, 8 volume, 31 model, 6 analyzer, 1 analysis-age, 5 Analysis opt-in, 5 cleanup-selection, 7 preference/access, 1 lean-Storage, 2 lifecycle and 4 panel cases. `storage-analysis-test-results.json` retains the exact class results. Lint reports 0 errors, 154 warnings and 1 hint; these are existing report totals, not a claim that all warnings were eliminated. The earlier interrupted attempt has no terminal result and is retained separately as `storage-analysis-interrupted-validation.log`.
 
 ## Native candidate and historical evidence
 
@@ -39,4 +39,8 @@ Latest sources have not been executed by this agent. Recommended serialized acce
 
 Historical pre-opt-in host run `storage-usage-dashboard-acceptance-validation.log` passed static checks, 67 focused cases, APK packaging and Lint in 9m27s. Read-only follow-up `storage-readonly-mount-validation.log` passed static checks and 62 data cases (including 8 API27/34 volume fixtures) in 2m30s. These do not validate the latest opt-in changes.
 
-The old native capacity case passed on the connected phone. Its old UI case failed after returning to Storage with No compose hierarchies after 284 seconds; no crash was captured in the retained logs. The failure remains historical and unresolved until the revised candidate passes a controlled native run. The phone's 30-minute timeout does not establish screen-off as its cause. No physical read-only device, grant-revocation, unmount, true process-death or OS-background-scheduling acceptance is claimed. The revised native run is pending; no failing acceptance is merge-ready.
+The revised controlled API34 phone run passes both native cases, alongside the independent primary Browse background/return/recreation case: **3 tests, 16.98 seconds**. It confirms actual internal/removable capacity, no file-type panel on Storage, explicit Analysis entry/request, all eleven categories, refresh and idle return/recreation. Debug APK SHA-256 is `45C39BFC4BC76C4D45504C02EF8B2E0D6C7BCAC1215B986803AFD95203350865`; AndroidTest SHA-256 is `79CDA75A78EB03559B125E9FC13C315B2715F4E4AFFB6EFB7956BDF05A4AE924`. Sources match PR #69 plus the five independently validated Browse files from PR #70; no isolated-artifact claim is made. Evidence is under `build/audit-tools/device-preview-tools/storage-analysis-acceptance/`.
+
+The original screenshot/finalization helper exited 1 after the native pass because it required clicking the disabled, already-selected Home tab. A provisional correction then matched a shared volume label too broadly. Both reporting attempts remain retained. A separate corrected finalization requires the Home tab to be selected, verifies the capacity-only Storage screenshot, unchanged all-files access and test-handler absence, and exits 0 (`storage-analysis-phone-finalization.log`; evidence `storage-analysis-finalization-verified/`). The final Home screenshot was checked; native cases were not rerun to conceal a helper failure. User files, preferences and grants were preserved.
+
+The old automatic-on-Storage UI case failed after returning to Storage with No compose hierarchies after 284 seconds; no crash was captured in its retained logs. The revised opt-in case now passes, but this does not establish the old failure's cause. The phone's 30-minute timeout does not prove screen-off. No physical read-only device, grant-revocation, unmount, true process-death or OS-background-scheduling acceptance is claimed. Full U05 and main/release acceptance remain open.
