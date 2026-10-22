@@ -54,6 +54,8 @@ class BrowsePaneFixture : ExternalResource() {
     val listedFolders = ConcurrentLinkedQueue<FileNodeId>()
     var listingItems: List<FileNode>? = null
     var listingUpdates: Flow<FileResult<List<FileNode>>>? = null
+    var beforeCreate: suspend (FileNodeId, String) -> Unit = { _, _ -> }
+    var beforeRename: suspend (FileNodeId, String) -> Unit = { _, _ -> }
     var factories = 0
         private set
 
@@ -62,6 +64,22 @@ class BrowsePaneFixture : ExternalResource() {
 
     private val backend =
         object : StorageBackend by memory {
+            override suspend fun createDirectory(
+                parent: FileNodeId,
+                name: String,
+            ): FileResult<FileNode> {
+                beforeCreate(parent, name)
+                return memory.createDirectory(parent, name)
+            }
+
+            override suspend fun rename(
+                id: FileNodeId,
+                newName: String,
+            ): FileResult<FileNode> {
+                beforeRename(id, newName)
+                return memory.rename(id, newName)
+            }
+
             override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
                 flow {
                     listedFolders += id

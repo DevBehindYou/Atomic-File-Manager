@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -24,6 +25,7 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.domain.usecase.RenameFileUseCase
 import com.devbehindyou.atomicfilemanager.ui.components.BreadcrumbItem
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.DropDecision
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -99,6 +101,9 @@ class BrowseViewModel(
     private var pendingLocation: BrowseLocation? = null
     private var activeOperationJob: Job? = null
     private var finishedOperationsJob: Job? = null
+    private var retired = false
+    private var acceptedWorkCount = 0
+    private var retirementCallback: (() -> Unit)? = null
 
     init {
         if (startVisible) {
@@ -120,6 +125,7 @@ class BrowseViewModel(
 
     /** Retains navigation/clipboard state while expensive screen work follows actual visibility. */
     internal fun onVisible(request: Int) {
+        if (retired) return
         val reopenInitial = recordOpenRequest(request)
         val wasHidden = !visible
         if (!wasHidden && !reopenInitial) return
@@ -153,12 +159,57 @@ class BrowseViewModel(
         finishedOperationsJob?.cancel()
     }
 
+    /**
+     * Called once by this model's owner on Main when it will never be displayed again.
+     * Stop observation now; the owner may clear its own store after already accepted work drains.
+     * This is not process-death durability, and must not clear a replacement model's store.
+     */
+    @MainThread
+    internal fun retireAfterAcceptedWork(onDrained: () -> Unit) {
+        if (retired) return
+        retired = true
+        retirementCallback = onDrained
+        onHidden()
+        completeRetirementIfIdle()
+    }
+
+    /** Main-owned admission is counted before launch, including work not yet dispatched. */
+    @MainThread
+    private fun launchAcceptedWork(
+        start: CoroutineStart = CoroutineStart.DEFAULT,
+        block: suspend CoroutineScope.() -> Unit,
+    ) {
+        if (retired) return
+        acceptedWorkCount++
+        val job =
+            try {
+                viewModelScope.launch(start = start, block = block)
+            } catch (failure: Exception) {
+                acceptedWorkCount--
+                completeRetirementIfIdle()
+                throw failure
+            }
+        // Completion also runs for a scope cancelled before the coroutine body could start.
+        job.invokeOnCompletion {
+            acceptedWorkCount--
+            completeRetirementIfIdle()
+        }
+    }
+
+    private fun completeRetirementIfIdle() {
+        if (!retired || acceptedWorkCount != 0) return
+        val callback = retirementCallback ?: return
+        retirementCallback = null
+        callback()
+    }
+
     fun loadDirectory(
         folderId: FileNodeId,
         isRefresh: Boolean = false,
         knownBreadcrumbs: List<BreadcrumbItem> = emptyList(),
         retainSelection: Boolean = false,
     ) {
+        if (retired) return
         if (!visible) {
             pendingLocation = BrowseLocation(folderId, knownBreadcrumbs)
             return
@@ -416,7 +467,7 @@ class BrowseViewModel(
         _uiState.update { it.copy(sortOption = option) }
         if (folderSorts != null) {
             // Accept a small metadata save immediately, in order, even if the pane closes.
-            viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            launchAcceptedWork(start = CoroutineStart.UNDISPATCHED) {
                 withContext(NonCancellable) {
                     sortWrites.withLock { folderSorts.set(folder.raw, option.name) }
                 }
@@ -466,7 +517,7 @@ class BrowseViewModel(
 
     fun createFolder(name: String) {
         val parent = _uiState.value.currentFolderId
-        viewModelScope.launch {
+        launchAcceptedWork {
             when (val result = createDirectoryUseCase(parent, name)) {
                 is FileResult.Success -> refresh()
                 is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.browseMessage()) }
@@ -478,7 +529,7 @@ class BrowseViewModel(
         nodeId: FileNodeId,
         newName: String,
     ) {
-        viewModelScope.launch {
+        launchAcceptedWork {
             when (val result = renameFileUseCase(nodeId, newName)) {
                 is FileResult.Success -> refresh()
                 is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.browseMessage()) }
@@ -630,16 +681,14 @@ class BrowseViewModel(
                 runOperation(operation)
             }
             is DropDecision.AddToBubble -> {
-                viewModelScope.launch {
-                    transferBubbleRepository.addItemsToBubble(decision.bubbleId, decision.payload.items)
-                }
+                addFilesToBubble(decision.bubbleId, decision.payload.items)
             }
             is DropDecision.Cancel -> {}
         }
     }
 
     fun createBubble(name: String? = null) {
-        viewModelScope.launch {
+        launchAcceptedWork {
             transferBubbleRepository.createBubble(name)
         }
     }
@@ -648,8 +697,9 @@ class BrowseViewModel(
         bubbleId: String,
         files: List<FileNode>,
     ) {
-        viewModelScope.launch {
-            transferBubbleRepository.addItemsToBubble(bubbleId, files)
+        val acceptedFiles = files.toList()
+        launchAcceptedWork {
+            transferBubbleRepository.addItemsToBubble(bubbleId, acceptedFiles)
         }
     }
 
@@ -665,19 +715,19 @@ class BrowseViewModel(
         bubbleId: String,
         itemId: Long,
     ) {
-        viewModelScope.launch {
+        launchAcceptedWork {
             transferBubbleRepository.removeItemFromBubble(bubbleId, itemId)
         }
     }
 
     fun clearBubble(bubbleId: String) {
-        viewModelScope.launch {
+        launchAcceptedWork {
             transferBubbleRepository.clearBubble(bubbleId)
         }
     }
 
     fun deleteBubble(bubbleId: String) {
-        viewModelScope.launch {
+        launchAcceptedWork {
             transferBubbleRepository.deleteBubble(bubbleId)
         }
     }
@@ -698,7 +748,7 @@ class BrowseViewModel(
                 options = OperationOptions(collisionPolicy = CollisionPolicy.ASK),
                 createdAt = System.currentTimeMillis(),
             )
-        viewModelScope.launch {
+        launchAcceptedWork {
             val result = operationQueue.runAndAwait(operation)
             // Empty the bubble only when every item made it; otherwise its list is the record of what's left.
             if ((isMove || clearAfter) && result.status is OperationStatus.Completed) {
