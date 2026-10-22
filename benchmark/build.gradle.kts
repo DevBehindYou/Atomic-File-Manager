@@ -32,5 +32,7 @@ androidComponents {
 
 dependencies {
     implementation(libs.androidx.test.ext.junit)
+    // The existing catalog runner supplies SdkSuppress and the declared AndroidJUnitRunner.
+    implementation(libs.androidx.test.runner)
     implementation(libs.androidx.benchmark.macro.junit4)
 }

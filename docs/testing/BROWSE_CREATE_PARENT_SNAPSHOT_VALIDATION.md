@@ -1,6 +1,6 @@
 # Browse create-folder acceptance target — narrow prerequisite
 
-Prepared 22 October 2026 from accepted feature integration `dbb43f0`, then synchronized with accepted tab-session integration `e60d8e7`. [PR #74](https://github.com/DevBehindYou/Atomic-File-Manager/pull/74) changes only the argument captured by `BrowseViewModel.createFolder`. Focused host execution and independent source review pass; final-head CI and guarded integration remain required.
+Prepared 22 October 2026 from accepted feature integration `dbb43f0`, then synchronized with accepted tab-session integration `e60d8e7`. [PR #74](https://github.com/DevBehindYou/Atomic-File-Manager/pull/74) changes only the argument captured by `BrowseViewModel.createFolder`. Focused host execution, independent source review, final-head CI and guarded feature integration now pass; broader milestone and release gates remain open.
 
 ## Problem and change
 
@@ -37,4 +37,4 @@ With the fix, root source `ecabeea` and synchronized PR source share app tree `0
 
 Debug APK SHA-256: `9A2E929061F5D182E7AD2ACE7F0AF0D2264915CF939C3F2171A74EA7724D220E`; test APK: `BED18771E468D770764FB3AD9DDA1742D9ED6A55381E23C79E298858E589ACC8`. These are host-built artifacts, not new physical mutation acceptance. The installed and phone-tested startup/Analysis/tab checkpoint remains the separately recorded `9ec9b8d` app tree; its four native cases must not be relabeled as tests of this new source. No real user file, directory, permission or preference was changed for these regressions.
 
-Independent source review found no remaining blocker in this narrow change. Final-head CI, review-thread inspection, accepted dependency state and a clean guarded merge trial remain required. Broader leases/pruning/provider/release acceptance stays open.
+Independent source review found no remaining blocker in this narrow change. Final head `e89113647585baaa1ecd82a8371ffbc9804ed513` passes both required jobs in CI `39808085463`, including debug/release Lint and full unit/APK packaging. Manual emulator execution is skipped, not a device pass. Review-thread inspection, accepted dependency state and a fresh clean guarded trial preceded feature-integration merge `c76f86ab8a33c8daaebf2799e1e68b43ba791cba`. Gate and trial records are retained in `build/audit-tools/pr74-acceptance/`. Broader leases/pruning/provider/release acceptance stays open.

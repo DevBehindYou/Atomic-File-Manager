@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.devbehindyou.atomicfilemanager" />
+    </queries>
     <!--
     com.android.test modules are instrumentation-only — there is no <application> of
     their own to declare beyond what AGP generates for the test APK.
