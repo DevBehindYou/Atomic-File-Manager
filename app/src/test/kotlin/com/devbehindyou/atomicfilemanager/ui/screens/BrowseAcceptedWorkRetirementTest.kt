@@ -164,7 +164,8 @@ class BrowseAcceptedWorkRetirementTest {
                 val model = fixture.entry.viewModel
                 val bubble =
                     TransferBubble(
-                        "bubble", "Accepted",
+                        "bubble",
+                        "Accepted",
                         items = listOf(TransferBubbleItem(1, "bubble", fixture.target, "memory", "target", 0, null)),
                     )
                 model.transferBubble(bubble, isMove = true, clearAfter = false)

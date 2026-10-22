@@ -62,7 +62,10 @@ class BrowseSecondaryWorkDrainComposeTest {
             compose.runOnIdle { visible.value = false }
             awaitCondition { fixture.cancelled.get() == 1 }
             compose.runOnIdle {
-                assertTrue("Accepted mutations must retain their own model until they drain", old.viewModelScope.isActive)
+                assertTrue(
+                    "Accepted mutations must retain their own model until they drain",
+                    old.viewModelScope.isActive,
+                )
                 create.complete(Unit)
             }
             awaitCondition { finished.get() == 1 }
