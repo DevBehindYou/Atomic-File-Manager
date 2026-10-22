@@ -37,7 +37,9 @@ class StorageUsageDashboardDeviceTest {
         runBlocking(Dispatchers.IO) {
             val context = compose.activity.applicationContext
             val manager = checkNotNull(context.getSystemService(StorageManager::class.java))
-            val nativeVolumes = manager.storageVolumes.filter { it.state == Environment.MEDIA_MOUNTED }
+        val nativeVolumes = manager.storageVolumes.filter {
+            it.state == Environment.MEDIA_MOUNTED || it.state == Environment.MEDIA_MOUNTED_READ_ONLY
+        }
             assertTrue("This device must have mounted internal storage", nativeVolumes.any { it.isPrimary })
             val appDirectories = if (Build.VERSION.SDK_INT < 30) context.getExternalFilesDirs(null) else emptyArray()
             val probes =

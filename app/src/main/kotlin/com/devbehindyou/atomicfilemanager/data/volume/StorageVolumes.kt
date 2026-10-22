@@ -93,7 +93,8 @@ object StorageVolumes {
             totalBytes = space.first,
             freeBytes = space.second,
             isRemovable = volume.isRemovable,
-            isMounted = volume.state == Environment.MEDIA_MOUNTED,
+            isMounted =
+                volume.state == Environment.MEDIA_MOUNTED || volume.state == Environment.MEDIA_MOUNTED_READ_ONLY,
             rootNodeId =
                 directory?.takeIf { SharedStorageAccess.isGranted(context) && it.canRead() }
                     ?.let { FileNodeId.file(it.absolutePath) },

@@ -39,3 +39,11 @@ Independent source review found and resolved stale scope display, unbounded susp
 - Uses the actual MainActivity Storage tab and real metadata scan, accepts a complete or truthful partial breakdown within 80 seconds per wait, scrolls to all eleven category rows, dispatches manual refresh, leaves/returns, and recreates the Activity. Recreation must retain the Storage screen and permit immediate navigation away. Refresh is a native dispatch/terminal-state smoke check; the separate deterministic host test verifies callback dispatch. The device case deliberately does not require observing a transient scanning state or identical live totals.
 
 The native cases create no shared-storage fixtures, alter no settings, and perform no root/shell operations. They read mounted metadata and leave the UI on Home. They do not exercise grant revocation, physical unmount, true process death or OS background scheduling. Run the focused instrumentation class after host compilation/static/unit checks; native acceptance remains pending.
+
+## Read-only mounted storage follow-up
+
+The volume enumerator and native capacity oracle now include Android's `MEDIA_MOUNTED_READ_ONLY` state alongside `MEDIA_MOUNTED`. This makes readable read-only media available for browsing and metadata accounting; it does not grant write access or bypass existing shared-storage permissions.
+
+`StorageVolumesTest` adds four real `StorageManager` enumeration fixtures on each of API 27 and 34 (eight host cases, execution pending). They cover RW/RO/unmounted capacity aggregation, denied grants with known physical capacity, unsupported legacy directory discovery versus modern discovery, and mounted-but-unreadable directory coverage. Fixtures use Robolectric's cached `StorageVolumeBuilder`, real disposable temporary directories and registered `StatFs` values. The Android suffix shim preserves the platform path contract on Windows hosts. No production directory-discovery or permission rules were changed.
+
+The already captured phone run covers the ordinary mounted state; no physical read-only device acceptance is claimed. Its native capacity case passed, but its UI case lost the Compose hierarchy after returning to Storage and remains a validation blocker under investigation.
