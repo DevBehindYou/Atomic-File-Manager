@@ -35,9 +35,39 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowseSortLoadingTest {
+    @ParameterizedTest
+    @ValueSource(
+        strings = ["NAME", "DATE_MODIFIED", "SIZE", "NAME_DESCENDING", "DATE_MODIFIED_ASCENDING", "SIZE_ASCENDING"],
+    )
+    fun `legacy and inverse direction names restore and save unchanged`(persisted: String) =
+        runTest {
+            var saved: String? = null
+            val memory =
+                object : FolderSortMemory {
+                    override suspend fun get(folderRaw: String) = persisted
+
+                    override suspend fun set(
+                        folderRaw: String,
+                        value: String,
+                    ) {
+                        saved = value
+                    }
+                }
+            withModel(memory) { model ->
+                model.uiState.first { !it.isLoading }
+                val expected = SortOption.valueOf(persisted)
+                assertEquals(expected, model.uiState.value.sortOption)
+                model.setSortOption(expected)
+                runCurrent()
+                assertEquals(persisted, saved)
+            }
+        }
+
     @Test
     fun `delayed stored order does not overwrite a newer user choice`() =
         runTest {

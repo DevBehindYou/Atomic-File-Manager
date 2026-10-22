@@ -154,16 +154,13 @@ internal fun TasksPanel(
             .padding(AtomicSpacing.s12),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                AtomicText("Tasks", AtomicTextRole.MonoLabel, color = colors.accentText)
-                AtomicText(
-                    if (count == 0) "All clear" else "${count - waiting.size} running · ${waiting.size} queued",
-                    AtomicTextRole.MonoMeta,
-                )
-            }
-            AtomicIconButton(AtomicIcons.Close, "Close tasks", onDismiss)
-        }
+        BalancedPopupHeader(
+            title = "Tasks",
+            closeDescription = "Close tasks",
+            onClose = onDismiss,
+            testTagPrefix = "tasks",
+            subtitle = if (count == 0) "All clear" else "${count - waiting.size} running · ${waiting.size} queued",
+        )
         AtomicDivider()
         LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
             if (count == 0) {

@@ -14,6 +14,8 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import java.util.UUID
 
 /** One Browse tab: where it was opened, how often it was re-opened there, and what it shows now. */
 data class BrowseTab(
@@ -21,7 +23,22 @@ data class BrowseTab(
     val folderRaw: String,
     val openRequest: Int = 0,
     val title: String = "",
-)
+    /** Empty for legacy saved tabs; newly opened tabs receive a persisted unique session. */
+    val sessionId: String = "",
+) {
+    /** Preserve legacy model keys while keeping a reopened numeric tab ID in a fresh session. */
+    val stateKey: String get() =
+        if (sessionId.isEmpty()) {
+            if (id == 0) "" else "tab$id:"
+        } else {
+            "tab$id:$sessionId:"
+        }
+}
+
+internal fun primaryBrowseViewModelKey(
+    tabKey: String,
+    initialFolderId: FileNodeId,
+): String = "browse:$tabKey${initialFolderId.raw}"
 
 /**
  * Browse tabs (ALL_IN_ONE_PLAN.md 2.4): up to [MAX] tabs, each with its own view model. Pure so
@@ -42,7 +59,10 @@ data class BrowseTabsState(
         if (!canOpenMore) return this
         val id = (tabs.maxOf { it.id }) + 1
         val at = tabs.indexOfFirst { it.id == activeId } + 1
-        val next = tabs.toMutableList().apply { add(at, BrowseTab(id, folderRaw, title = title)) }
+        val next =
+            tabs.toMutableList().apply {
+                add(at, BrowseTab(id, folderRaw, title = title, sessionId = UUID.randomUUID().toString()))
+            }
         return BrowseTabsState(next, id)
     }
 
@@ -73,7 +93,10 @@ data class BrowseTabsState(
 
     fun encode(): String =
         listOf(activeId.toString()).plus(
-            tabs.map { listOf(it.id, it.openRequest, it.title.escape(), it.folderRaw.escape()).joinToString(FIELD) },
+            tabs.map {
+                listOf(it.id, it.openRequest, it.title.escape(), it.folderRaw.escape(), it.sessionId.escape())
+                    .joinToString(FIELD)
+            },
         ).joinToString(TAB)
 
     companion object {
@@ -96,7 +119,8 @@ data class BrowseTabsState(
                     val id = f.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
                     val request = f.getOrNull(1)?.toIntOrNull() ?: return@mapNotNull null
                     val folder = f.getOrNull(3)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-                    BrowseTab(id, folder, request, f.getOrNull(2).orEmpty())
+                    val session = f.getOrNull(4).orEmpty().takeIf(::isSessionId).orEmpty()
+                    BrowseTab(id, folder, request, f.getOrNull(2).orEmpty(), session)
                 }.distinctBy { it.id }.take(MAX)
             if (active == null || tabs.isEmpty()) return single(fallbackRaw)
             return BrowseTabsState(tabs, if (tabs.any { it.id == active }) active else tabs.first().id)
@@ -104,6 +128,9 @@ data class BrowseTabsState(
 
         /** Separators can't appear in a saved field; folder paths never contain them. */
         private fun String.escape(): String = replace(TAB, " ").replace(FIELD, " ")
+
+        private fun isSessionId(value: String): Boolean =
+            value.isEmpty() || runCatching { UUID.fromString(value).toString() == value }.getOrDefault(false)
     }
 }
 

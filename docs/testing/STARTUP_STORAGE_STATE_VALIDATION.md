@@ -22,7 +22,7 @@ Source regression coverage prepared:
 - Home Compose regression: loading/failure does not offer Grant access, Retry and existing volume navigation still dispatch correctly, and a confirmed denial restores the permission action.
 - Existing Home and Settings Compose cases remain applicable.
 
-Root coordinates serialized Gradle on this host. No local build/test result is claimed until the parent records its run. Suggested focused tasks:
+Root completed serialized host validation: `build/audit-tools/startup-storage-complete-validation.log` and its exit marker record success in 7m 45s. The 13 focused cases (loader 5, Home 4, Settings 4), ktlint, detekt, debug APK and debug Lint passed. Tasks:
 
 ```text
 ktlintFormat ktlintCheck detekt :app:testDebugUnitTest
@@ -32,4 +32,12 @@ ktlintFormat ktlintCheck detekt :app:testDebugUnitTest
 :app:assembleDebug :app:lintDebug
 ```
 
-Physical startup, permission return, media mount/unmount and recreation checks remain pending. The broader U04 primary-tab ownership/refactor work is deliberately separate; this first slice addresses loading-state truthfulness.
+The debug APK SHA-256 was `d1fbe0825b71307db16244974e3d1e5190ac9f135ea5e75e809e4eece347279e`. The authorized API34 phone passed cold launch → Home → Settings (visible Granted status) → Home, with its existing all-files grant preserved. Captures are under `build/audit-tools/device-preview-tools/startup-storage-*`; the captured runtime-error log was empty. No real user files were changed. This is a surface check, not a comparable performance baseline.
+
+PR #62 at `963a96b` passed full current-head CI, independent review and a clean trial merge, then merged into `codex/feature-upgrade-base` as `08541851c0ab7f8c32ed768e89558a791a93f321`. This is feature integration, not main/release acceptance.
+
+Permission revocation/return and media mount/unmount, including recreation during those changes, remain pending. The broader U04 primary-tab ownership/refactor work is separate; this first slice addresses loading-state truthfulness.
+
+Subsequent browse composition-pause follow-up [PR #66](https://github.com/DevBehindYou/Atomic-File-Manager/pull/66), source `80f98ea`, passed CI `39613995458`. Combined integration `5902824` passed 48 focused browse/index tests, static checks, APK packaging and Lint in `browse-index-consistency-retry-validation.log` (exit 0, 12m 2s). Later combined `66d7451` passed 44 host cases and all four selected API34 cases on 21 October, including actual `PrimaryBrowseRecreationDeviceTest`. That phone build also contains orthogonal UI/opening/index changes; its acceptance is not an isolated branch run. The case logs and APK hashes are recorded in [feature progress](../roadmap/FEATURE_UPGRADE_PROGRESS.md). Separate read-only finalization confirms Home, preserved access and test-only handler removal, while retaining the original reporting-wrapper exit 1. This evidence is separate from the 13-case startup slice above. Full cached-owner pruning, permission revocation/return, mount/unmount and broader U04 acceptance remain open.
+
+The corresponding validation-document update at `c093c6d` passed full current-head CI `39668743555`. Review-thread checks, a fresh clean trial and target guard preceded #66's feature-integration merge `336385989d5a1a97cf4b2023e66679460298ea3e`. Its required static and unit/APK jobs passed; the manual emulator job was skipped, so physical evidence remains the separately recorded combined phone run. The earlier source CI and phone result retain their original checkpoint scopes; full U04 ownership acceptance remains open.
