@@ -48,6 +48,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -114,13 +115,47 @@ class StorageAnalysisOptInComposeTest {
         }
     }
 
+    @Test
+    fun changingAnalysisRootCancelsMetadataAndRequiresAnotherExplicitAction() = withFixture { fixture ->
+        val secondRoot = runBlocking(Dispatchers.IO) {
+            (fixture.memory.createDirectory(fixture.memory.rootId, "second") as FileResult.Success).value.id
+        }
+        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.waitUntil(5_000) { fixture.usageStarts.get() == 1 }
+        compose.onNodeWithTag("analyze_cleanup_button").assertIsNotEnabled()
+        fixture.expectUsageCancellation = true
+
+        compose.runOnIdle { fixture.rootId.value = secondRoot }
+        compose.waitForIdle()
+        compose.waitUntil(5_000) {
+            fixture.usageCancelled.isCompleted && fixture.activeUsage.get() == 0 &&
+                fixture.finished.subscriptionCount.value == 0
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Analyze file types").assertExists()
+        compose.onNodeWithTag("analyze_cleanup_button").assertIsEnabled()
+        assertEquals(1, fixture.usagePlans.get())
+        assertEquals(1, fixture.usageStarts.get())
+        assertEquals(0, fixture.deepStarts.get())
+
+        compose.onNodeWithTag("analyze_cleanup_button").performClick()
+        compose.waitForIdle()
+        compose.waitUntil(5_000) { fixture.deepStarts.get() == 1 }
+        compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsNotEnabled()
+        assertEquals(listOf(secondRoot), fixture.deepRoots.toList())
+        assertEquals(1, fixture.activeDeep.get())
+        assertEquals(1, fixture.usageStarts.get())
+        fixture.expectDeepCancellation = true
+    }
+
     private fun withFixture(fixture: Fixture = Fixture(), assertions: (Fixture) -> Unit) {
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides fixture.owner) {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                     if (fixture.visible.value) {
                         StorageIntelligenceContent(
-                            rootId = fixture.memory.rootId,
+                            rootId = fixture.rootId.value,
                             analyzer = fixture.analyzer,
                             usageRepository = fixture.repository,
                             volumes = fixture.volumes,
@@ -181,6 +216,8 @@ class StorageAnalysisOptInComposeTest {
         var expectUsageCancellation = false
         var expectDeepCancellation = false
         val memory = InMemoryBackend()
+        val rootId = mutableStateOf(memory.rootId)
+        val deepRoots = ConcurrentLinkedQueue<FileNodeId>()
         val finished = MutableSharedFlow<OperationSnapshot>()
         private val root = File("analysis-usage-root").absolutePath
         val volumes = listOf(StorageVolumeInfo(
@@ -189,6 +226,7 @@ class StorageAnalysisOptInComposeTest {
         ))
         private val backend = object : StorageBackend by memory {
             override fun listChildren(id: FileNodeId) = flow<FileResult<List<FileNode>>> {
+                deepRoots.add(id)
                 deepStarts.incrementAndGet()
                 activeDeep.incrementAndGet()
                 try {
