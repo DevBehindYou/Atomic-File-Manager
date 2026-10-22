@@ -465,8 +465,9 @@ class BrowseViewModel(
     }
 
     fun createFolder(name: String) {
+        val parent = _uiState.value.currentFolderId
         viewModelScope.launch {
-            when (val result = createDirectoryUseCase(_uiState.value.currentFolderId, name)) {
+            when (val result = createDirectoryUseCase(parent, name)) {
                 is FileResult.Success -> refresh()
                 is FileResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.browseMessage()) }
             }
