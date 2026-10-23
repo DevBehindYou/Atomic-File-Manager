@@ -85,7 +85,7 @@ successful transfer through held cleanup, plus idle abandonment with independent
 
 The frozen old-source composition consumers reproduce both failures; all 59 selected corrected host cases, static checks, APKs and debug Lint now pass. See [the validation record](BROWSE_SECONDARY_DRAIN_VALIDATION.md) for exact source, hashes, retained negative evidence and pending CI/device limits.
 
-## Primary registry validation pending
+## Primary registry validation
 
 `PrimaryBrowseRootReplacementComposeTest` uses the real shell with in-memory directory/node data:
 Home/Files preserves its staged clipboard, but explicit root A-to-B-to-A must not resurrect the
@@ -100,7 +100,7 @@ Existing session-key tests continue to cover key encoding independently of regis
 Native recreation/tab fixtures now read existing child entries instead of obsolete Activity
 model keys; no native run is claimed by updating those lookups.
 
-Primary registry host/static/APK/CI/device acceptance is pending parent validation. Retired models
+Primary registry passes 66 focused host cases, static checks, APKs and Lint, and the exact APK passes four selected API34 native cases. Final-head CI/merge and broader revocation/mount acceptance remain pending. See [the primary validation record](BROWSE_PRIMARY_REGISTRY_VALIDATION.md). Retired models
 with never-returning accepted work can remain until completion/cancellation, so no strict global
 memory bound, frame-time improvement or process-death mutation durability is claimed.
 
@@ -118,5 +118,6 @@ tests remain applicable because both bindings use the same lifecycle implementat
 Parent-run RED/GREEN host/static/APK/CI checks remain pending for this secondary visibility slice.
 No native run, permission change, provider-matrix pass or measured resource improvement is
 claimed here. No new dependency or platform API branch is introduced.
+
 
 
