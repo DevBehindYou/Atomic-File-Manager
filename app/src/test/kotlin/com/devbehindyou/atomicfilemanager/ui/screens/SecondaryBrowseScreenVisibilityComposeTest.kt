@@ -184,7 +184,9 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                 owner.registry.currentState = Lifecycle.State.DESTROYED
                 primaryStore.clear()
             }
-            awaitCondition { cancelled.get() == started.get() && primary.viewModelScope.coroutineContext.job.isCompleted }
+            awaitCondition {
+                cancelled.get() == started.get() && primary.viewModelScope.coroutineContext.job.isCompleted
+            }
             scope.cancel()
             shadowOf(Looper.getMainLooper()).idle()
             field.set(app, original)
