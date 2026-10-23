@@ -113,14 +113,20 @@ class SecondaryBrowseVisibilityTest {
             model.refresh()
             listingVisible.value = true
         }
+        val rowsBeforeReturn = model.uiState.value.rawItems
         compose.runOnIdle {
             assertSame(model, current)
             assertEquals(2, fixture.started.get())
             assertSame(clipboard, model.uiState.value.clipboard)
             owner.value.registry.currentState = Lifecycle.State.STARTED
         }
-        awaitCondition { fixture.started.get() == 3 && !model.uiState.value.isRefreshing }
+        awaitCondition {
+            fixture.started.get() == 3 && !model.uiState.value.isLoading &&
+                model.uiState.value.rawItems !== rowsBeforeReturn
+        }
         compose.runOnIdle {
+            // This fixture emits a partial batch then stays open; refresh is intentionally nonterminal.
+            assertTrue(model.uiState.value.isRefreshing)
             assertEquals(child.id, model.uiState.value.currentFolderId)
             assertSame(clipboard, model.uiState.value.clipboard)
             assertEquals(setOf(source.id), model.uiState.value.selectedIds)
