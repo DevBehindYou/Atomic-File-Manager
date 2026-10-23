@@ -16,7 +16,8 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 internal fun PrimaryBrowseVisibility(
     viewModel: BrowseViewModel,
     openRequest: Int,
-) = BrowsePaneVisibility(viewModel, openRequest, paneVisible = true)
+    contentVisible: Boolean = true,
+) = BrowsePaneVisibility(viewModel, openRequest, paneVisible = contentVisible)
 
 /** Preview hides observation without resetting the retained secondary location or clipboard. */
 @Composable

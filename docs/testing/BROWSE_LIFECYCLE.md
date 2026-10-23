@@ -17,6 +17,10 @@ Existing explicit mode-toggle/pane-activation handlers and consumed selection ac
 selection where they did previously; the visibility binding adds no selection clearing.
 Returning to dual browse below STARTED remains idle until the lifecycle starts. Ordinary RESUMED
 events add no extra refresh, and compact layouts neither create nor bind a secondary model.
+The internal Manage hidden files route replaces the whole Browse content without disposing the
+Browse composition. While that route or its existing AuthGate is shown, both retained Browse
+models stop observation. Back/denial restores observation only for visible STARTED panes, keeping
+the existing authentication, hidden-files actions and navigation behavior.
 
 Accepted mutations and the app-wide queue retain their existing ownership. A late create success,
 queue completion or refresh request while the secondary listing is hidden cannot restart it;
@@ -109,6 +113,8 @@ memory bound, frame-time improvement or process-death mutation durability is cla
 `SecondaryBrowseScreenVisibilityComposeTest` exercises the real wide Browse screen with separate
 primary and secondary backend counters. Its frozen old-API consumers check initially stopped
 construction and the actual Switch to preview pane control before source changes are validated.
+An additional consumer opens the real Manage hidden files option, checks both listings stop and
+remain idle after independent queue completion, then verifies Back refreshes each exactly once.
 `SecondaryBrowseVisibilityTest` covers STARTED plus visible gating, STOP/preview/return ordering,
 queue completion and refresh while hidden, navigation/clipboard/selection/Back retention, compact
 and preview-only construction, lifecycle-owner replacement, accepted create completion while

@@ -153,9 +153,6 @@ fun BrowseScreen(
                 startVisible = false,
             )
         } ?: viewModel
-    if (isDualPane) {
-        SecondaryBrowseVisibility(secondaryViewModel, listingVisible = dualPaneMode == DualPaneMode.DUAL_BROWSE)
-    }
     val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
     val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
     val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
@@ -227,7 +224,13 @@ fun BrowseScreen(
         if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
-    PrimaryBrowseVisibility(viewModel, openRequest)
+    PrimaryBrowseVisibility(viewModel, openRequest, contentVisible = !showHiddenScreen)
+    if (isDualPane) {
+        SecondaryBrowseVisibility(
+            secondaryViewModel,
+            listingVisible = !showHiddenScreen && dualPaneMode == DualPaneMode.DUAL_BROWSE,
+        )
+    }
 
     val primaryStorage = currentStorageVolume(volumes, uiState.currentFolderId, uiState.breadcrumbs)
     val primaryFolderName =
