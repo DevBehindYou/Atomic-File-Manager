@@ -16,9 +16,28 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 internal fun PrimaryBrowseVisibility(
     viewModel: BrowseViewModel,
     openRequest: Int,
+    contentVisible: Boolean = true,
+) = BrowsePaneVisibility(viewModel, openRequest, paneVisible = contentVisible)
+
+/** Preview hides observation without resetting the retained secondary location or clipboard. */
+@Composable
+internal fun SecondaryBrowseVisibility(
+    viewModel: BrowseViewModel,
+    listingVisible: Boolean,
+) = BrowsePaneVisibility(viewModel, openRequest = 0, paneVisible = listingVisible)
+
+@Composable
+private fun BrowsePaneVisibility(
+    viewModel: BrowseViewModel,
+    openRequest: Int,
+    paneVisible: Boolean,
 ) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(viewModel, openRequest, lifecycle) {
+    DisposableEffect(viewModel, openRequest, lifecycle, paneVisible) {
+        if (!paneVisible) {
+            viewModel.onHidden()
+            return@DisposableEffect onDispose { viewModel.onHidden() }
+        }
         val observer =
             LifecycleEventObserver { _, event ->
                 when (event) {
