@@ -3,14 +3,16 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.AtomicAppContent
@@ -100,7 +102,7 @@ class PrimaryBrowseRootReplacementComposeTest {
         var owner: ViewModelStoreOwner? = null
         try {
             compose.setContent {
-                owner = LocalViewModelStoreOwner.current
+                owner = LocalView.current.findViewTreeViewModelStoreOwner()
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                     if (render.value) {
                         AtomicAppContent(
@@ -146,3 +148,4 @@ class PrimaryBrowseRootReplacementComposeTest {
         }
     }
 }
+
