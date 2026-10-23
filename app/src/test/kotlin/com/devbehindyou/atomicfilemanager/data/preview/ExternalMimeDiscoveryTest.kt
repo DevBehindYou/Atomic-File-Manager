@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.net.Uri
+import android.webkit.MimeTypeMap
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -31,7 +32,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [27, 34], application = Application::class)
 class ExternalMimeDiscoveryTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
-    private val uri = Uri.parse("content://fixture/document/report")
+    private val uri = Uri.parse("content://fixture/tree/root/document/report")
 
     @Test
     fun malformedPdfMetadataStillDiscoversAndLaunchesThePdfReader() =
@@ -119,6 +120,11 @@ class ExternalMimeDiscoveryTest {
     )
 
     private fun registerReaders() {
+        // Robolectric's MIME-map shadow starts empty; populate the platform mappings used by this fixture.
+        shadowOf(MimeTypeMap.getSingleton()).apply {
+            addExtensionMimeTypeMapping("pdf", "application/pdf")
+            addExtensionMimeTypeMapping("png", "image/png")
+        }
         val manager = shadowOf(app.packageManager)
         listOf("pdf.reader" to "application/pdf", "png.reader" to "image/png").forEach { (reader, mime) ->
             val activity =
