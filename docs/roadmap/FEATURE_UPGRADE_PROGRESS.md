@@ -18,7 +18,7 @@ Current: **15% host verified (2/13), 8% accepted (1/13)**. U01 is accepted. U04 
 | U06 Opening defaults | Opening-policy slice integrated after current-head checks, review and clean trial; wider acceptance remains open | [PR #64](https://github.com/DevBehindYou/Atomic-File-Manager/pull/64), tested `582e8b3`, merge `b9c779d`; 42 focused host cases and native handoff pass; no complete U06 milestone credit |
 | U07 Storage-account contracts | Planned | Preserve real system-provider/network behavior |
 | U08 First direct cloud connector | Planned | Provider/scope registration and real test account |
-| U09 Media/images | Planned | Bundled feature improvements and hardware acceptance |
+| U09 Media/images | Image Viewer load-recovery slice implementing; Video next | Targeted existing U09 work in isolated branch; no complete milestone credit or broader advanced-plugin claim |
 | U10 PDF/documents | Planned | Engine/capability evaluation |
 | U11 Editor/archives | Planned | Recovery and mutation invariants |
 | U12 Second connector/network | Planned | Shared contracts and actual provider/hardware tests |
@@ -119,4 +119,11 @@ The secondary model now starts paused and observes listings/filters/queue state 
 
 Final actual source `90906e3`, app tree `0493f80e7711bda9d581bbe3ca4183f23a2e474c`, passes all 75 applicable cases without failures/errors/skips, ktlint/Detekt, debug/AndroidTest packaging and debug Lint in 8m23s, exit 0. The exact APK also passes four selected physical API34 cases in 27.791s, with installed base hash, selected Home, unchanged access and test-package removal verified. [PR #78](https://github.com/DevBehindYou/Atomic-File-Manager/pull/78), final head `a180fbf`, passes both required jobs in CI `40010492044`. Independent review, resolved-thread inspection and a clean guarded trial preceded feature-integration merge `39994ef5e616e6fdd43fb67f3580ae8bca9033b5`. This completes U04 host implementation alongside accepted startup, primary ownership and drain slices: **15% host verified (2/13), 8% accepted (1/13)**. U04 full acceptance still needs current permission-revocation/return and mount/unmount/recreation evidence; the ordinary phone run is not that matrix. No benchmark, measured resource improvement or main/release completion is claimed. The advanced eight-plugin program stays separately deferred and earns no current credit.
 
+
+
+## U06 MIME discovery consistency — 24 October
+
+External preparation now uses the same bounded MIME normalizer as file routing, preventing malformed metadata from hiding compatible readers or wildcard metadata from offering unrelated ones. The final unchanged-source baseline has 8 expected assertions failing and 4 controls passing across API27/34; initial URI/map fixture failures are separately retained. All 40 corrected affected opening cases, static checks, both APKs and debug Lint pass in 9m46s, exit 0. Actual source `8d1cb54` has app tree `50113b6c1b64614ee24563202c26e9a055fc7ed7`. Six current API34 cases pass in 28.745s, including valid and malformed-metadata read-only cross-UID PNG handoffs; installed hash, selected Home, unchanged access and runner removal are verified. See [the validation record](../testing/EXTERNAL_MIME_NORMALIZATION_VALIDATION.md) for exact hashes, fixture caveats and limits. Independent reviews are clear; final-head CI/publication remains pending. U06 remains partial, so fixed progress stays **15% host verified / 8% accepted**.
+
+The next user-prioritized existing U09 slice is Image Viewer load recovery/source replacement, prepared in an isolated branch. This is not a claim that the deferred eight-plugin audit, competitive research or advanced feature program is complete. All plugins remain bundled and native.
 
