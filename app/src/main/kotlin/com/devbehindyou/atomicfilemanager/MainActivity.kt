@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
@@ -55,6 +57,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -104,6 +107,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
+import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageIntelligenceScreen
@@ -262,8 +266,15 @@ fun AtomicAppContent(
     // last time. Tab switches and rotation leave it unchanged and keep the position.
     var browseTabsSaved by rememberSaveable { mutableStateOf(BrowseTabsState.single(defaultFolderRaw).encode()) }
     val browseTabs = remember(browseTabsSaved) { BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw) }
+    val browseOwner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
+    val browseModels = remember(browseOwner) { PrimaryBrowseStoreRegistry.obtain(browseOwner) }
+    // This remains composed on Home and above pushed-route early returns; hiding is not closure.
+    SideEffect { browseModels.reconcile(browseTabs) }
     val updateBrowseTabs: ((BrowseTabsState) -> BrowseTabsState) -> Unit = { change ->
-        browseTabsSaved = change(BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw)).encode()
+        val next = change(BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw))
+        // Observe every replacement, even an A-to-B-to-A sequence before the next composition.
+        browseModels.reconcile(next)
+        browseTabsSaved = next.encode()
     }
     var tabHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
 

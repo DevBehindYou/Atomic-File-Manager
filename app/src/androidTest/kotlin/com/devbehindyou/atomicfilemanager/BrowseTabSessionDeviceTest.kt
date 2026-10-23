@@ -20,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseViewModel
+import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.shortcuts.OpenTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -178,13 +179,15 @@ class BrowseTabSessionDeviceTest {
         lateinit var model: BrowseViewModel
         compose.activityRule.scenario.onActivity { activity ->
             model =
-                ViewModelProvider(
-                    activity,
-                    object : ViewModelProvider.Factory {
-                        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                            error("Expected existing primary tab")
-                    },
-                )["browse:${root.raw}", BrowseViewModel::class.java]
+                checkNotNull(
+                    ViewModelProvider(
+                        activity,
+                        object : ViewModelProvider.Factory {
+                            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                                error("Expected existing primary registry")
+                        },
+                    )[PrimaryBrowseStoreRegistry::class.java].existing("", root),
+                )
         }
         return model
     }

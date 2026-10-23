@@ -37,7 +37,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.R
@@ -98,23 +97,23 @@ fun BrowseScreen(
         run {
             val app = LocalContext.current.applicationContext as AtomicApp
             val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
-            remember(owner, tabKey, initialFolderId.raw) {
-                ViewModelProvider(
-                    owner,
-                    BrowseViewModel.provideFactory(
-                        initialFolderId = initialFolderId,
-                        getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
-                        getNodeUseCase = app.container.getNodeUseCase,
-                        createDirectoryUseCase = app.container.createDirectoryUseCase,
-                        renameFileUseCase = app.container.renameFileUseCase,
-                        deleteFileUseCase = app.container.deleteFileUseCase,
-                        operationQueue = app.container.operationQueue,
-                        transferBubbleRepository = app.container.transferBubbleRepository,
-                        folderSorts = app.container.folderSortMemory,
-                        startVisible = false,
-                    ),
-                )[primaryBrowseViewModelKey(tabKey, initialFolderId), BrowseViewModel::class.java]
-            }
+            // Read the registry each composition: A-to-B-to-A can retire A between two frames.
+            PrimaryBrowseStoreRegistry.obtain(owner).model(
+                tabKey,
+                initialFolderId,
+                BrowseViewModel.provideFactory(
+                    initialFolderId = initialFolderId,
+                    getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
+                    getNodeUseCase = app.container.getNodeUseCase,
+                    createDirectoryUseCase = app.container.createDirectoryUseCase,
+                    renameFileUseCase = app.container.renameFileUseCase,
+                    deleteFileUseCase = app.container.deleteFileUseCase,
+                    operationQueue = app.container.operationQueue,
+                    transferBubbleRepository = app.container.transferBubbleRepository,
+                    folderSorts = app.container.folderSortMemory,
+                    startVisible = false,
+                ),
+            )
         },
 ) {
     val app = LocalContext.current.applicationContext as AtomicApp
