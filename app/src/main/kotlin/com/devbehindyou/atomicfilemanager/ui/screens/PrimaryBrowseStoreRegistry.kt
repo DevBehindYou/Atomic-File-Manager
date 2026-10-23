@@ -17,6 +17,7 @@ internal class PrimaryBrowseStoreRegistry : ViewModel() {
     }
 
     private val entries = mutableMapOf<String, Entry>()
+
     // The initial active screen may acquire its model before the shell's first SideEffect.
     private var allowedKeys: Set<String>? = null
     private var cleared = false

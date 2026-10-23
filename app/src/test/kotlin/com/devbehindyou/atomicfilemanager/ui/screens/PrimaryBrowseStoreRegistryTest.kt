@@ -152,6 +152,7 @@ class PrimaryBrowseStoreRegistryTest {
                 old.createFolder("accepted")
                 old.rename(fixture.source.id, "renamed")
                 old.onSearchQueryChanged("old")
+
                 fun openRoot(root: FileNodeId) {
                     val next = saved.openInActive(root.raw)
                     fixture.registry.reconcile(next)
