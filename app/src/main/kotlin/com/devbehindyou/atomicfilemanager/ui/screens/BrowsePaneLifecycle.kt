@@ -53,14 +53,14 @@ internal fun rememberSecondaryBrowseViewModel(
     return remember(tabKey, initialFolderId) { SecondaryBrowseModel(factory()) }.viewModel
 }
 
-/** Also clears a model created by a composition that was abandoned before being applied. */
-private class SecondaryBrowseModel(factory: ViewModelProvider.Factory) : RememberObserver {
+/** Retires observation immediately; accepted work drains before this entry's own store is cleared. */
+internal class SecondaryBrowseModel(factory: ViewModelProvider.Factory) : RememberObserver {
     private val store = ViewModelStore()
     val viewModel = ViewModelProvider(store, factory)[BrowseViewModel::class.java]
 
     override fun onRemembered() = Unit
 
-    override fun onForgotten() = store.clear()
+    override fun onForgotten() = viewModel.retireAfterAcceptedWork(store::clear)
 
-    override fun onAbandoned() = store.clear()
+    override fun onAbandoned() = viewModel.retireAfterAcceptedWork(store::clear)
 }
