@@ -6,6 +6,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
@@ -86,6 +89,34 @@ class SecondaryBrowseScreenVisibilityComposeTest {
         }
     }
 
+    @Test
+    fun managingHiddenFilesPausesBothBrowsePanesAndBackRefreshesEachOnlyOnce() {
+        withScreen(Lifecycle.State.STARTED) { fixture ->
+            awaitCondition { fixture.emitted.get() == 1 && fixture.primaryEmitted.get() == 1 }
+            compose.onNodeWithTag("browse_options_button").performClick()
+            compose.onNodeWithText("Manage hidden files").performClick()
+            compose.waitForIdle()
+            shadowOf(Looper.getMainLooper()).idle()
+            assertEquals(
+                "The internal hidden-files route replaces both retained Browse listings",
+                listOf(1, 1),
+                listOf(fixture.primaryCancelled.get(), fixture.cancelled.get()),
+            )
+            compose.runOnIdle { fixture.primary.deleteNodes(listOf(fixture.root)) }
+            awaitCondition { fixture.finishedOperations.get() == 1 }
+            compose.runOnIdle {
+                assertEquals(1, fixture.primaryStarted.get())
+                assertEquals(1, fixture.started.get())
+            }
+            compose.onNodeWithContentDescription("Back").performClick()
+            awaitCondition { fixture.primaryEmitted.get() == 2 && fixture.emitted.get() == 2 }
+            compose.runOnIdle {
+                assertEquals(2, fixture.primaryStarted.get())
+                assertEquals(2, fixture.started.get())
+            }
+        }
+    }
+
     private fun withScreen(
         initialState: Lifecycle.State,
         test: (Fixture) -> Unit,
@@ -99,6 +130,10 @@ class SecondaryBrowseScreenVisibilityComposeTest {
         val started = AtomicInteger()
         val emitted = AtomicInteger()
         val cancelled = AtomicInteger()
+        val primaryStarted = AtomicInteger()
+        val primaryEmitted = AtomicInteger()
+        val primaryCancelled = AtomicInteger()
+        val finishedOperations = AtomicInteger()
         val secondaryBackend =
             object : StorageBackend by memory {
                 override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
@@ -110,6 +145,20 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                             awaitCancellation()
                         } finally {
                             cancelled.incrementAndGet()
+                        }
+                    }
+            }
+        val primaryBackend =
+            object : StorageBackend by memory {
+                override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
+                    flow {
+                        primaryStarted.incrementAndGet()
+                        try {
+                            emit(FileResult.Success(emptyList()))
+                            primaryEmitted.incrementAndGet()
+                            awaitCancellation()
+                        } finally {
+                            primaryCancelled.incrementAndGet()
                         }
                     }
             }
@@ -136,6 +185,7 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                 journal = null,
                 scope = scope,
             )
+        scope.launch { queue.finished.collect { finishedOperations.incrementAndGet() } }
         val metadata = GetNodeUseCase(Dispatchers.Main.immediate) { memory }
         val primaryStore = ViewModelStore()
         val primary =
@@ -143,7 +193,7 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                 primaryStore,
                 BrowseViewModel.provideFactory(
                     memory.rootId,
-                    GetDirectoryListingUseCase(Dispatchers.Main.immediate) { memory },
+                    GetDirectoryListingUseCase(Dispatchers.Main.immediate) { primaryBackend },
                     metadata,
                     CreateDirectoryUseCase { memory },
                     RenameFileUseCase { memory },
@@ -177,7 +227,12 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                     }
                 }
             }
-            test(Fixture(started, emitted, cancelled))
+            test(
+                Fixture(
+                    started, emitted, cancelled, primaryStarted, primaryEmitted, primaryCancelled,
+                    finishedOperations, primary, memory.rootId,
+                ),
+            )
         } finally {
             compose.runOnIdle {
                 render.value = false
@@ -202,7 +257,17 @@ class SecondaryBrowseScreenVisibilityComposeTest {
         }
     }
 
-    private class Fixture(val started: AtomicInteger, val emitted: AtomicInteger, val cancelled: AtomicInteger)
+    private class Fixture(
+        val started: AtomicInteger,
+        val emitted: AtomicInteger,
+        val cancelled: AtomicInteger,
+        val primaryStarted: AtomicInteger,
+        val primaryEmitted: AtomicInteger,
+        val primaryCancelled: AtomicInteger,
+        val finishedOperations: AtomicInteger,
+        val primary: BrowseViewModel,
+        val root: FileNodeId,
+    )
 }
 
 private class ScreenVisibilityOwner(initialState: Lifecycle.State) : LifecycleOwner {
