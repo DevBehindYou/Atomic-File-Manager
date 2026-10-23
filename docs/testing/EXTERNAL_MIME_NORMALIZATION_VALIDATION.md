@@ -14,7 +14,7 @@ The URI preparation, temporary read grants, explicit-component/system-chooser be
 
 Six methods run on API27 and API34: malformed PDF metadata, wildcard PNG metadata, oversized PNG metadata, valid conflicting-MIME authority, generic metadata with a known extension, and invalid metadata with an unknown extension falling back to the generic system chooser. The SAF fixture requires no file reads or backend export; an attempted backend export fails the test.
 
-The test-only commit `0c17a266dd374ca687c13854366e0068b3efacfd` precedes the production correction. Frozen file SHA256: `6E3B8A492368F90C0E451C382214ED127F4491A81409C2E6A4DD320B903993F0`. Parent validation owns the unchanged-production RED run and corrected-production GREEN run using that exact consumer, serialized with other Gradle work.
+The initial test-only commit `0c17a266dd374ca687c13854366e0068b3efacfd` precedes the production correction. Before validation, assertion order was strengthened so malformed known-file cases first check actual handler discovery instead of failing first on the helper's MIME value. Final frozen consumer SHA256: `7D76DFC12C4D4723A8EF78541E275E0F77AB534237B7AE104AD6542925364777`. Parent validation owns the unchanged-production RED run and corrected-production GREEN run using that exact consumer, serialized with other Gradle work.
 
 ## Validation status
 

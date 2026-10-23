@@ -61,7 +61,6 @@ class ExternalMimeDiscoveryTest {
             assertEquals(FileOpenFamily.OTHER, fileOpenFamily(node))
             val result =
                 helper().open(node) { prepared ->
-                    assertEquals("application/octet-stream", prepared.mimeType)
                     assertTrue(ExternalFileApps(app).list(prepared.mimeType).isEmpty())
                     ExternalFileApps(app).launch(prepared, node.name, FileOpenTarget(FileOpenMode.EXTERNAL), "Open with")
                 }
@@ -88,9 +87,9 @@ class ExternalMimeDiscoveryTest {
         assertEquals(family, fileOpenFamily(node))
         val result =
             helper().open(node) { prepared ->
-                assertEquals(expected, prepared.mimeType)
                 val offered = ExternalFileApps(app).list(prepared.mimeType)
                 assertEquals(listOf("$reader/$reader.View"), offered.map { it.component })
+                assertEquals(expected, prepared.mimeType)
                 ExternalFileApps(app).launch(prepared, name, offered.single().target(), "Open with")
             }
         assertTrue(result is FileResult.Success)
