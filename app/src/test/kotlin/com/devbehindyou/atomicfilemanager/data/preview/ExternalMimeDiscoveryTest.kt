@@ -62,7 +62,12 @@ class ExternalMimeDiscoveryTest {
             val result =
                 helper().open(node) { prepared ->
                     assertTrue(ExternalFileApps(app).list(prepared.mimeType).isEmpty())
-                    ExternalFileApps(app).launch(prepared, node.name, FileOpenTarget(FileOpenMode.EXTERNAL), "Open with")
+                    ExternalFileApps(app).launch(
+                        prepared,
+                        node.name,
+                        FileOpenTarget(FileOpenMode.EXTERNAL),
+                        "Open with",
+                    )
                 }
             assertTrue(result is FileResult.Success)
             val chooser = shadowOf(app).nextStartedActivity

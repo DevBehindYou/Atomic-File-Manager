@@ -36,7 +36,12 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class ExternalFileHandoffDeviceTest {
     @Test
-    fun realPngHandlerReceivesExactContentAndOnlyTemporaryReadAccess() =
+    fun realPngHandlerReceivesExactContentAndOnlyTemporaryReadAccess() = handoff()
+
+    @Test
+    fun malformedPngMetadataStillReachesTheRealReaderWithOnlyTemporaryReadAccess() = handoff("image/")
+
+    private fun handoff(suppliedMime: String? = null) =
         runBlocking {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val context = instrumentation.targetContext
@@ -79,11 +84,13 @@ class ExternalFileHandoffDeviceTest {
                 val nodeResult =
                     withContext(Dispatchers.IO) { backend.getNode(FileNodeId.file(fixture.absolutePath)) }
                 assertTrue("generated PNG node: $nodeResult", nodeResult is FileResult.Success)
-                val node = (nodeResult as FileResult.Success).value
+                val original = (nodeResult as FileResult.Success).value
+                val node = if (suppliedMime == null) original else original.copy(mimeType = suppliedMime)
                 ActivityScenario.launch(MainActivity::class.java).use {
                     val result =
                         ExternalPreviewHelper(context) { backend }.open(node) { file ->
                             exported = file
+                            assertEquals("image/png", file.mimeType)
                             instrumentation.runOnMainSync {
                                 apps.launch(file, fixture.name, target.target(), "Open with")
                             }
