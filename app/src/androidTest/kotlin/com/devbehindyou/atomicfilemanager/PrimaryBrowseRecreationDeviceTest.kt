@@ -13,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseViewModel
+import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.shortcuts.OpenTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -95,12 +96,14 @@ class PrimaryBrowseRecreationDeviceTest {
         activity: MainActivity,
         root: FileNodeId,
     ): BrowseViewModel =
-        ViewModelProvider(
-            activity,
-            object : ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T = error("Expected retained primary model")
-            },
-        )["browse:${root.raw}", BrowseViewModel::class.java]
+        checkNotNull(
+            ViewModelProvider(
+                activity,
+                object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T = error("Expected primary registry")
+                },
+            )[PrimaryBrowseStoreRegistry::class.java].existing("", root),
+        )
 
     private fun awaitFolder(
         model: BrowseViewModel,

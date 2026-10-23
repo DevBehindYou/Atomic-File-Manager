@@ -8,12 +8,26 @@ already accepted model-owned mutation jobs finish, or immediately when none rema
 created in a single-pane layout. Switching a wide layout between Browse and Preview retains
 the secondary model and its current location.
 
-The primary model still belongs to the Activity and is keyed by tab plus initial folder.
-Its accumulation across explicit folder opens and closed tabs is deferred: correct cleanup
-needs the route/tab owner to distinguish tab closure from temporary screen removal and
-configuration changes. Clearing it on composition disposal would discard existing tab and
-rotation state. The secondary pane already recreated on rotation before this change; it
-continues to do so, while accepted mutation work drains on its original model.
+Primary models now use child ViewModelStores in an Activity-retained `PrimaryBrowseStoreRegistry`.
+The registry reconciles every saved tab's session-aware state key plus initial root, including
+inactive tabs, while constructing models only when requested. Selecting a tab, going Home,
+pushing Analysis/Operations or recreating the Activity does not remove saved identities.
+Ordinary navigation inside a model also does not change its initial-root identity.
+
+The shell reconciles above pushed-route early returns, and synchronously reconciles every tab
+mutation before publishing the encoded saved state. Closing a tab or explicitly replacing its
+root removes its exact entry before retirement. Even A-to-B-to-A updates before recomposition
+retire old A; the screen reads its registry entry on each composition rather than remembering
+an old model solely by the now-reused textual key. Same-root explicit opens retain their model
+and existing open-request navigation reset, clipboard and search semantics.
+
+Removed entries stop observation immediately and clear only their captured child store after
+accepted work drains. A stale acquisition for an identity absent from the saved tab set is
+rejected. Final Activity-store clearing seals the registry, removes all entries and retires them
+through the same drain contract; a cleared registry cannot acquire models. The implementation
+uses supported ViewModelProvider/child-store APIs, without Activity-store enumeration or
+individual-key removal. Restored tabs keep their existing encoded session IDs, including legacy
+empty IDs; process death still reconstructs models rather than persisting model-only state.
 
 ## Accepted work and retirement contract
 
@@ -29,8 +43,8 @@ again, supplying a callback that clears that exact entry's store. Retirement is 
 observation immediately and prevents `onVisible`/directory loading from resuming it. Delayed create
 success therefore cannot restart a forgotten listing. The callback is released exactly once
 after the last tracked job completes; a retiring A entry cannot clear a fresh A entry created
-after an A-to-B-to-A root change. Primary Activity models do not use this contract yet: their
-future owner must distinguish permanent closure from ordinary hiding/configuration changes.
+after an A-to-B-to-A root change. Primary and secondary owners both distinguish permanent
+retirement from ordinary visibility changes before invoking this contract.
 
 This retains the existing Main-owned mutation scope; it adds neither a global scope nor blanket
 NonCancellable mutations. Existing sort writes still start UNDISPATCHED and serialize inside
@@ -54,5 +68,24 @@ already-cancelled jobs, one-shot callbacks, ordered NonCancellable sort saves, b
 successful transfer through held cleanup, plus idle abandonment with independently queued work.
 
 The frozen old-source composition consumers reproduce both failures; all 59 selected corrected host cases, static checks, APKs and debug Lint now pass. See [the validation record](BROWSE_SECONDARY_DRAIN_VALIDATION.md) for exact source, hashes, retained negative evidence and pending CI/device limits.
+
+## Primary registry validation pending
+
+`PrimaryBrowseRootReplacementComposeTest` uses the real shell with in-memory directory/node data:
+Home/Files preserves its staged clipboard, but explicit root A-to-B-to-A must not resurrect the
+retired A model's clipboard. The frozen consumer is tested against unchanged source for RED
+before the registry is copied for GREEN.
+
+`PrimaryBrowseStoreRegistryTest` covers lazy all-tab reconciliation, inactive closure, saved
+session restoration and owner retention, same-root reopen behavior, numeric-ID reuse, held
+create/rename through two root updates before dispatch, exact-entry completion isolation, actual
+parent-store clearing with independent queued work, and ordered NonCancellable sort drain.
+Existing session-key tests continue to cover key encoding independently of registry ownership.
+Native recreation/tab fixtures now read existing child entries instead of obsolete Activity
+model keys; no native run is claimed by updating those lookups.
+
+Primary registry host/static/APK/CI/device acceptance is pending parent validation. Retired models
+with never-returning accepted work can remain until completion/cancellation, so no strict global
+memory bound, frame-time improvement or process-death mutation durability is claimed.
 
 
