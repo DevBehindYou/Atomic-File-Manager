@@ -11,6 +11,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.normalizedFileMime
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -122,12 +123,10 @@ internal class ExternalPreviewHelper(
     }
 }
 
-internal fun externalMimeType(node: FileNode): String {
-    val supplied = node.mimeType?.substringBefore(';')?.trim()?.lowercase(Locale.ROOT)
-    return supplied?.takeUnless { it.isBlank() || it == "application/octet-stream" }
+internal fun externalMimeType(node: FileNode): String =
+    normalizedFileMime(node.mimeType)
         ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(safeExtension(node.name))
         ?: "application/octet-stream"
-}
 
 private fun safeExtension(name: String): String =
     name.substringAfterLast('.', "").lowercase(Locale.ROOT)
