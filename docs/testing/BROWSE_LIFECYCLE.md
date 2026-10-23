@@ -8,6 +8,20 @@ already accepted model-owned mutation jobs finish, or immediately when none rema
 created in a single-pane layout. Switching a wide layout between Browse and Preview retains
 the secondary model and its current location.
 
+Secondary models now start paused. Their listing/filter work and operation collectors run only
+while their lifecycle is STARTED and their actual pane is in dual-browse mode. Primary and
+secondary bindings share the existing lifecycle observer implementation; secondary visibility
+uses a stable open-request value so preview toggles do not reset navigation. Preview mode stops
+observation while keeping the same model, clipboard, selection, cached gallery and Back history.
+Returning to dual browse below STARTED remains idle until the lifecycle starts. Ordinary RESUMED
+events add no extra refresh, and compact layouts neither create nor bind a secondary model.
+
+Accepted mutations and the app-wide queue retain their existing ownership. A late create success,
+queue completion or refresh request while the secondary listing is hidden cannot restart it;
+returning to a visible STARTED listing refreshes its current/pending folder once. Permanent
+retirement still uses the separate accepted-work drain contract below. Closing a preview keeps
+the listing paused if PREVIEW mode remains selected; only actual dual browsing resumes it.
+
 Primary models now use child ViewModelStores in an Activity-retained `PrimaryBrowseStoreRegistry`.
 The registry reconciles every saved tab's session-aware state key plus initial root, including
 inactive tabs, while constructing models only when requested. Selecting a tab, going Home,
@@ -87,5 +101,20 @@ model keys; no native run is claimed by updating those lookups.
 Primary registry host/static/APK/CI/device acceptance is pending parent validation. Retired models
 with never-returning accepted work can remain until completion/cancellation, so no strict global
 memory bound, frame-time improvement or process-death mutation durability is claimed.
+
+## Secondary visibility validation pending
+
+`SecondaryBrowseScreenVisibilityComposeTest` exercises the real wide Browse screen with separate
+primary and secondary backend counters. Its frozen old-API consumers check initially stopped
+construction and the actual Switch to preview pane control before source changes are validated.
+`SecondaryBrowseVisibilityTest` covers STARTED plus visible gating, STOP/preview/return ordering,
+queue completion and refresh while hidden, navigation/clipboard/selection/Back retention, compact
+and preview-only construction, lifecycle-owner replacement, accepted create completion while
+hidden, and tab replacement during preview. Existing primary STARTED, ownership-drain and pane
+tests remain applicable because both bindings use the same lifecycle implementation.
+
+Parent-run RED/GREEN host/static/APK/CI checks remain pending for this secondary visibility slice.
+No native run, permission change, provider-matrix pass or measured resource improvement is
+claimed here. No new dependency or platform API branch is introduced.
 
 

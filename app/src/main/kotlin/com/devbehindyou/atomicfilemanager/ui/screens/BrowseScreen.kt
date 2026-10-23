@@ -150,8 +150,12 @@ fun BrowseScreen(
                 operationQueue = app.container.operationQueue,
                 transferBubbleRepository = app.container.transferBubbleRepository,
                 folderSorts = app.container.folderSortMemory,
+                startVisible = false,
             )
         } ?: viewModel
+    if (isDualPane) {
+        SecondaryBrowseVisibility(secondaryViewModel, listingVisible = dualPaneMode == DualPaneMode.DUAL_BROWSE)
+    }
     val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
     val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
     val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
