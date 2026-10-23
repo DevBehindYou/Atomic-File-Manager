@@ -12,8 +12,10 @@ import androidx.lifecycle.viewModelScope
 import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import org.junit.After
@@ -28,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -90,7 +93,11 @@ class SecondaryBrowseVisibilityTest {
     fun previewAndStopReturnKeepSecondaryNavigationClipboardSelectionAndBackHistory() {
         val source = item("Source")
         val child = item("Child", directory = true)
-        fixture.listingItems = listOf(source, child)
+        val generation = AtomicInteger()
+        fixture.listingUpdates =
+            flow {
+                emit(FileResult.Success(listOf(source.copy(modifiedAt = generation.incrementAndGet().toLong()), child)))
+            }
         owner.value.registry.currentState = Lifecycle.State.STARTED
         show()
         awaitCondition { checkNotNull(current).uiState.value.rawItems.size == 2 }
@@ -100,7 +107,10 @@ class SecondaryBrowseVisibilityTest {
             model.copySelected()
             model.navigateTo(child)
         }
-        awaitCondition { fixture.started.get() == 2 && model.uiState.value.currentFolderId == child.id }
+        awaitCondition {
+            fixture.started.get() == 2 && model.uiState.value.currentFolderId == child.id &&
+                model.uiState.value.rawItems.first { it.id == source.id }.modifiedAt == 2L
+        }
         val clipboard = checkNotNull(model.uiState.value.clipboard)
         compose.runOnIdle {
             model.toggleSelection(source.id)
@@ -113,7 +123,6 @@ class SecondaryBrowseVisibilityTest {
             model.refresh()
             listingVisible.value = true
         }
-        val rowsBeforeReturn = model.uiState.value.rawItems
         compose.runOnIdle {
             assertSame(model, current)
             assertEquals(2, fixture.started.get())
@@ -122,9 +131,10 @@ class SecondaryBrowseVisibilityTest {
         }
         awaitCondition {
             fixture.started.get() == 3 && !model.uiState.value.isLoading &&
-                model.uiState.value.rawItems !== rowsBeforeReturn
+                model.uiState.value.rawItems.first { it.id == source.id }.modifiedAt == 3L
         }
         compose.runOnIdle {
+            // Observe the refreshed generation: equal rows would be conflated and IO emissions can be buffered.
             // This fixture emits a partial batch then stays open; refresh is intentionally nonterminal.
             assertTrue(model.uiState.value.isRefreshing)
             assertEquals(child.id, model.uiState.value.currentFolderId)
