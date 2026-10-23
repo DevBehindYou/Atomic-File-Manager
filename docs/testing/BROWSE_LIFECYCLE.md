@@ -11,8 +11,10 @@ the secondary model and its current location.
 Secondary models now start paused. Their listing/filter work and operation collectors run only
 while their lifecycle is STARTED and their actual pane is in dual-browse mode. Primary and
 secondary bindings share the existing lifecycle observer implementation; secondary visibility
-uses a stable open-request value so preview toggles do not reset navigation. Preview mode stops
-observation while keeping the same model, clipboard, selection, cached gallery and Back history.
+uses a stable open-request value so preview visibility changes do not reset navigation. Hiding
+observation itself keeps the same model, clipboard, selection, cached gallery and Back history.
+Existing explicit mode-toggle/pane-activation handlers and consumed selection actions still clear
+selection where they did previously; the visibility binding adds no selection clearing.
 Returning to dual browse below STARTED remains idle until the lifecycle starts. Ordinary RESUMED
 events add no extra refresh, and compact layouts neither create nor bind a secondary model.
 
