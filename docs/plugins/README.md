@@ -4,7 +4,7 @@ Recorded 24 October 2026. These records preserve tasks, supported features, limi
 
 | Plugin | Record | Starting version | Current work boundary |
 | --- | --- | --- | --- |
-| Image viewer | [Image](IMAGE_VIEWER.md) | v0.2 | Existing U09 recovery/replacement passes focused host and selected native gates; PR #80 CI/integration pending |
+| Image viewer | [Image](IMAGE_VIEWER.md) | v0.2 | Existing U09 recovery/replacement integrated through PR #80; wider acceptance open |
 | Video player | [Video](VIDEO_PLAYER.md) | v0.2 | Existing playback/ownership; preparation-retry regression work separate and unaccepted |
 | Audio player | [Audio](AUDIO_PLAYER.md) | v0.2 | Existing foreground player; background/queue modernization deferred |
 | PDF reader | [PDF](PDF_READER.md) | v0.2 | Bounded raster viewer; engine evaluation deferred |
