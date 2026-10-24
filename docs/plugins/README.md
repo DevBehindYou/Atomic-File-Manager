@@ -5,7 +5,7 @@ Recorded 24 October 2026. These records preserve tasks, supported features, limi
 | Plugin | Record | Starting version | Current work boundary |
 | --- | --- | --- | --- |
 | Image viewer | [Image](IMAGE_VIEWER.md) | v0.2 | Existing U09 recovery/replacement integrated through PR #80; wider acceptance open |
-| Video player | [Video](VIDEO_PLAYER.md) | v0.2 | Existing playback/ownership; preparation-retry regression work separate and unaccepted |
+| Video player | [Video](VIDEO_PLAYER.md) | v0.2 | Existing U09 preparation Retry passes host/app-surface checks; CI/integration pending |
 | Audio player | [Audio](AUDIO_PLAYER.md) | v0.2 | Existing foreground player; background/queue modernization deferred |
 | PDF reader | [PDF](PDF_READER.md) | v0.2 | Bounded raster viewer; engine evaluation deferred |
 | Document reader | [Document](DOCUMENT_READER.md) | v0.2 | DOCX structured text; Office page fidelity not claimed |
@@ -41,6 +41,6 @@ For every plugin increment:
 
 ## Validation boundary
 
-The accepted inventory/navigation increment is [U01 / PR #61](../testing/BUILT_IN_PLUGINS_VALIDATION.md). Its historical tests/phone flow do not verify this addition. The version slice extends `SettingsScreenComposeTest` to visit all eight plugins, require visible **Version v0.2**, preserve Back/Close and limitations, and leave preferences/cache/notifications unchanged. The focused source passes seven affected host cases, ktlint/Detekt and both APK builds in3m06s. All eight phone detail/version/features/limits/Back/Close checks pass, with installed hash, Home, permissions and runner state verified. Independent review is clear; current-head full CI/Lint and guarded integration remain pending. See [the exact version validation record](../testing/PLUGIN_RECORDS_VERSION_VALIDATION.md), including retained test-format and phone-harness failures. Accepted Image Viewer recovery is separate from the incomplete whole U09 milestone.
+The accepted inventory/navigation increment is [U01 / PR #61](../testing/BUILT_IN_PLUGINS_VALIDATION.md). Its historical tests/phone flow do not verify this addition. The version slice extends `SettingsScreenComposeTest` to visit all eight plugins, require visible **Version v0.2**, preserve Back/Close and limitations, and leave preferences/cache/notifications unchanged. The focused source passes seven affected host cases, ktlint/Detekt and both APK builds in3m06s. All eight phone detail/version/features/limits/Back/Close checks pass, with installed hash, Home, permissions and runner state verified. Independent review, current-head full CI/Lint and guarded feature integration pass through PR #81 (head6a8fff4, CI40108734849, merge377a378). See [the exact version validation record](../testing/PLUGIN_RECORDS_VERSION_VALIDATION.md), including retained test-format and phone-harness failures. Accepted Image Viewer recovery is separate from the incomplete whole U09 milestone.
 
 The common historical capability snapshot is [BUILT_IN_VIEWER_AUDIT](../testing/BUILT_IN_VIEWER_AUDIT.md). Requested future audit, research, architecture, matrix, dependency, test, performance and handover reports remain governed by the intake; this index does not claim those reports are complete.
