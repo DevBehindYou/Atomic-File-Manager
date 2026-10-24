@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -66,11 +67,11 @@ class SettingsScreenComposeTest {
             )
         plugins.forEachIndexed { index, plugin ->
             compose.onNodeWithContentDescription(plugin).performScrollTo().performClick()
-            compose.onNodeWithContentDescription("Version v0.2").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Version v0.2").performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Current limitations").assertExists()
             if (index < plugins.lastIndex) {
                 compose.onNodeWithContentDescription("Back to plugins").performClick()
-                compose.onNodeWithContentDescription("Version v0.2").assertDoesNotExist()
+                compose.onNodeWithText("Version v0.2").assertDoesNotExist()
             }
         }
         compose.onNodeWithContentDescription("Close").performClick()
