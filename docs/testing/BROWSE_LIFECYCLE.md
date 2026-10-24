@@ -121,9 +121,10 @@ and preview-only construction, lifecycle-owner replacement, accepted create comp
 hidden, and tab replacement during preview. Existing primary STARTED, ownership-drain and pane
 tests remain applicable because both bindings use the same lifecycle implementation.
 
-Both original consumer failures and the internal hidden-route failure reproduce before fixes. All 75 combined host cases, static checks, APKs and Lint now pass; four selected current API34 phone cases pass. See [the secondary visibility validation record](BROWSE_SECONDARY_VISIBILITY_VALIDATION.md) for source/hashes, retained fixture failures and exact scope. Final-head CI and guarded integration remain pending.
+Both original consumer failures and the internal hidden-route failure reproduce before fixes. All 75 combined host cases, static checks, APKs and Lint now pass; four selected current API34 phone cases pass. See [the secondary visibility validation record](BROWSE_SECONDARY_VISIBILITY_VALIDATION.md) for source/hashes, retained fixture failures and exact scope. Final-head CI `40010492044` and guarded feature-integration merge `39994ef` now pass; wider hardware acceptance remains open.
 No permission change, full provider-matrix pass or measured resource improvement is
 claimed here. No new dependency or platform API branch is introduced.
+
 
 
 

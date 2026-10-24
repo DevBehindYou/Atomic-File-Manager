@@ -1,6 +1,6 @@
 # Next Agent
 
-24 October checkpoint: **15% host verified (2/13), 8% accepted (1/13)**. U04 startup/access and complete screen-ownership source now passes 75 combined host cases/static/APKs/Lint (8m23s) plus four current API34 surface cases (27.791s). Final visibility PR publication/CI/guarded integration remains pending; revocation/mount/recreation acceptance remains open. Actual source `90906e3`, app tree `0493f80e7711bda9d581bbe3ca4183f23a2e474c`; see FEATURE_UPGRADE_PROGRESS and BROWSE_SECONDARY_VISIBILITY_VALIDATION. Accepted feature integration includes #76 `2822f8b` and #77 `ad5f701`; this is separate from main/release. Next independent U06 MIME fix is prepared in its isolated branch but has no executed RED/GREEN yet. Keep phone permissions unchanged and benchmarks deferred. Manual continuation only: do not recreate the deleted recurring automation. Preserve artwork, user data and ignored tools/signing backups.
+24 October checkpoint: **15% host verified (2/13), 8% accepted (1/13)**. U04 startup/access and complete screen-ownership source now passes 75 combined host cases/static/APKs/Lint (8m23s) plus four current API34 surface cases (27.791s). Final visibility #78 passes CI `40010492044`, review and clean guarded integration as `39994ef`; revocation/mount/recreation acceptance remains open. Actual source `90906e3`, app tree `0493f80e7711bda9d581bbe3ca4183f23a2e474c`; see FEATURE_UPGRADE_PROGRESS and BROWSE_SECONDARY_VISIBILITY_VALIDATION. Accepted feature integration includes #76 `2822f8b` and #77 `ad5f701`; this is separate from main/release. The next U06 MIME fix has genuine old-source RED (8 failures, 4 controls passing) and all 40 corrected focused cases pass; final packaging/Lint, native handoff and publication acceptance remain pending. Keep phone permissions unchanged and benchmarks deferred. Manual continuation only: do not recreate the deleted recurring automation. Preserve artwork, user data and ignored tools/signing backups.
 
 ## Latest direction — 22 October 2026
 
@@ -72,6 +72,7 @@ Do not claim any P0 task is done without device evidence.
 - [ ] The baseline profile is committed, with before and after numbers.
 - [ ] Every hardware check in P0 has passed, or has a bug filed or fixed.
 - [ ] `STATE.yaml` has been updated with the new commit and statuses.
+
 
 
 
