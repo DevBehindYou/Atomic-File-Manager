@@ -46,9 +46,10 @@ class ExternalExportProgressTest {
     fun createOwnedCache() {
         val app = ApplicationProvider.getApplicationContext<Context>()
         ownedCache = File(app.cacheDir, "export-contract-${UUID.randomUUID()}").apply { check(mkdir()) }
-        context = object : ContextWrapper(app) {
-            override fun getCacheDir() = ownedCache
-        }
+        context =
+            object : ContextWrapper(app) {
+                override fun getCacheDir() = ownedCache
+            }
     }
 
     @After
@@ -68,12 +69,14 @@ class ExternalExportProgressTest {
             val reports = mutableListOf<Long>()
             val lengths = mutableListOf<Long>()
             val helper = ExternalPreviewHelper(context, clockMillis = { clock.next() }) { backend }
-            assertTrue(helper.open(node, onProgress = {
-                reports += it.bytesCopied
-                lengths += exports().single().length()
-            }) {
-                assertArrayEquals(payload, exports().single().readBytes())
-            } is FileResult.Success)
+            assertTrue(
+                helper.open(node, onProgress = {
+                    reports += it.bytesCopied
+                    lengths += exports().single().length()
+                }) {
+                    assertArrayEquals(payload, exports().single().readBytes())
+                } is FileResult.Success,
+            )
             assertEquals(listOf(0L, 4L, 12L, 16L), reports)
             assertEquals(reports, lengths)
         }
@@ -86,9 +89,11 @@ class ExternalExportProgressTest {
                 val reports = mutableListOf<Long>()
                 val helper = ExternalPreviewHelper(context, maxExportBytes = 16, clockMillis = { 0L }) { backend }
                 val before = exports()
-                assertTrue(helper.open(node, onProgress = { reports += it.bytesCopied }) {
-                    assertArrayEquals(payload, (exports() - before).single().readBytes())
-                } is FileResult.Success)
+                assertTrue(
+                    helper.open(node, onProgress = { reports += it.bytesCopied }) {
+                        assertArrayEquals(payload, (exports() - before).single().readBytes())
+                    } is FileResult.Success,
+                )
                 assertEquals(listOf(0L, 4L, 16L), reports)
                 assertEquals(before.size + 1, exports().size)
             }
@@ -121,7 +126,11 @@ class ExternalExportProgressTest {
             val (node, backend) = fixture(payload, metadataSize = 0)
             val reports = mutableListOf<Long>()
             val helper = ExternalPreviewHelper(context, maxExportBytes = 8, clockMillis = { 0L }) { backend }
-            val result = helper.open(node, onProgress = { reports += it.bytesCopied }) { error("Overflow must not launch") }
+            val result =
+                helper.open(
+                    node,
+                    onProgress = { reports += it.bytesCopied },
+                ) { error("Overflow must not launch") }
             assertTrue(result is FileResult.Failure)
             assertEquals(FileError.FileTooLarge(node.name, 8), (result as FileResult.Failure).error)
             assertEquals(listOf(0L, 4L), reports)
@@ -135,13 +144,14 @@ class ExternalExportProgressTest {
                 val (node, backend) = fixture(payload, metadataSize = -1)
                 var acquired = 0
                 var closed = false
-                val observed = object : StorageBackend by backend {
-                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
-                        acquired++
-                        val stream = chunked(payload) { closed = true }
-                        return FileResult.Success(InputStreamProvider { stream })
+                val observed =
+                    object : StorageBackend by backend {
+                        override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                            acquired++
+                            val stream = chunked(payload) { closed = true }
+                            return FileResult.Success(InputStreamProvider { stream })
+                        }
                     }
-                }
                 val before = exports()
                 val helper = ExternalPreviewHelper(context, clockMillis = { 0L }) { observed }
                 var cancelled = false
@@ -184,12 +194,13 @@ class ExternalExportProgressTest {
         runBlocking {
             val directory = File(ownedCache, "external-preview").apply { check(mkdir()) }
             val oldTime = System.currentTimeMillis() - 25L * 60 * 60 * 1000
-            val expired = (1..140).map { index ->
-                File(directory, "old-$index.bin").apply {
-                    writeBytes(byteArrayOf(index.toByte()))
-                    check(setLastModified(oldTime))
+            val expired =
+                (1..140).map { index ->
+                    File(directory, "old-$index.bin").apply {
+                        writeBytes(byteArrayOf(index.toByte()))
+                        check(setLastModified(oldTime))
+                    }
                 }
-            }
             val fresh = File(directory, "fresh-sentinel.bin").apply { writeBytes(byteArrayOf(7, 8, 9)) }
             val (node, backend) = fixture(payload, metadataSize = -1)
             assertTrue(ExternalPreviewHelper(context) { backend }.open(node) { } is FileResult.Success)
@@ -206,17 +217,24 @@ class ExternalExportProgressTest {
         runBlocking {
             val (node, backend) = fixture(payload, metadataSize = -1)
             val denied = FileError.PermissionDenied(AccessTarget.AllFiles)
-            val unavailable = object : StorageBackend by backend {
-                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> = FileResult.Failure(denied)
-            }
+            val unavailable =
+                object : StorageBackend by backend {
+                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
+                        FileResult.Failure(denied)
+                }
             val reports = mutableListOf<Long>()
             val helper = ExternalPreviewHelper(context) { unavailable }
             val before = exports()
-            val result = helper.open(node, onProgress = { reports += it.bytesCopied }) { error("Denied must not launch") }
+            val result =
+                helper.open(
+                    node,
+                    onProgress = { reports += it.bytesCopied },
+                ) { error("Denied must not launch") }
             assertEquals(FileResult.Failure(denied), result)
             assertEquals(listOf(0L), reports)
             assertEquals(before, exports())
         }
+
     private suspend fun fixture(
         bytes: ByteArray,
         metadataSize: Long,
@@ -225,23 +243,29 @@ class ExternalExportProgressTest {
         val id = memory.putFile(memory.rootId, "controlled.bin", bytes)
         val original = (memory.getNode(id) as FileResult.Success).value
         val node = original.copy(id = FileNodeId.ftp("contract", "/controlled.bin"), size = metadataSize)
-        val backend = object : StorageBackend by memory {
-            override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
-                FileResult.Success(InputStreamProvider { chunked(bytes) {} })
-        }
+        val backend =
+            object : StorageBackend by memory {
+                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
+                    FileResult.Success(InputStreamProvider { chunked(bytes) {} })
+            }
         return node to backend
     }
 
-    private fun chunked(bytes: ByteArray, onClose: () -> Unit) =
-        object : ByteArrayInputStream(bytes) {
-            override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
-                super.read(buffer, offset, minOf(length, 4))
+    private fun chunked(
+        bytes: ByteArray,
+        onClose: () -> Unit,
+    ) = object : ByteArrayInputStream(bytes) {
+        override fun read(
+            buffer: ByteArray,
+            offset: Int,
+            length: Int,
+        ): Int = super.read(buffer, offset, minOf(length, 4))
 
-            override fun close() {
-                onClose()
-                super.close()
-            }
+        override fun close() {
+            onClose()
+            super.close()
         }
+    }
 
     private fun exports() = File(ownedCache, "external-preview").listFiles().orEmpty().toSet()
 }

@@ -23,11 +23,13 @@ class ExternalPreparationRequestTest {
         runTest {
             val request = ExternalPreparationRequest(this)
             var starts = 0
-            assertTrue(request.start { report ->
-                starts++
-                report(ExternalExportProgress(8192))
-                awaitCancellation()
-            })
+            assertTrue(
+                request.start { report ->
+                    starts++
+                    report(ExternalExportProgress(8192))
+                    awaitCancellation()
+                },
+            )
             assertTrue(request.state.value.busy)
             assertEquals(0, starts)
             assertFalse(request.start { error("Duplicate export must not run") })
@@ -45,18 +47,20 @@ class ExternalPreparationRequestTest {
             val request = ExternalPreparationRequest(this)
             val cleanupStarted = CompletableDeferred<Unit>()
             val releaseCleanup = CompletableDeferred<Unit>()
-            assertTrue(request.start { report ->
-                report(ExternalExportProgress(12))
-                try {
-                    awaitCancellation()
-                } finally {
-                    withContext(NonCancellable) {
-                        cleanupStarted.complete(Unit)
-                        releaseCleanup.await()
-                        report(ExternalExportProgress(99))
+            assertTrue(
+                request.start { report ->
+                    report(ExternalExportProgress(12))
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        withContext(NonCancellable) {
+                            cleanupStarted.complete(Unit)
+                            releaseCleanup.await()
+                            report(ExternalExportProgress(99))
+                        }
                     }
-                }
-            })
+                },
+            )
             runCurrent()
             request.cancel()
             try {
@@ -85,10 +89,12 @@ class ExternalPreparationRequestTest {
             assertTrue(request.start { report -> oldCallback = report })
             runCurrent()
             assertEquals(ExternalPreparationState(), request.state.value)
-            assertTrue(request.start { report ->
-                report(ExternalExportProgress(7))
-                awaitCancellation()
-            })
+            assertTrue(
+                request.start { report ->
+                    report(ExternalExportProgress(7))
+                    awaitCancellation()
+                },
+            )
             runCurrent()
             oldCallback(ExternalExportProgress(900))
             assertEquals(ExternalPreparationState(busy = true, bytesCopied = 7), request.state.value)
@@ -101,20 +107,24 @@ class ExternalPreparationRequestTest {
         runTest {
             val old = ExternalPreparationRequest(this)
             lateinit var oldCallback: (ExternalExportProgress) -> Unit
-            assertTrue(old.start { report ->
-                oldCallback = report
-                report(ExternalExportProgress(5))
-                awaitCancellation()
-            })
+            assertTrue(
+                old.start { report ->
+                    oldCallback = report
+                    report(ExternalExportProgress(5))
+                    awaitCancellation()
+                },
+            )
             runCurrent()
             old.dispose()
             oldCallback(ExternalExportProgress(999))
             assertEquals(ExternalPreparationState(busy = true, cancelling = true, bytesCopied = 5), old.state.value)
             val next = ExternalPreparationRequest(this)
-            assertTrue(next.start { report ->
-                report(ExternalExportProgress(3))
-                awaitCancellation()
-            })
+            assertTrue(
+                next.start { report ->
+                    report(ExternalExportProgress(3))
+                    awaitCancellation()
+                },
+            )
             runCurrent()
             assertEquals(ExternalPreparationState(), old.state.value)
             assertFalse(old.start { error("Disposed source must not restart") })
