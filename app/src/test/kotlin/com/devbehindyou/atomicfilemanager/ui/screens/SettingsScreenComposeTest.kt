@@ -62,8 +62,14 @@ class SettingsScreenComposeTest {
         compose.onNodeWithContentDescription("In-app plugins").performScrollTo().performClick()
         val plugins =
             listOf(
-                "Image viewer", "Video player", "Audio player", "PDF reader",
-                "Document reader", "Code and text editor", "Markdown viewer", "Archive manager",
+                "Image viewer",
+                "Video player",
+                "Audio player",
+                "PDF reader",
+                "Document reader",
+                "Code and text editor",
+                "Markdown viewer",
+                "Archive manager",
             )
         plugins.forEachIndexed { index, plugin ->
             compose.onNodeWithContentDescription(plugin).performScrollTo().performClick()
