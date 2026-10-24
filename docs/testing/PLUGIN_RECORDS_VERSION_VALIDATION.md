@@ -1,0 +1,25 @@
+# Per-plugin records and v0.2 About labels — 24 October 2026
+
+The user requested maintained context for every bundled plugin and an initial v0.2 version in each About/details page. All eight catalog entries now have explicit independently editable version metadata. The localized Version v0.2 row appears in their existing details; it is separate from app/engine versions. No setting, dependency, permission, installer or executable download is added.
+
+[The plugin index](../plugins/README.md) links eight individual records with source checkpoints, current features/limits, stable task and bug/risk IDs, priorities, validation, changelogs and continuation rules. Historical passes, confirmed bugs, source observations and future capabilities remain distinct. This baseline does not complete the deferred advanced-plugin audit/research or U09–U11.
+
+## Source and host checks
+
+Actual build source `1c3e351dbcda0d8ac310a6f5b03a13a36f7fe8ba`, app tree `3a6553eb8071d9486db70f3acdfaa9bba6fae8ab`. Seven selected cases pass with no failures/errors/skips: four Settings consumers, including a traversal of every plugin requiring visible version and limitations, Back/Close and unchanged preferences/cache/notifications; plus three Image Viewer recovery consumers. ktlint, Detekt and debug/AndroidTest packaging pass in **3m06s, exit0**. Logs/exit, copied XML, JSON and artifact manifest are under `build/audit-tools/plugin-version-*`.
+
+Debug APK SHA256 `47B2090837054854DC9924AC76ED5BFAA649DA406D3011AF8C17B3547F5F7906`; AndroidTest `8A039C2A5C99427625AEC358A9B5807EB72F8835E9B85995003DFCA8AA2D2BF6`. No claim is made that the earlier Image build's Android Lint result applies to this changed tree. Current-head CI must run full unit/APK/static/debug+release Lint before integration.
+
+Independent review corrected a test-only Text-vs-contentDescription selector before execution, preserving normal production accessibility semantics. The first Gradle gate failed only on test-list wrapping in ktlint (1m09s, exit1); `plugin-version-initial-format-failed.log/.exit` are retained. A scoped formatting-only correction precedes the passing gate. Source/docs review finds no remaining blocker, and relative documentation links resolve.
+
+## Phone UI verification
+
+All eight detail pages pass a UI-only API34 traversal: correct selected title, visible Version v0.2, actual source feature and limitation bodies, Back to list, and final Close to Settings. The wrapper verifies its pulled installed base hash, actual selected Home, unchanged all-files access and unchanged pre-existing runner presence. It installs only debug with -r; no test runner is installed, uninstalled or instrumented. No user file, preference, root policy or grant is changed. Screenshot spot-review of Image and Code/Text details confirms readable version placement and fitting labels.
+
+Evidence: `build/audit-tools/device-preview-tools/plugin-version-acceptance-585bc3f8-cf5b-4fcb-be2a-6c79c2d0200a/`, eight entries in plugin-results.json, wrapper/acceptance exit0 and no cleanup failures. A preceding wrapper failed before Settings because `$home` collided with PowerShell's read-only HOME; it is retained under `plugin-version-initial-helper-variable-failed.*` and run `b9c7efe5-1aef-4e7e-889d-274a9f158d40`, with no plugin checks credited. The corrected helper changes only that variable name, has a clean parser and independent review; SHA256 `D3CA25DA5B1E60B9A3B2DD9498F07AA0FB58FAAC3E4E69C331E669530CBBA737`. Initial and final cleanup restore Home/access/runner state. That harness failure is not an app defect.
+
+## Publication and limits
+
+Accepted Image dependency PR #80 is integrated as `82e7e94ff7fcdbf8d7a84a121054f6d27658fe42` after final-head CI `40106431841`, review and clean guarded trial. [PR #81](https://github.com/DevBehindYou/Atomic-File-Manager/pull/81) is published with matching app tree; current-head CI and guarded acceptance remain pending. The focused plugin branch is based on accepted feature integration and matches tested app tree; deferred benchmark #63 is excluded. Do not publish the older root-derived preparation branch wholesale, because it inherits unrelated deferred benchmark work.
+
+This addition establishes documentation/version context only. Full viewer format, accessibility, real playback, provider, memory/performance, recreation and release gates stay scoped to their plugin records. Fixed U01–U13 credit remains **15% host verified / 8% accepted**. Keep phone permissions unchanged and measured benchmarking owner-deferred. Main/release completion and the separate advanced eight-plugin program remain open.

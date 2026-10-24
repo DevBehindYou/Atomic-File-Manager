@@ -41,7 +41,7 @@ Each row is a deliverable, potentially split into small reviewable changes. Comp
 | U06 | P0 / partial; opening-policy slice #64 integrated, wider matrix pending | File-opening router and defaults settings | Existing preview/export helpers | Once/always/reset/missing-handler flows, MIME precedence and safe URI-grant tests |
 | U07 | P1 / planned | Unified storage-account contracts and Add storage surface | Existing backends; U06 for remote opening | Honest connection methods, per-account identity/capabilities, isolated credentials/cache; no dead Connect controls |
 | U08 | P1 / planned | First direct cloud connector end to end | U07; provider/scope decision and registration | Auth, pagination, account isolation, transfer, reconnect, quota/throttle and conflict tests against sandbox account |
-| U09 | P1 / partial; Image Viewer recovery host/device checks pass, publication/CI pending | Media and image viewer improvements | U06; performance budgets | Resume/rotation/subtitles/track controls as supported; high-resolution and corrupt-input tests |
+| U09 | P1 / partial; Image Viewer recovery #80 integrated, wider media/image acceptance open | Media and image viewer improvements | U06; performance budgets | Resume/rotation/subtitles/track controls as supported; high-resolution and corrupt-input tests |
 | U10 | P1 / planned | PDF and document improvements | U06; PDF engine evaluation | Accurate feature matrix; search/bookmark/password features only when supported; size/licence/memory evidence |
 | U11 | P1 / planned | Editor and archive reliability improvements | U05/U06 where relevant; operation journal work | Draft recovery, revision conflicts, bounded large-file edits; archive format/security/interruption tests |
 | U12 | P1 / planned | Second direct connector and network acceptance | U08 contract learning; server fixtures/hardware | Shared contract passes on a second service; actual SFTP/SMB/DAV/USB evidence |
@@ -214,3 +214,7 @@ Reuse existing audit/testing documents and link new evidence. Do not overwrite h
 
 
 
+
+## Per-plugin context and starting versions — 24 October 2026
+
+The [bundled plugin records](../plugins/README.md) preserve separate tasks, features, bugs/risks, source ownership, validation checkpoints and changelogs for all eight plugins. Each starts at Atomic plugin **v0.2**, displayed in its existing In-app plugins details/About page; each catalog entry can advance independently. This is separate from app/dependency versions, current U01–U13 progress and release acceptance. The version/documentation slice itself does not complete a viewer milestone or the deferred advanced-program audit/research. Update the affected record alongside every plugin increment, retaining failed/pending/accepted evidence and owner decisions.
