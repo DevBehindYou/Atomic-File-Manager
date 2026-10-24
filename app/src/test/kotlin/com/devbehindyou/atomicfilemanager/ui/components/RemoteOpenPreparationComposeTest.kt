@@ -123,7 +123,11 @@ class RemoteOpenPreparationComposeTest {
     fun disposeThenReleaseReadsAndRemoveOnlyTheOwnedSentinel() {
         try {
             try {
-                if (shown) compose.runOnIdle { render.value = false }
+                if (shown) {
+                    compose.runOnIdle { render.value = false }
+                    // Apply disposal while reads remain gated; releasing EOF first could launch the old owner.
+                    compose.waitForIdle()
+                }
             } finally {
                 blockedReads.forEach { it.release.countDown() }
             }
