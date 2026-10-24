@@ -5,6 +5,7 @@
     <string name="plugins_included">Included with Atomic</string>
     <string name="plugins_intro">These features are built into the app and updated with Atomic. No separate installation is needed.</string>
     <string name="plugins_built_in">Built in</string>
+    <string name="plugins_version">Version v%1$s</string>
     <string name="plugins_back">Back to plugins</string>
     <string name="plugins_features">Features</string>
     <string name="plugins_limits">Current limitations</string>

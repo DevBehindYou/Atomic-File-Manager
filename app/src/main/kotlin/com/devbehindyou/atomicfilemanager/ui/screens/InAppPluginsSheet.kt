@@ -36,29 +36,63 @@ private enum class BuiltInPlugin(
     @param:StringRes val features: Int,
     @param:StringRes val limits: Int,
     val icon: ImageVector,
+    val version: String,
 ) {
-    IMAGE(R.string.plugin_image, R.string.plugin_image_features, R.string.plugin_image_limits, AtomicIcons.Image),
-    VIDEO(R.string.plugin_video, R.string.plugin_video_features, R.string.plugin_media_limits, AtomicIcons.Video),
-    AUDIO(R.string.plugin_audio, R.string.plugin_audio_features, R.string.plugin_media_limits, AtomicIcons.Audio),
-    PDF(R.string.plugin_pdf, R.string.plugin_pdf_features, R.string.plugin_pdf_limits, AtomicIcons.Pdf),
+    IMAGE(
+        R.string.plugin_image,
+        R.string.plugin_image_features,
+        R.string.plugin_image_limits,
+        AtomicIcons.Image,
+        "0.2",
+    ),
+    VIDEO(
+        R.string.plugin_video,
+        R.string.plugin_video_features,
+        R.string.plugin_media_limits,
+        AtomicIcons.Video,
+        "0.2",
+    ),
+    AUDIO(
+        R.string.plugin_audio,
+        R.string.plugin_audio_features,
+        R.string.plugin_media_limits,
+        AtomicIcons.Audio,
+        "0.2",
+    ),
+    PDF(
+        R.string.plugin_pdf,
+        R.string.plugin_pdf_features,
+        R.string.plugin_pdf_limits,
+        AtomicIcons.Pdf,
+        "0.2",
+    ),
     DOCUMENT(
         R.string.plugin_document,
         R.string.plugin_document_features,
         R.string.plugin_document_limits,
         AtomicIcons.Document,
+        "0.2",
     ),
-    CODE(R.string.plugin_code, R.string.plugin_code_features, R.string.plugin_code_limits, AtomicIcons.Code),
+    CODE(
+        R.string.plugin_code,
+        R.string.plugin_code_features,
+        R.string.plugin_code_limits,
+        AtomicIcons.Code,
+        "0.2",
+    ),
     MARKDOWN(
         R.string.plugin_markdown,
         R.string.plugin_markdown_features,
         R.string.plugin_markdown_limits,
         AtomicIcons.Text,
+        "0.2",
     ),
     ARCHIVE(
         R.string.plugin_archive,
         R.string.plugin_archive_features,
         R.string.plugin_archive_limits,
         AtomicIcons.Archive,
+        "0.2",
     ),
 }
 
@@ -110,6 +144,10 @@ internal fun InAppPluginsSheet(onDismiss: () -> Unit) {
                 stringResource(R.string.plugins_built_in),
                 AtomicTextRole.MonoMeta,
                 color = Atomic.colors.accentText,
+            )
+            AtomicText(
+                stringResource(R.string.plugins_version, plugin.version),
+                AtomicTextRole.MonoMeta,
             )
             PluginDetail(R.string.plugins_features, plugin.features)
             PluginDetail(R.string.plugins_limits, plugin.limits)

@@ -214,3 +214,7 @@ Reuse existing audit/testing documents and link new evidence. Do not overwrite h
 
 
 
+
+## Per-plugin context and starting versions — 24 October 2026
+
+The [bundled plugin records](../plugins/README.md) preserve separate tasks, features, bugs/risks, source ownership, validation checkpoints and changelogs for all eight plugins. Each starts at Atomic plugin **v0.2**, displayed in its existing In-app plugins details/About page; each catalog entry can advance independently. This is separate from app/dependency versions, current U01–U13 progress and release acceptance. The version/documentation slice itself does not complete a viewer milestone or the deferred advanced-program audit/research. Update the affected record alongside every plugin increment, retaining failed/pending/accepted evidence and owner decisions.
