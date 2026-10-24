@@ -22,8 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -149,6 +149,7 @@ internal fun BuiltInFilePreviewPane(
     DisposableEffect(preparationRequest) {
         onDispose { preparationRequest.dispose() }
     }
+
     fun showSource(next: FileNode) {
         if (next.id != shown.id || next.modifiedAt != shown.modifiedAt || next.size != shown.size) {
             preparationRequest.dispose()
