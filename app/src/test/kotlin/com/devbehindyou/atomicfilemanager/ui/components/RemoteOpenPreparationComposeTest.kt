@@ -420,7 +420,7 @@ class RemoteOpenPreparationComposeTest {
         val initial =
             AppSettings(
                 fileOpening =
-                    FileOpeningPreferences().withRule(
+                    FileOpeningPreferences(defaultMode = FileOpenMode.ASK).withRule(
                         FileOpenRuleKey(FileOpenRuleScope.EXTENSION, "txt"),
                         FileOpenTarget(FileOpenMode.ASK),
                     ),
