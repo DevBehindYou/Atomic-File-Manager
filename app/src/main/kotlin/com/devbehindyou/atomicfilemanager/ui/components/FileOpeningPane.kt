@@ -14,6 +14,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,8 +49,8 @@ import com.devbehindyou.atomicfilemanager.domain.model.MAX_FILE_OPENING_RULES
 import com.devbehindyou.atomicfilemanager.domain.model.keyFor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 /** All existing preview entry points share the same app-specific routing policy. */
@@ -72,7 +73,6 @@ fun FilePreviewPane(
     var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
     var apps by remember(displayed.id) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
     var loading by remember(displayed.id) { mutableStateOf(true) }
-    var busy by remember(displayed.id) { mutableStateOf(false) }
     var problem by rememberSaveable(displayed.id.raw) { mutableStateOf<OpeningProblem?>(null) }
     val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
     val exporter =
@@ -80,8 +80,13 @@ fun FilePreviewPane(
             ExternalPreviewHelper(context.applicationContext) { app.container.storageBackendSelector.forNode(it) }
         }
     val scope = rememberCoroutineScope()
-    DisposableEffect(node.id) {
-        onDispose { scope.coroutineContext.cancelChildren() }
+    val preparationRequest =
+        remember(node.id, node.modifiedAt, node.size, displayed.id, useBuiltIn, scope) {
+            ExternalPreparationRequest(scope)
+        }
+    val preparation by key(preparationRequest) { preparationRequest.state.collectAsState() }
+    DisposableEffect(preparationRequest) {
+        onDispose { preparationRequest.dispose() }
     }
     val chooserTitle = stringResource(R.string.viewer_open_external)
     val rule =
@@ -100,7 +105,7 @@ fun FilePreviewPane(
         target: FileOpenTarget,
         always: Boolean,
     ) {
-        if (busy) return
+        if (preparationRequest.state.value.busy) return
         if (target.mode == FileOpenMode.BUILT_IN) {
             if (always && rule != null) {
                 repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
@@ -109,32 +114,31 @@ fun FilePreviewPane(
             problem = null
             return
         }
-        scope.launch {
-            busy = true
+        val requestedSource = displayed
+        val requestedRule = rule
+        preparationRequest.start { report ->
             problem = null
-            try {
-                val result =
-                    exporter.open(displayed) { file ->
-                        launcher.launch(file, displayed.name, target, chooserTitle)
-                    }
-                if (result is FileResult.Success) {
-                    // Save an app-specific rule only after a real explicit component launches successfully.
-                    if (always && rule != null) {
-                        repository.update { it.copy(fileOpening = it.fileOpening.withRule(rule, target)) }
-                    }
-                    try {
-                        withContext(Dispatchers.IO) { app.container.recentsRepository.recordOpened(displayed) }
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        // A shortcut failure must not turn a successfully launched reader into an open failure.
-                    }
-                    onClose()
-                } else {
-                    problem = OpeningProblem.FAILED
+            val result =
+                exporter.open(requestedSource, onProgress = report) { file ->
+                    launcher.launch(file, requestedSource.name, target, chooserTitle)
                 }
-            } finally {
-                busy = false
+            currentCoroutineContext().ensureActive()
+            if (result is FileResult.Success) {
+                // Save an app-specific rule only after a real explicit component launches successfully.
+                if (always && requestedRule != null) {
+                    repository.update { it.copy(fileOpening = it.fileOpening.withRule(requestedRule, target)) }
+                }
+                try {
+                    withContext(Dispatchers.IO) { app.container.recentsRepository.recordOpened(requestedSource) }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    // A shortcut failure must not turn a successfully launched reader into an open failure.
+                }
+                currentCoroutineContext().ensureActive()
+                onClose()
+            } else {
+                problem = OpeningProblem.FAILED
             }
         }
     }
@@ -165,12 +169,16 @@ fun FilePreviewPane(
     if (useBuiltIn) {
         BuiltInFilePreviewPane(
             node = displayed,
-            onClose = onClose,
+            onClose = {
+                preparationRequest.dispose()
+                onClose()
+            },
             modifier = modifier,
             onShare = onShare.takeIf { displayed.id == node.id },
             onOpenExternal = onOpenExternal.takeIf { displayed.id == node.id },
             gallery = gallery,
             onOpenExternalForNode = { shown ->
+                preparationRequest.dispose()
                 displayed = shown
                 useBuiltIn = false
             },
@@ -180,15 +188,20 @@ fun FilePreviewPane(
             name = displayed.name,
             apps = apps,
             loading = loading,
-            busy = busy,
+            busy = preparation.busy,
             problem = problem,
             builtInAvailable = resolvePreviewType(displayed) != PreviewType.GENERIC,
             ruleLabel =
                 rule?.takeIf { canSaveRule }?.let {
                     if (it.scope == FileOpenRuleScope.EXTENSION) ".${it.value}" else it.value
                 },
+            preparation = preparation,
+            onCancelPreparation = preparationRequest::cancel,
             onChoose = ::choose,
-            onClose = onClose,
+            onClose = {
+                preparationRequest.dispose()
+                onClose()
+            },
             modifier = modifier,
         )
     }
@@ -207,6 +220,8 @@ internal fun FileOpeningChoicePanel(
     ruleLabel: String?,
     onChoose: (FileOpenTarget, Boolean) -> Unit,
     onClose: () -> Unit,
+    preparation: ExternalPreparationState? = null,
+    onCancelPreparation: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var always by rememberSaveable(name) { mutableStateOf(false) }
@@ -229,7 +244,11 @@ internal fun FileOpeningChoicePanel(
                 problem == OpeningProblem.NO_HANDLER || apps.isEmpty() -> R.string.file_open_no_apps
                 else -> R.string.file_open_read_only
             }
-        AtomicText(stringResource(message), AtomicTextRole.BodySecondary)
+        if (busy && preparation != null) {
+            ExternalPreparationStatus(preparation, onCancelPreparation)
+        } else {
+            AtomicText(stringResource(message), AtomicTextRole.BodySecondary)
+        }
         if (ruleLabel != null) {
             AtomicToggleCard(
                 title = stringResource(R.string.file_open_always, ruleLabel),

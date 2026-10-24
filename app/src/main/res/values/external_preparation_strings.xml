@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="external_preparation_bytes">Preparing file… %1$s copied</string>
+    <string name="external_preparation_cancelling">Canceling… %1$s copied</string>
+    <string name="external_preparation_cancel">Cancel</string>
+</resources>
