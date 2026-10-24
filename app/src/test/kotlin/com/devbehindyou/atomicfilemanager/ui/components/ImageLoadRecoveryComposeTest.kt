@@ -2,16 +2,17 @@ package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Looper
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -54,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class ImageLoadRecoveryComposeTest {
     @get:Rule val compose = createComposeRule()
     private val app: Application get() = ApplicationProvider.getApplicationContext()
+    private lateinit var imageView: View
     private val render = mutableStateOf(true)
     private val shown = mutableStateOf(node("first.png"))
 
@@ -156,6 +158,8 @@ class ImageLoadRecoveryComposeTest {
 
     private fun show(container: AppContainer) {
         compose.setContent {
+            val view = LocalView.current
+            SideEffect { imageView = view }
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 Box(Modifier.fillMaxSize()) {
                     if (render.value) ZoomableImage(shown.value, container)
@@ -174,8 +178,16 @@ class ImageLoadRecoveryComposeTest {
         node: FileNode,
         expected: Int,
     ) {
-        val pixels = compose.onNodeWithContentDescription(node.name).captureToImage().toPixelMap()
-        assertEquals(expected, pixels[pixels.width / 2, pixels.height / 2].toArgb())
+        val bounds = compose.onNodeWithContentDescription(node.name).fetchSemanticsNode().boundsInRoot
+        compose.runOnIdle {
+            val pixels = Bitmap.createBitmap(imageView.width, imageView.height, Bitmap.Config.ARGB_8888)
+            try {
+                imageView.draw(Canvas(pixels))
+                assertEquals(expected, pixels.getPixel(bounds.center.x.toInt(), bounds.center.y.toInt()))
+            } finally {
+                pixels.recycle()
+            }
+        }
     }
 
     private fun awaitCondition(condition: () -> Boolean) {
