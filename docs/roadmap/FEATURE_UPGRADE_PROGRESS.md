@@ -18,7 +18,7 @@ Current: **15% host verified (2/13), 8% accepted (1/13)**. U01 is accepted. U04 
 | U06 Opening defaults | Opening-policy slice integrated after current-head checks, review and clean trial; wider acceptance remains open | [PR #64](https://github.com/DevBehindYou/Atomic-File-Manager/pull/64), tested `582e8b3`, merge `b9c779d`; 42 focused host cases and native handoff pass; no complete U06 milestone credit |
 | U07 Storage-account contracts | Planned | Preserve real system-provider/network behavior |
 | U08 First direct cloud connector | Planned | Provider/scope registration and real test account |
-| U09 Media/images | Image Viewer load-recovery slice implementing; Video next | Targeted existing U09 work in isolated branch; no complete milestone credit or broader advanced-plugin claim |
+| U09 Media/images | Image load recovery #80 and Video preparation Retry #82 integrated; wider acceptance open | Scoped host/native app-surface evidence below; real media playback, broader formats/gestures and complete milestone acceptance remain open |
 | U10 PDF/documents | Planned | Engine/capability evaluation |
 | U11 Editor/archives | Planned | Recovery and mutation invariants |
 | U12 Second connector/network | Planned | Shared contracts and actual provider/hardware tests |
