@@ -133,17 +133,18 @@ internal class ExternalPreviewHelper(
                     // A blocked read may return after Cancel; do not publish or write another chunk then.
                     coroutineContext.ensureActive()
                     if (count == -1) break
-                    if (count == 0) continue
-                    if (count.toLong() > maxExportBytes - copied) {
-                        return FileResult.Failure(FileError.FileTooLarge(node.name, maxExportBytes))
-                    }
-                    output.write(buffer, 0, count)
-                    copied += count
-                    val now = clockMillis()
-                    if (!reportedWrite || now - lastReportedAt >= PROGRESS_INTERVAL_MS) {
-                        onProgress(ExternalExportProgress(copied))
-                        reportedWrite = true
-                        lastReportedAt = now
+                    if (count > 0) {
+                        if (count.toLong() > maxExportBytes - copied) {
+                            return FileResult.Failure(FileError.FileTooLarge(node.name, maxExportBytes))
+                        }
+                        output.write(buffer, 0, count)
+                        copied += count
+                        val now = clockMillis()
+                        if (!reportedWrite || now - lastReportedAt >= PROGRESS_INTERVAL_MS) {
+                            onProgress(ExternalExportProgress(copied))
+                            reportedWrite = true
+                            lastReportedAt = now
+                        }
                     }
                 }
             }
