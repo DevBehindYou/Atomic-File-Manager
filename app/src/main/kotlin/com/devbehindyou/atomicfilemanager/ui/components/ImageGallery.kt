@@ -1,20 +1,26 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.graphics.Bitmap
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -28,7 +34,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import com.devbehindyou.atomicfilemanager.AppContainer
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 
@@ -73,20 +87,43 @@ internal fun ZoomableImage(
     container: AppContainer,
     onZoomChange: (Boolean) -> Unit = {},
 ) {
-    val decoded by produceState<Pair<Boolean, Bitmap?>>(false to null, node.id) {
-        value = true to (container.imagePreviewHelper.decodeImage(node.id) as? FileResult.Success)?.value
+    val helper = container.imagePreviewHelper
+    // A source revision owns its loading state and transforms before its first frame is drawn.
+    // Restarting only produceState's producer would leave the previous bitmap in its remembered State.
+    key(node.id, node.modifiedAt, node.size, helper) {
+        var attempt by remember { mutableIntStateOf(0) }
+        key(attempt) {
+            ZoomableImageAttempt(node, helper, onZoomChange, onRetry = { attempt++ })
+        }
+    }
+}
+
+@Composable
+private fun ZoomableImageAttempt(
+    node: FileNode,
+    helper: ImagePreviewHelper,
+    onZoomChange: (Boolean) -> Unit,
+    onRetry: () -> Unit,
+) {
+    val decoded by produceState<FileResult<Bitmap>?>(null) {
+        value = helper.decodeImage(node.id)
     }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    LaunchedEffect(Unit) { onZoomChange(false) }
 
-    val (loaded, bitmap) = decoded
-    if (!loaded || bitmap == null) {
-        ViewerState(
-            loading = !loaded,
-            error = "The image may be damaged or in a format this phone can't decode.".takeIf { loaded },
-        )
-        return
-    }
+    val bitmap =
+        when (val result = decoded) {
+            null -> {
+                ViewerState(loading = true, error = null)
+                return
+            }
+            is FileResult.Failure -> {
+                ImageLoadError(result.error, onRetry)
+                return
+            }
+            is FileResult.Success -> result.value
+        }
 
     fun zoomTo(value: Float) {
         scale = value.coerceIn(1f, MAX_ZOOM)
@@ -133,6 +170,34 @@ internal fun ZoomableImage(
         )
     }
 }
+
+@Composable
+private fun ImageLoadError(
+    error: FileError,
+    onRetry: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(AtomicSpacing.s16),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        AtomicText(stringResource(imageErrorMessage(error)), AtomicTextRole.BodySecondary)
+        if (error.recoverable) AtomicButton(stringResource(R.string.action_retry), onClick = onRetry)
+    }
+}
+
+@StringRes
+private fun imageErrorMessage(error: FileError): Int =
+    when (error) {
+        is FileError.ProviderUnavailable, is FileError.StorageUnavailable -> R.string.image_load_storage_unavailable
+        is FileError.PermissionDenied, is FileError.AccessDenied, FileError.PlatformRestricted ->
+            R.string.image_load_access_denied
+        is FileError.FileNotFound -> R.string.image_load_missing
+        is FileError.UnsupportedFormat -> R.string.image_load_unsupported
+        is FileError.FileTooLarge -> R.string.image_load_too_large
+        FileError.OutOfMemory -> R.string.image_load_memory
+        else -> R.string.image_load_failed
+    }
 
 /** Gallery rules; pure so they are unit-tested. */
 internal object Gallery {
