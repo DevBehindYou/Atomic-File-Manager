@@ -5,7 +5,7 @@ Recorded 24 October 2026. These records preserve tasks, supported features, limi
 | Plugin | Record | Starting version | Current work boundary |
 | --- | --- | --- | --- |
 | Image viewer | [Image](IMAGE_VIEWER.md) | v0.2 | Existing U09 recovery/replacement integrated through PR #80; wider acceptance open |
-| Video player | [Video](VIDEO_PLAYER.md) | v0.2 | Existing U09 preparation Retry passes host/app-surface checks; CI/integration pending |
+| Video player | [Video](VIDEO_PLAYER.md) | v0.2 | Existing U09 preparation Retry integrated through PR #82; real playback acceptance open |
 | Audio player | [Audio](AUDIO_PLAYER.md) | v0.2 | Existing foreground player; background/queue modernization deferred |
 | PDF reader | [PDF](PDF_READER.md) | v0.2 | Bounded raster viewer; engine evaluation deferred |
 | Document reader | [Document](DOCUMENT_READER.md) | v0.2 | DOCX structured text; Office page fidelity not claimed |
