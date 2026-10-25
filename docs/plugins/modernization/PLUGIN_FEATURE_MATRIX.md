@@ -1,6 +1,6 @@
-# Plugin capability matrix — proposed denominator
+# Plugin capability matrix — frozen denominator
 
-26 October2026. Parent must review and freeze this proposal. Full intake remains authoritative: groups aggregate work, not single buttons. All nested requirements must pass, or remain explicitly unresolved. Unsupported core requirements keep groups open. Conditional/P2 evaluations may conclude with justified non-adoption but cannot silently delete requests.
+26 October2026. Parent reviewed the full intake coverage and froze N=42on26October2026. Full intake remains authoritative: groups aggregate work, not single buttons. All nested requirements must pass, or remain explicitly unresolved. Unsupported core requirements keep groups open. Conditional/P2 evaluations may conclude with justified non-adoption but cannot silently delete requests.
 
 Current baseline is source-audited in PLUGIN_AUDIT and each v0.2 record. Existing working features are retained, not reimplemented. No group newly host-verified/accepted by this audit.
 
@@ -50,3 +50,5 @@ Current baseline is source-audited in PLUGIN_AUDIT and each v0.2 record. Existin
 | ARC5 | P0 gate | Archive security/integration/performance | Protectedarchivejourney/traversal/absolute/symlink/bomb-ratio/depthcount/duplicatecase/header/corrupt/lowspace/interrupt/overwrite/processkill, unrelateddata safe, meaningful ETA |
 
 All groups include applicable source/revision/error/cancel/provider/theme/rotation/accessibility and exact-head static/tests/build/review/CI/clean integration gates. Actual device/format/security/performance acceptance is separate from host proof. Image6+Video6+Audio5+PDF5+Editor6+Markdown5+Document4+Archive5=42. Existing U01-U13 denominator unchanged.
+
+Global gate for every applicable group: Atomic adaptive layout, accessibility, theme/landscape, supported plugin preferences, descriptor/format-limit/association/About v0.2 context and accurate fallback must pass. Shared foundations receive no extra numerator units.
