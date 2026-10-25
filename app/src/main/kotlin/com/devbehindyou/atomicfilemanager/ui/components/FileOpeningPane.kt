@@ -68,12 +68,15 @@ fun FilePreviewPane(
     val repository = app.container.settingsRepository
     val settings by repository.settings.collectAsState()
     val preferred = remember(node.id) { settings.fileOpening.targetFor(node) }
-    var displayed by remember(node.id) { mutableStateOf(node) }
+    var sourceSelection by remember(node.id) { mutableStateOf(PreviewSourceSelection(node)) }
+    val displayed = sourceSelection.forParent(node)
+    val displayedKey = displayed.previewSourceKey()
+    val displayedMime = externalMimeType(displayed)
     var useBuiltIn by rememberSaveable(node.id.raw) { mutableStateOf(preferred.mode == FileOpenMode.BUILT_IN) }
     var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
-    var apps by remember(displayed.id) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
-    var loading by remember(displayed.id) { mutableStateOf(true) }
-    var problem by rememberSaveable(displayed.id.raw) { mutableStateOf<OpeningProblem?>(null) }
+    var apps by remember(displayed.id, displayedMime) { mutableStateOf<List<ExternalFileApp>>(emptyList()) }
+    var loading by remember(displayed.id, displayedMime) { mutableStateOf(true) }
+    var problem by rememberSaveable(displayed.id.raw, displayedKey) { mutableStateOf<OpeningProblem?>(null) }
     val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
     val exporter =
         remember(app) {
@@ -81,7 +84,7 @@ fun FilePreviewPane(
         }
     val scope = rememberCoroutineScope()
     val preparationRequest =
-        remember(node.id, node.modifiedAt, node.size, displayed.id, useBuiltIn, scope) {
+        remember(node.id, displayedKey, useBuiltIn, scope) {
             ExternalPreparationRequest(scope)
         }
     val preparation by key(preparationRequest) { preparationRequest.state.collectAsState() }
@@ -143,11 +146,11 @@ fun FilePreviewPane(
         }
     }
 
-    LaunchedEffect(displayed.id, useBuiltIn) {
+    LaunchedEffect(displayed.id, displayedMime, useBuiltIn) {
         if (useBuiltIn) return@LaunchedEffect
         loading = true
         try {
-            apps = withContext(Dispatchers.IO) { launcher.list(externalMimeType(displayed)) }
+            apps = withContext(Dispatchers.IO) { launcher.list(displayedMime) }
             if (!automaticAttempted && preferred.mode == FileOpenMode.EXTERNAL) {
                 automaticAttempted = true
                 when {
@@ -179,7 +182,7 @@ fun FilePreviewPane(
             gallery = gallery,
             onOpenExternalForNode = { shown ->
                 preparationRequest.dispose()
-                displayed = shown
+                sourceSelection = PreviewSourceSelection(node, shown)
                 useBuiltIn = false
             },
         )

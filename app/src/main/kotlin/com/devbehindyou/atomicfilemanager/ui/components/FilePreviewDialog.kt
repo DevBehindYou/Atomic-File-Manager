@@ -121,7 +121,9 @@ internal fun BuiltInFilePreviewPane(
         remember(node.id, gallery) {
             Gallery.of(gallery, node).takeIf { Gallery.isImage(node) && it.first.size > 1 }
         }
-    var shown by remember(node.id) { mutableStateOf(node) }
+    var sourceSelection by remember(node.id) { mutableStateOf(PreviewSourceSelection(node)) }
+    val shown = sourceSelection.forParent(node)
+    val shownKey = shown.previewSourceKey()
     // Every preview counts as "opened" for Home > Recent (ALL_IN_ONE_PLAN.md 1.2).
     LaunchedEffect(shown.id) {
         try {
@@ -140,21 +142,21 @@ internal fun BuiltInFilePreviewPane(
     val docxHelper = remember(container) { DocxPreviewHelper({ container.storageBackendSelector.forNode(it) }) }
     val openScope = rememberCoroutineScope()
     val preparationRequest =
-        remember(node.id, node.modifiedAt, node.size, shown.id, shown.modifiedAt, shown.size, openScope) {
+        remember(node.id, shownKey, openScope) {
             ExternalPreparationRequest(openScope)
         }
     val preparation by key(preparationRequest) { preparationRequest.state.collectAsState() }
     val openingExternal = preparation.busy
-    var externalFailed by remember(node.id, shown.id, shown.modifiedAt, shown.size) { mutableStateOf(false) }
+    var externalFailed by remember(node.id, shownKey) { mutableStateOf(false) }
     DisposableEffect(preparationRequest) {
         onDispose { preparationRequest.dispose() }
     }
 
     fun showSource(next: FileNode) {
-        if (next.id != shown.id || next.modifiedAt != shown.modifiedAt || next.size != shown.size) {
+        if (next.previewSourceKey() != shownKey) {
             preparationRequest.dispose()
         }
-        shown = next
+        sourceSelection = PreviewSourceSelection(node, next)
     }
     val externalChooserTitle = stringResource(R.string.viewer_open_external)
     val openExternal: () -> Unit =
