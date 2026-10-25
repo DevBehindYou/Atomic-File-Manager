@@ -298,7 +298,10 @@ class OpeningTypeResolutionTest {
             assertEquals(second.previewSourceKey(), request.state.value.key)
             request.dispose()
             request.invalidateSelection()
-            assertEquals(OpeningTypeResolutionState(disposed = true), request.state.value)
+            assertEquals(
+                OpeningTypeResolutionState(key = second.previewSourceKey(), disposed = true),
+                request.state.value,
+            )
             assertFalse(request.select(third))
         }
 
