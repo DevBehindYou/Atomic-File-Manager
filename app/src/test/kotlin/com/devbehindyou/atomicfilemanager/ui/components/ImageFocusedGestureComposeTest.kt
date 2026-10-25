@@ -63,16 +63,16 @@ class ImageFocusedGestureComposeTest {
     fun doubleTapKeepsTheTappedImagePointUnderTheFinger() {
         show(width = 100, height = 100, marker = true)
         assertPixel(0.7f, 0.5f, Color.GREEN)
-        imageNode().performTouchInput { doubleClick(Offset(width * 0.7f, height * 0.5f)) }
+        compose.onNodeWithTag("gesture_viewport").performTouchInput { doubleClick(Offset(width * 0.7f, height * 0.5f)) }
         assertPixel(0.7f, 0.5f, Color.GREEN)
-        imageNode().performTouchInput { doubleClick(Offset(width * 0.7f, height * 0.5f)) }
+        compose.onNodeWithTag("gesture_viewport").performTouchInput { doubleClick(Offset(width * 0.7f, height * 0.5f)) }
         assertPixel(0.7f, 0.5f, Color.GREEN)
     }
 
     @Test
     fun pinchKeepsItsOffCenterImagePointStationary() {
         show(width = 100, height = 100, marker = true)
-        imageNode().performTouchInput {
+        compose.onNodeWithTag("gesture_viewport").performTouchInput {
             pinch(
                 start0 = Offset(width * 0.65f, height * 0.4f),
                 start1 = Offset(width * 0.75f, height * 0.6f),
@@ -86,8 +86,8 @@ class ImageFocusedGestureComposeTest {
     @Test
     fun wideLetterboxedImageCannotBeDraggedOffItsShortAxis() {
         show(width = 400, height = 100, marker = false)
-        imageNode().performTouchInput { doubleClick(center) }
-        imageNode().performTouchInput {
+        compose.onNodeWithTag("gesture_viewport").performTouchInput { doubleClick(center) }
+        compose.onNodeWithTag("gesture_viewport").performTouchInput {
             swipe(start = center, end = Offset(center.x, height * 0.9f))
         }
         assertPixel(0.5f, 0.5f, Color.RED)
@@ -96,8 +96,8 @@ class ImageFocusedGestureComposeTest {
     @Test
     fun tallLetterboxedImageCannotBeDraggedOffItsShortAxis() {
         show(width = 100, height = 400, marker = false)
-        imageNode().performTouchInput { doubleClick(center) }
-        imageNode().performTouchInput {
+        compose.onNodeWithTag("gesture_viewport").performTouchInput { doubleClick(center) }
+        compose.onNodeWithTag("gesture_viewport").performTouchInput {
             swipe(start = center, end = Offset(width * 0.9f, center.y))
         }
         assertPixel(0.5f, 0.5f, Color.RED)
