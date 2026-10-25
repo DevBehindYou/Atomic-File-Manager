@@ -266,10 +266,11 @@ class OpeningUnknownContentComposeTest {
 
     private fun exports() = File(app.cacheDir, "external-preview").listFiles().orEmpty().toSet()
 
-    private fun node(mime: String = BINARY_MIME) = FileNode(
-        sourceId, "opaque-$runId.$UNKNOWN_EXTENSION", "opaque-$runId.$UNKNOWN_EXTENSION", mime,
-        payload.size.toLong(), 1000, false, false, null, StorageType.VIRTUAL, AccessFlags.FULL, null, null,
-    )
+    private fun node(mime: String = BINARY_MIME) =
+        FileNode(
+            sourceId, "opaque-$runId.$UNKNOWN_EXTENSION", "opaque-$runId.$UNKNOWN_EXTENSION", mime,
+            payload.size.toLong(), 1000, false, false, null, StorageType.VIRTUAL, AccessFlags.FULL, null, null,
+        )
 
     private fun registerReader(
         component: ComponentName,
@@ -356,7 +357,10 @@ class OpeningUnknownContentComposeTest {
 
         override suspend fun remove(id: FileNodeId) = Unit
 
-        override suspend fun recentMedia(sinceMillis: Long, limit: Int): List<RecentItem> = emptyList()
+        override suspend fun recentMedia(
+            sinceMillis: Long,
+            limit: Int,
+        ): List<RecentItem> = emptyList()
     }
 
     private companion object {
