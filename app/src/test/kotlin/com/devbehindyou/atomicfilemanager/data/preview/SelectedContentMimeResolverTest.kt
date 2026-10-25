@@ -119,6 +119,7 @@ class SelectedContentMimeResolverTest {
                     SelectedContentType.Unresolved(node),
                     SelectedContentMimeResolver { backend }.resolve(node),
                 )
+                assertEquals("Unsupported $type must not acquire eager backend resources", 0, acquisitions.get())
             }
         }
 
