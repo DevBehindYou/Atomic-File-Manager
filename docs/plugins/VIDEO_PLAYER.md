@@ -16,7 +16,7 @@ Codec/container support depends on the device. A prepared URI or host-created pl
 | --- | --- | --- |
 | VID-T01 | P0 / accepted into feature integration | Explicit preparation retry now passes frozen no-loop/staging/cleanup consumers; PR #82 passes exact-head CI/review/guarded integration; track real playback separately under VID-T02 |
 | VID-T02 | P0 / open acceptance | Real codec/container fixtures, corruption, seek/stalls, rapid switching, recreation/position and disconnection |
-| VID-T03 | P0 / deferred audit | Pinned engine audio-focus/noisy-output policy, calls, Bluetooth/headset loss and STOP/re-entry |
+| VID-T03 | P0 / source candidate; acceptance pending | Pinned engine audio-focus/noisy-output policy, calls, Bluetooth/headset loss and STOP/re-entry |
 | VID-T04 | P1 / deferred research | Supported subtitle/tracks, resume/aspect/rotation and optional PiP/background controls, with engine/API/size/license evidence |
 
 ## Bugs and risks
@@ -34,3 +34,8 @@ Historical `4792db8` [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md) and [pr
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained record; preserve Media3 controls/ownership limits. VID-T01 preparation Retry passes host/review and selected app-surface checks and is accepted into feature integration through PR #82; real playback remains separate from implemented lifecycle work. No new engine or advanced-video acceptance is claimed.
+## Focus/output policy candidate — 26 October 2026
+
+The shared player source now delegates audio focus and becoming-noisy handling to pinned Media3 through media audio attributes and its built-in route-interruption receiver. The foreground preview lifecycle, STOP pause, release, preparation/retry behavior and staging limits stay in place. No custom focus listener, service, manifest permission or new dependency is added. Media usage applies to both audio and video; unspecified content type avoids mislabelling every file as music, film or speech.
+
+The [focused candidate validation](../testing/MEDIA_PREVIEW_AUDIO_POLICY_VALIDATION.md) records the behavior-preserving bare-builder baseline8bdd603, seven real-player callback consumers on API27/34 and primary API research. Scoped formatting passed; configured parent host/device/CI/review gates are pending, so this is neither a tested focus fix nor complete modernized-plugin credit. Physical audio/video, audible ducking, calls, headset/Bluetooth events and API35+ top-app focus remain explicit acceptance work. Existing plugin version remainsv0.2 until a versioned, accepted release is justified.

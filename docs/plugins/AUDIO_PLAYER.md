@@ -16,7 +16,7 @@ Codec support depends on the device; available metadata does not imply tag-writi
 | --- | --- | --- |
 | AUD-T01 | P0 / source gap; not reproduced here | Audit/test explicit preparation recovery; audio has the video's generic permanent failure shape. Reuse shared behavior only after its own consumers |
 | AUD-T02 | P0 / open acceptance | Actual formats/VBR, malformed/missing tags, seek/end, source loss, STOP/recreation and repeated open/close |
-| AUD-T03 | P0 / deferred audit | Focus/noisy-output/call/Bluetooth policy and accessible controls under pinned Media3 |
+| AUD-T03 | P0 / source candidate; acceptance pending | Focus/noisy-output/call/Bluetooth policy and accessible controls under pinned Media3 |
 | AUD-T04 | P1 / deferred design/research | Intentional background/notification lifetime, folder queue, repeat/shuffle/resume with explicit persistence |
 | AUD-T05 | P1 / deferred engine evaluation | Safe single-file tag/artwork editing per supported format before batch writes |
 
@@ -33,3 +33,8 @@ Historical `4792db8` [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md) and [pr
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained tasks/features/risks/evidence record. Preserve foreground behavior; background, queue and tag-editing delivery is not implied.
+## Focus/output policy candidate — 26 October 2026
+
+The shared player source now delegates audio focus and becoming-noisy handling to pinned Media3 through media audio attributes and its built-in route-interruption receiver. The foreground preview lifecycle, STOP pause, release, preparation/retry behavior and staging limits stay in place. No custom focus listener, service, manifest permission or new dependency is added. Media usage applies to both audio and video; unspecified content type avoids mislabelling every file as music, film or speech.
+
+The [focused candidate validation](../testing/MEDIA_PREVIEW_AUDIO_POLICY_VALIDATION.md) records the behavior-preserving bare-builder baseline8bdd603, seven real-player callback consumers on API27/34 and primary API research. Scoped formatting passed; configured parent host/device/CI/review gates are pending, so this is neither a tested focus fix nor complete modernized-plugin credit. Physical audio/video, audible ducking, calls, headset/Bluetooth events and API35+ top-app focus remain explicit acceptance work. Existing plugin version remainsv0.2 until a versioned, accepted release is justified.

@@ -18,6 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -64,8 +66,13 @@ fun rememberPreviewPlayer(
     return player
 }
 
-/** The player created for both audio and video; lifecycle ownership stays with the preview. */
-internal fun createPreviewPlayer(context: Context): ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
+/** Foreground audio/video previews delegate focus and output-route interruptions to their existing engine. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal fun createPreviewPlayer(context: Context): ExoPlayer =
+    ExoPlayer.Builder(context.applicationContext)
+        .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).build(), true)
+        .setHandleAudioBecomingNoisy(true)
+        .build()
 
 internal fun previewAutoplayAllowed(
     requested: Boolean,
