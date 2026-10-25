@@ -156,6 +156,28 @@ class OpeningSourceRevisionComposeTest {
         replaceThenOpen(Entry.FALLBACK, sameId = false)
     }
 
+    @Test
+    fun policyReaderChoicesRefreshWhenTheSameSourceReceivesADifferentMime() {
+        shadowOf(app.packageManager).clearIntentFilterForActivity(COMPONENT)
+        registerReader(mimes = listOf(OLD_MIME))
+        registerReader(component = NEW_COMPONENT, label = NEW_READER, mimes = listOf(NEW_MIME))
+        show(Entry.POLICY)
+        assertTrue(compose.onAllNodesWithContentDescription(NEW_READER).fetchSemanticsNodes().isEmpty())
+        compose.runOnIdle {
+            source.value = originalNode.copy(name = "updated-$runId.revision", mimeType = NEW_MIME, modifiedAt = 2000)
+        }
+        awaitCondition {
+            compose.onAllNodesWithContentDescription(NEW_READER).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(NEW_READER).performScrollTo().assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithContentDescription(READER).fetchSemanticsNodes().isEmpty())
+        assertTrue(requests.isEmpty())
+        assertNull(shadowOf(app).peekNextStartedActivity())
+        assertEquals(0, closed.get())
+        assertEquals(0, settings.updateCalls.get())
+        assertEquals(settings.initial, settings.settings.value)
+    }
+
     private fun replaceThenOpen(
         entry: Entry,
         sameId: Boolean,
@@ -254,29 +276,32 @@ class OpeningSourceRevisionComposeTest {
 
     private fun exports() = File(app.cacheDir, "external-preview").listFiles().orEmpty().toSet()
 
-    private fun registerReader() {
+    private fun registerReader(
+        component: ComponentName = COMPONENT,
+        label: String = READER,
+        mimes: List<String> = listOf(OLD_MIME, NEW_MIME),
+    ) {
         val manager = shadowOf(app.packageManager)
         manager.addOrUpdateActivity(
             ActivityInfo().apply {
-                packageName = COMPONENT.packageName
-                name = COMPONENT.className
-                nonLocalizedLabel = READER
+                packageName = component.packageName
+                name = component.className
+                nonLocalizedLabel = label
                 enabled = true
                 exported = true
                 applicationInfo =
                     ApplicationInfo().apply {
-                        packageName = COMPONENT.packageName
+                        packageName = component.packageName
                         enabled = true
                     }
             },
         )
         manager.addIntentFilterForActivity(
-            COMPONENT,
+            component,
             IntentFilter(Intent.ACTION_VIEW).apply {
                 addCategory(Intent.CATEGORY_DEFAULT)
                 addDataScheme("content")
-                addDataType(OLD_MIME)
-                addDataType(NEW_MIME)
+                mimes.forEach { addDataType(it) }
             },
         )
     }
@@ -329,5 +354,7 @@ class OpeningSourceRevisionComposeTest {
         const val NEW_MIME = "application/x-atomic-revision"
         const val READER = "Revision reader"
         val COMPONENT = ComponentName("revision.reader", "revision.reader.View")
+        const val NEW_READER = "Updated MIME reader"
+        val NEW_COMPONENT = ComponentName("updated.reader", "updated.reader.View")
     }
 }
