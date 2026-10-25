@@ -25,7 +25,7 @@ Current baseline is source-audited in PLUGIN_AUDIT and each v0.2 record. Existin
 | AUD5 | P1 gate | Safe title/artist/album/artwork/genre/track/year/comment writes before batch; optional bounded visualizer; audio integration/performance | Independent format / tag version / original integrity/backend failures and full audio journey |
 | PDF1 | P0 | Plain/password/scanned/malformed/mixedsizes and progressive bounded render/cache | Actual native large 1000+ page/resource/failure fixtures |
 | PDF2 | P0 | Single/continuous/horizontal/vertical modes, zoom/fit/page jump / count / scroll thumb/rotation/night/resume | Navigation/render quality/position/landscape/accessibility |
-| PDF3 | P0/P1 | Text selection/copy/search/next-previous/highlights/outline/internal and safe external links/password | API 27compatible engine evaluation and actual text/password fixtures |
+| PDF3 | P0/P1 | Text selection/copy/search/next-previous/highlights/outline/internal and safe external links/password | API 27 compatible engine evaluation and actual text/password fixtures |
 | PDF4 | P1/P2 | Bookmarks/highlights/notes/draw/annotations/page-to-image/ranges/thumbnails/share/print; evaluate merge/split/forms/TTS/offline OCR | Separate view/annotation/structural operations, bounded/privacy/native-size evidence |
 | PDF5 | P0 gate | PDF integration/provider/performance | Large PDF journey, source loss/rotation/restoration/error/resource closure/budgets |
 | EDT1 | P0 | Save / Save as / dirty state / durable draft/revision conflicts/backend-specific publication | Fault/denial/low space/disconnect/interruption/process death preserving originals |
