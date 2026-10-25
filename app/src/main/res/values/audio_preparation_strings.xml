@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="audio_preview_preparing">Preparing audio…</string>
+    <string name="audio_prepare_failed">This audio could not be prepared. You can try opening it in another app.</string>
+</resources>

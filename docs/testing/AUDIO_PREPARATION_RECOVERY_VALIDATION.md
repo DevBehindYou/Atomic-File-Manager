@@ -23,3 +23,6 @@ The intended source correction follows the accepted Video preparation/attempt ow
 ## Pending gates
 
 Author has not run Gradle, ADB or CI. Parent owns actual baseline/candidate host evidence, affected media lifecycle/helper/Video regressions, static/APK/Lint, current-head CI, independent review and guarded feature integration. Physical decoded audio, formats/VBR/tags, audible focus/headset behavior, STOP/recreation, source loss and performance stay open. Earlier accepted Media3/Video surfaces cannot certify this new Audio slice. Existing plugin version staysv0.2; partial source work earns no whole-plugin acceptance credit.
+## Source candidate prepared — 26 October2026
+
+Test-first3ad298772c92ff19baa37abaf0bbc3b40f22a1fa is frozen before the Audio source fix. The subsequent production candidate implements the boundary above in AudioPreviewContent.kt and audio_preparation_strings.xml only, plus this plugin context. Source revision/size/helper and attempt keys own all preparation/player state; returned typed failures drive explicit recoverable Retry. Scoped source/test formatting passes. Parent has not yet run the baseline or corrected consumers; original expected counts remain predictions, not results. Existing media policy94703bb is the branch parent and must retain its own focused checks/review.
