@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
@@ -207,6 +208,36 @@ class OpeningUnknownContentComposeTest {
         assertEquals(0, closed.get())
         assertEquals(baselineExports, exports())
         assertPreferencesUnchanged()
+    }
+
+    @Test
+    fun identifyActionCanDisambiguateAnOpaquePngWithoutReadingTheGenericAskFastPath() {
+        registerReader(BINARY_COMPONENT, BINARY_READER, BINARY_MIME)
+        show(node())
+        awaitReader(BINARY_READER)
+        compose.onNodeWithContentDescription(BINARY_READER).performScrollTo().assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithContentDescription(PNG_READER).fetchSemanticsNodes().isEmpty())
+        assertTrue("Compatible generic Ask choices must not probe automatically", requests.isEmpty())
+        assertTrue(streams.isEmpty())
+        assertNull(shadowOf(app).peekNextStartedActivity())
+        assertEquals(0, closed.get())
+        assertEquals(baselineExports, exports())
+        assertPreferencesUnchanged()
+        compose.onNodeWithText("Identify file type").performScrollTo().performClick()
+        awaitReader(PNG_READER)
+        assertTrue(
+            "The explicit identification action must read and close its selected source",
+            streams.isNotEmpty() && streams.all { it.closed.get() },
+        )
+        assertTrue(compose.onAllNodesWithContentDescription(BINARY_READER).fetchSemanticsNodes().isEmpty())
+        assertNull(
+            "Manual identification must not automatically launch a reader",
+            shadowOf(app).peekNextStartedActivity(),
+        )
+        assertEquals(0, closed.get())
+        assertEquals(baselineExports, exports())
+        assertPreferencesUnchanged()
+        openAndAssert(PNG_READER, PNG_COMPONENT, PNG_MIME)
     }
 
     private fun show(selected: FileNode) {
