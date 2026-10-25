@@ -106,12 +106,78 @@ class SelectedContentMimeResolverTest {
         runBlocking {
             val supported = setOf(BackendType.FILE, BackendType.SAF, BackendType.MEDIASTORE)
             BackendType.entries.filterNot { it in supported }.forEach { type ->
-                val backend = backend(type) { error("Unsupported $type must not open content") }
+                val acquisitions = AtomicInteger()
+                val delegate = backend(type) { error("Unsupported $type must not open content") }
+                val backend =
+                    object : StorageBackend by delegate {
+                        override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                            acquisitions.incrementAndGet()
+                            return FileResult.Success(InputStreamProvider { error("Unsupported stream factory") })
+                        }
+                    }
                 assertEquals(
                     SelectedContentType.Unresolved(node),
                     SelectedContentMimeResolver { backend }.resolve(node),
                 )
             }
+        }
+
+    @Test
+    fun everyEligibleBackendTypeReadsOnlyItsOwnedPrefixAndClosesIt() =
+        runBlocking {
+            listOf(BackendType.FILE, BackendType.SAF, BackendType.MEDIASTORE).forEach { type ->
+                val owned = PrefixInput(PNG, trailingSize = 1_000_000)
+                val converted = AtomicInteger()
+                val backend =
+                    backend(type) {
+                        converted.incrementAndGet()
+                        owned
+                    }
+                assertEquals(
+                    SelectedContentType.Ready(node.copy(mimeType = "image/png")),
+                    SelectedContentMimeResolver { backend }.resolve(node),
+                )
+                assertEquals(1, converted.get())
+                assertEquals(8, owned.returned)
+                assertEquals(1, owned.closed)
+            }
+        }
+
+    @Test
+    fun cancellationWhileSelectingABackendDoesNotBeginAcquisition() =
+        runBlocking {
+            val selecting = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val acquisitions = AtomicInteger()
+            val backend =
+                object : StorageBackend by InMemoryBackend() {
+                    override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                        acquisitions.incrementAndGet()
+                        return FileResult.Success(InputStreamProvider { error("Cancelled acquisition") })
+                    }
+                }
+            val helper =
+                SelectedContentMimeResolver {
+                    selecting.countDown()
+                    check(release.await(10, TimeUnit.SECONDS))
+                    backend
+                }
+            var published = false
+            val work =
+                launch {
+                    helper.resolve(node)
+                    published = true
+                }
+            try {
+                withContext(Dispatchers.IO) { assertTrue(selecting.await(10, TimeUnit.SECONDS)) }
+                work.cancel()
+            } finally {
+                release.countDown()
+                work.join()
+            }
+            assertTrue(work.isCancelled)
+            assertFalse(published)
+            assertEquals(0, acquisitions.get())
         }
 
     @Test

@@ -74,8 +74,9 @@ internal class SelectedContentMimeResolver(
         node: FileNode,
         backend: StorageBackend,
         owner: CoroutineContext,
-    ): SelectedContentType =
-        when (val opened = backend.openInput(node.id)) {
+    ): SelectedContentType {
+        owner.ensureActive()
+        return when (val opened = backend.openInput(node.id)) {
             is FileResult.Failure -> SelectedContentType.Failure(node, opened.error)
             is FileResult.Success -> {
                 // Some providers already own resources. Convert exactly once before checking Cancel.
@@ -90,6 +91,7 @@ internal class SelectedContentMimeResolver(
                 }
             }
         }
+    }
 
     private fun readPrefix(
         input: InputStream,
