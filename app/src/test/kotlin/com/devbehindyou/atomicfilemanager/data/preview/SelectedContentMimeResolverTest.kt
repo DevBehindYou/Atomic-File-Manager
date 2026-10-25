@@ -124,6 +124,32 @@ class SelectedContentMimeResolverTest {
         }
 
     @Test
+    fun metadataOnlyEligibilityOffersIdentificationWithoutAcquiringAnySupportedContent() =
+        runBlocking {
+            listOf(BackendType.FILE, BackendType.SAF, BackendType.MEDIASTORE).forEach { type ->
+                val acquisitions = AtomicInteger()
+                val delegate = backend(type) { error("Eligibility must not create a stream") }
+                val candidate =
+                    object : StorageBackend by delegate {
+                        override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
+                            acquisitions.incrementAndGet()
+                            return delegate.openInput(id)
+                        }
+                    }
+                assertEquals(
+                    SelectedContentType.Unresolved(node, canIdentify = true),
+                    SelectedContentMimeResolver { candidate }.resolve(node, allowProbe = false),
+                )
+                assertEquals(0, acquisitions.get())
+            }
+            val unsupported = backend(BackendType.FTP) { error("FTP cannot identify") }
+            assertEquals(
+                SelectedContentType.Unresolved(node),
+                SelectedContentMimeResolver { unsupported }.resolve(node, allowProbe = false),
+            )
+        }
+
+    @Test
     fun everyEligibleBackendTypeReadsOnlyItsOwnedPrefixAndClosesIt() =
         runBlocking {
             listOf(BackendType.FILE, BackendType.SAF, BackendType.MEDIASTORE).forEach { type ->

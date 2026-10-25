@@ -27,7 +27,11 @@ internal class OpeningTypeResolution(
     private val scope: CoroutineScope,
     private val resolve: suspend (FileNode) -> SelectedContentType,
 ) {
-    private data class Pending(val node: FileNode, val key: PreviewSourceKey)
+    private data class Pending(
+        val node: FileNode,
+        val key: PreviewSourceKey,
+        val work: suspend (FileNode) -> SelectedContentType,
+    )
 
     private data class Active(val ticket: Any, val job: Job)
 
@@ -38,12 +42,17 @@ internal class OpeningTypeResolution(
     private var pending: Pending? = null
     private var disposed = false
 
-    fun select(node: FileNode): Boolean {
+    fun select(
+        node: FileNode,
+        refresh: Boolean = false,
+        work: suspend (FileNode) -> SelectedContentType = resolve,
+    ): Boolean {
         val key = node.previewSourceKey()
         val cancel: Job?
         synchronized(lock) {
-            if (disposed || !scope.isActive || mutable.value.key == key) return false
-            pending = Pending(node, key)
+            if (disposed || !scope.isActive || (!refresh && mutable.value.key == key)) return false
+            if (refresh && active != null) return false
+            pending = Pending(node, key, work)
             mutable.value = OpeningTypeResolutionState(key = key, resolving = true, cancelling = active != null)
             cancel = active?.job
             if (cancel == null) startPending()
@@ -80,7 +89,7 @@ internal class OpeningTypeResolution(
             scope.launch(start = CoroutineStart.LAZY) {
                 val found =
                     try {
-                        resolve(next.node)
+                        next.work(next.node)
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {

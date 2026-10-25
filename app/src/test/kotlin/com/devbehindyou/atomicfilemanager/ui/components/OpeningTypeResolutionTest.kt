@@ -173,6 +173,61 @@ class OpeningTypeResolutionTest {
             assertFalse(request.state.value.resolving)
         }
 
+    @Test
+    fun explicitSameSourceRefreshUsesItsCapturedWorkAndDoesNotOverlapAnActiveProbe() =
+        runTest {
+            val release = CompletableDeferred<Unit>()
+            var starts = 0
+            val request =
+                OpeningTypeResolution(this) { source ->
+                    starts++
+                    SelectedContentType.Unresolved(source, canIdentify = true)
+                }
+            request.select(first)
+            runCurrent()
+            assertEquals(SelectedContentType.Unresolved(first, canIdentify = true), request.state.value.result)
+            assertFalse(request.select(first))
+            assertTrue(
+                request.select(first, refresh = true) { source ->
+                    starts++
+                    release.await()
+                    SelectedContentType.Ready(source.copy(mimeType = "image/png"))
+                },
+            )
+            runCurrent()
+            assertTrue(request.state.value.resolving)
+            assertFalse(request.select(first, refresh = true) { error("Active refresh cannot compete") })
+            assertEquals(2, starts)
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(SelectedContentType.Ready(first.copy(mimeType = "image/png")), request.state.value.result)
+            assertFalse(request.state.value.resolving)
+        }
+
+    @Test
+    fun latestPendingSelectionKeepsItsOwnCapturedResolutionPolicy() =
+        runTest {
+            val release = CompletableDeferred<Unit>()
+            val starts = mutableListOf<String>()
+            val request =
+                OpeningTypeResolution(this) { source ->
+                    starts += "original"
+                    withContext(NonCancellable) { release.await() }
+                    SelectedContentType.Unresolved(source)
+                }
+            request.select(first)
+            runCurrent()
+            request.select(second) { error("Intermediate policy must be dropped") }
+            request.select(third) { source ->
+                starts += "latest"
+                SelectedContentType.Ready(source.copy(mimeType = "image/png"))
+            }
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(listOf("original", "latest"), starts)
+            assertEquals(third.id, request.state.value.result!!.node.id)
+        }
+
     private fun node(name: String) =
         FileNode(
             FileNodeId.file("/owned-prefix/$name"), name, name, "application/octet-stream", 100, 1000,

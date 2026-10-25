@@ -21,7 +21,7 @@ internal sealed interface SelectedContentType {
 
     data class Ready(override val node: FileNode) : SelectedContentType
 
-    data class Unresolved(override val node: FileNode) : SelectedContentType
+    data class Unresolved(override val node: FileNode, val canIdentify: Boolean = false) : SelectedContentType
 
     data class Failure(override val node: FileNode, val error: FileError) : SelectedContentType
 }
@@ -43,7 +43,10 @@ internal class SelectedContentMimeResolver(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val backendFor: (FileNodeId) -> StorageBackend,
 ) {
-    suspend fun resolve(node: FileNode): SelectedContentType {
+    suspend fun resolve(
+        node: FileNode,
+        allowProbe: Boolean = true,
+    ): SelectedContentType {
         val owner = currentCoroutineContext()
         owner.ensureActive()
         openingMetadataType(node)?.let { return it }
@@ -54,6 +57,8 @@ internal class SelectedContentMimeResolver(
                     val backend = backendFor(node.id)
                     if (backend.type !in SUPPORTED_BACKENDS) {
                         SelectedContentType.Unresolved(node)
+                    } else if (!allowProbe) {
+                        SelectedContentType.Unresolved(node, canIdentify = true)
                     } else {
                         readOwnedPrefix(node, backend, owner)
                     }
