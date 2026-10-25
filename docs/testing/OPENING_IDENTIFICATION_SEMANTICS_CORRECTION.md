@@ -1,0 +1,7 @@
+# Identification consumer semantics correction
+
+26 October 2026. The retained first integrated parent gate ran149 cases with five failures; its saved log/XML/source manifest remains `selected-content-integrated-first-*` under `build/audit-tools`. The fifth unknown-content consumer failed at its title-case `onNodeWithText("Identify file type")` lookup. This result does not establish that the production action was absent.
+
+Independent source diagnosis found the fixture is already eligible: its controlled backend delegates `InMemoryBackend.type == FILE`, despite FTP-shaped test identities. `AtomicButton` with Ghost style uses an uppercase AtomicText role, which exposes the original label through `clearAndSetSemantics { contentDescription = text }`. Thus the public TalkBack name is **Identify file type**, while its visual uppercase text is not the requested title-case text semantic.
+
+The correction changes only the fifth consumer's action lookup to `onNodeWithContentDescription("Identify file type")`. The original four methods, shared fixture and all zero-read, no-auto-launch/preference/export, closed identification stream, PNG-only choice, exact-byte and read-only handoff assertions are unchanged. No production/backend eligibility change is justified by this failure. Earlier baseline and integrated results remain historical evidence; the parent must rerun the corrected consumer and report actual results, not relabel the original run as passing. No build/device/CI result is claimed here.

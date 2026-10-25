@@ -223,7 +223,7 @@ class OpeningUnknownContentComposeTest {
         assertEquals(0, closed.get())
         assertEquals(baselineExports, exports())
         assertPreferencesUnchanged()
-        compose.onNodeWithText("Identify file type").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Identify file type").performScrollTo().performClick()
         awaitReader(PNG_READER)
         assertTrue(
             "The explicit identification action must read and close its selected source",
