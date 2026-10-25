@@ -54,10 +54,11 @@ import java.io.ByteArrayOutputStream
 class ImageFocusedGestureComposeTest {
     @get:Rule val compose = createComposeRule()
     private lateinit var imageView: View
-    private val image = FileNode(
-        FileNodeId.file("/image-gesture-fixture/marker.png"), "marker.png", "marker.png", "image/png",
-        1, 0, false, false, null, StorageType.VIRTUAL, AccessFlags.FULL, null, null,
-    )
+    private val image =
+        FileNode(
+            FileNodeId.file("/image-gesture-fixture/marker.png"), "marker.png", "marker.png", "image/png",
+            1, 0, false, false, null, StorageType.VIRTUAL, AccessFlags.FULL, null, null,
+        )
 
     @Test
     fun doubleTapKeepsTheTappedImagePointUnderTheFinger() {
@@ -105,28 +106,35 @@ class ImageFocusedGestureComposeTest {
 
     private fun imageNode() = compose.onNodeWithContentDescription(image.name)
 
-    private fun show(width: Int, height: Int, marker: Boolean) {
+    private fun show(
+        width: Int,
+        height: Int,
+        marker: Boolean,
+    ) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val bytes = try {
-            bitmap.eraseColor(Color.RED)
-            if (marker) {
-                for (x in 65..75) for (y in 0 until height) bitmap.setPixel(x, y, Color.GREEN)
+        val bytes =
+            try {
+                bitmap.eraseColor(Color.RED)
+                if (marker) {
+                    for (x in 65..75) for (y in 0 until height) bitmap.setPixel(x, y, Color.GREEN)
+                }
+                ByteArrayOutputStream().use {
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+                    it.toByteArray()
+                }
+            } finally {
+                bitmap.recycle()
             }
-            ByteArrayOutputStream().use {
-                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
-                it.toByteArray()
-            }
-        } finally {
-            bitmap.recycle()
-        }
         val app = ApplicationProvider.getApplicationContext<Application>()
-        val backend = object : StorageBackend by InMemoryBackend() {
-            override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
-                FileResult.Success(InputStreamProvider { ByteArrayInputStream(bytes) })
-        }
-        val container = object : AppContainer by DefaultAppContainer(app) {
-            override val imagePreviewHelper = ImagePreviewHelper({ backend }, Dispatchers.IO)
-        }
+        val backend =
+            object : StorageBackend by InMemoryBackend() {
+                override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
+                    FileResult.Success(InputStreamProvider { ByteArrayInputStream(bytes) })
+            }
+        val container =
+            object : AppContainer by DefaultAppContainer(app) {
+                override val imagePreviewHelper = ImagePreviewHelper({ backend }, Dispatchers.IO)
+            }
         compose.setContent {
             val view = LocalView.current
             SideEffect { imageView = view }
@@ -141,7 +149,11 @@ class ImageFocusedGestureComposeTest {
         }
     }
 
-    private fun assertPixel(x: Float, y: Float, expected: Int) {
+    private fun assertPixel(
+        x: Float,
+        y: Float,
+        expected: Int,
+    ) {
         compose.waitForIdle()
         val bounds = compose.onNodeWithTag("gesture_viewport").fetchSemanticsNode().boundsInRoot
         compose.runOnIdle {
@@ -152,7 +164,10 @@ class ImageFocusedGestureComposeTest {
                 val viewportHeight = bounds.height
                 val left = bounds.center.x - viewportWidth / 2f
                 val top = bounds.center.y - viewportHeight / 2f
-                assertEquals(expected, pixels.getPixel((left + viewportWidth * x).toInt(), (top + viewportHeight * y).toInt()))
+                assertEquals(
+                    expected,
+                    pixels.getPixel((left + viewportWidth * x).toInt(), (top + viewportHeight * y).toInt()),
+                )
             } finally {
                 pixels.recycle()
             }
