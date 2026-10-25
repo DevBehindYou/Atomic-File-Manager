@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +45,7 @@ fun rememberPreviewPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
     val player =
         remember(uri) {
-            ExoPlayer.Builder(context.applicationContext).build().apply {
+            createPreviewPlayer(context).apply {
                 setMediaItem(MediaItem.fromUri(uri))
                 this.playWhenReady = previewAutoplayAllowed(playWhenReady, lifecycleOwner.lifecycle)
                 prepare()
@@ -62,6 +63,9 @@ fun rememberPreviewPlayer(
     }
     return player
 }
+
+/** The player created for both audio and video; lifecycle ownership stays with the preview. */
+internal fun createPreviewPlayer(context: Context): ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
 
 internal fun previewAutoplayAllowed(
     requested: Boolean,
