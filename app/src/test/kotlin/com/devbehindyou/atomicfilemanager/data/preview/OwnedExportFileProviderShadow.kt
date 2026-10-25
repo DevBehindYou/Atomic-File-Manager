@@ -13,6 +13,8 @@ import java.io.File
  * Copying, progress, cleanup and launch construction remain real; Android FileProvider
  * path mapping and URI grants require their separate native/device contracts.
  */
+// Robolectric shadows require a public no-argument constructor, including static-method shadows.
+@Suppress("UtilityClassWithPublicConstructor")
 @Implements(FileProvider::class, isInAndroidSdk = false)
 class OwnedExportFileProviderShadow {
     companion object {
