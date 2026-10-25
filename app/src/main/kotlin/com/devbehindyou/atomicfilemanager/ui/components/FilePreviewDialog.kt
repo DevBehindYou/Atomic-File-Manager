@@ -21,8 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -92,6 +95,8 @@ import com.devbehindyou.atomicfilemanager.ui.components.preview.VideoPreviewCont
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -134,33 +139,44 @@ internal fun BuiltInFilePreviewPane(
         }
     val docxHelper = remember(container) { DocxPreviewHelper({ container.storageBackendSelector.forNode(it) }) }
     val openScope = rememberCoroutineScope()
-    var openingExternal by remember(node.id) { mutableStateOf(false) }
-    var externalFailed by remember(node.id) { mutableStateOf(false) }
+    val preparationRequest =
+        remember(node.id, node.modifiedAt, node.size, shown.id, shown.modifiedAt, shown.size, openScope) {
+            ExternalPreparationRequest(openScope)
+        }
+    val preparation by key(preparationRequest) { preparationRequest.state.collectAsState() }
+    val openingExternal = preparation.busy
+    var externalFailed by remember(node.id, shown.id, shown.modifiedAt, shown.size) { mutableStateOf(false) }
+    DisposableEffect(preparationRequest) {
+        onDispose { preparationRequest.dispose() }
+    }
+
+    fun showSource(next: FileNode) {
+        if (next.id != shown.id || next.modifiedAt != shown.modifiedAt || next.size != shown.size) {
+            preparationRequest.dispose()
+        }
+        shown = next
+    }
     val externalChooserTitle = stringResource(R.string.viewer_open_external)
     val openExternal: () -> Unit =
         onOpenExternal ?: {
-            if (!openingExternal) {
-                openScope.launch {
-                    openingExternal = true
-                    externalFailed = false
-                    try {
-                        externalFailed =
-                            externalHelper.open(shown) { file ->
-                                val view =
-                                    Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(file.uri, file.mimeType)
-                                        clipData = ClipData.newRawUri(node.name, file.uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                context.startActivity(
-                                    Intent.createChooser(view, externalChooserTitle)
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                )
-                            } is FileResult.Failure
-                    } finally {
-                        openingExternal = false
+            val requestedSource = shown
+            preparationRequest.start { report ->
+                externalFailed = false
+                val result =
+                    externalHelper.open(requestedSource, onProgress = report) { file ->
+                        val view =
+                            Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(file.uri, file.mimeType)
+                                clipData = ClipData.newRawUri(requestedSource.name, file.uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        context.startActivity(
+                            Intent.createChooser(view, externalChooserTitle)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
                     }
-                }
+                currentCoroutineContext().ensureActive()
+                externalFailed = result is FileResult.Failure
             }
         }
     val colors = Atomic.colors
@@ -179,7 +195,10 @@ internal fun BuiltInFilePreviewPane(
             AtomicIconButton(
                 AtomicIcons.Close,
                 "Close preview",
-                onClick = onClose,
+                onClick = {
+                    preparationRequest.dispose()
+                    onClose()
+                },
                 variant = AtomicIconButtonVariant.Back,
                 modifier = Modifier.testTag("preview_close"),
             )
@@ -208,24 +227,28 @@ internal fun BuiltInFilePreviewPane(
             )
         }
         AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
-        if (openingExternal || externalFailed) {
+        if (openingExternal) {
+            ExternalPreparationStatus(
+                preparation,
+                preparationRequest::cancel,
+                Modifier.padding(AtomicSpacing.s12),
+            )
+        } else if (externalFailed) {
             AtomicText(
-                stringResource(
-                    if (openingExternal) R.string.viewer_external_loading else R.string.viewer_external_failed,
-                ),
+                stringResource(R.string.viewer_external_failed),
                 AtomicTextRole.BodySecondary,
                 modifier = Modifier.padding(AtomicSpacing.s12),
             )
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (images != null) {
-                ImageGallery(images.first, images.second, container, onPageChange = { shown = it })
+                ImageGallery(images.first, images.second, container, onPageChange = ::showSource)
             } else {
                 when (previewType) {
                     PreviewType.IMAGE -> ZoomableImage(node, container)
                     PreviewType.PDF -> PdfPreviewContent(node, container)
                     PreviewType.DOCX -> DocxPreviewContent(node, docxHelper::read)
-                    PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = { shown = it })
+                    PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = ::showSource)
                     PreviewType.MARKDOWN -> MarkdownPreviewContent(node, container)
                     PreviewType.ARCHIVE -> ArchivePreviewContent(node, container)
                     PreviewType.AUDIO -> AudioPreviewContent(node, container)
