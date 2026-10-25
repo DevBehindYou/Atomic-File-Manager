@@ -292,7 +292,7 @@ class OpeningSelectedContentPolicyComposeTest {
 
     private fun assertCheckingLatestWithoutReaders() {
         compose.onNodeWithText(source.value.name).assertIsDisplayed()
-        compose.onNodeWithText(CHECKING).assertIsDisplayed()
+        compose.onNodeWithContentDescription(CHECKING).assertIsDisplayed()
         assertTrue(compose.onAllNodesWithContentDescription(READER).fetchSemanticsNodes().isEmpty())
         assertNull(shadowOf(app).peekNextStartedActivity())
         assertEquals(0, closed.get())
