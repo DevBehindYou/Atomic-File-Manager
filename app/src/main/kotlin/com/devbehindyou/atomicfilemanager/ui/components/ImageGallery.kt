@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -28,13 +28,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
@@ -46,7 +52,6 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 
-private const val MAX_ZOOM = 6f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 
 /**
@@ -108,8 +113,8 @@ private fun ZoomableImageAttempt(
     val decoded by produceState<FileResult<Bitmap>?>(null) {
         value = helper.decodeImage(node.id)
     }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    var transform by remember { mutableStateOf(ImageTransform()) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
     LaunchedEffect(Unit) { onZoomChange(false) }
 
     val bitmap =
@@ -125,18 +130,28 @@ private fun ZoomableImageAttempt(
             is FileResult.Success -> result.value
         }
 
-    fun zoomTo(value: Float) {
-        scale = value.coerceIn(1f, MAX_ZOOM)
-        if (scale == 1f) offset = Offset.Zero
-        onZoomChange(scale > 1f)
+    val imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
+
+    fun transformTo(value: Float, focus: Offset, pan: Offset = Offset.Zero) {
+        transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
+        onZoomChange(transform.scale > 1f)
     }
 
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
+                .clipToBounds()
+                .onSizeChanged { size ->
+                    viewport = size
+                    transform = transform.copy(
+                        offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
+                    )
+                }
                 .pointerInput(node.id) {
-                    detectTapGestures(onDoubleTap = { zoomTo(if (scale > 1f) 1f else DOUBLE_TAP_ZOOM) })
+                    detectTapGestures(onDoubleTap = { tap ->
+                        transformTo(if (transform.scale > 1f) 1f else DOUBLE_TAP_ZOOM, tap)
+                    })
                 }
                 .pointerInput(node.id) {
                     awaitEachGesture {
@@ -145,14 +160,12 @@ private fun ZoomableImageAttempt(
                             val event = awaitPointerEvent()
                             val fingers = event.changes.count { it.pressed }
                             // One finger on an unzoomed image is left to the pager, so it turns the page.
-                            if (fingers > 1 || scale > 1f) {
-                                zoomTo(scale * event.calculateZoom())
-                                val pan = event.calculatePan()
-                                offset =
-                                    Offset(
-                                        Gallery.clampPan(offset.x + pan.x, scale, size.width.toFloat()),
-                                        Gallery.clampPan(offset.y + pan.y, scale, size.height.toFloat()),
-                                    )
+                            if (fingers > 1 || (fingers == 1 && transform.scale > 1f)) {
+                                transformTo(
+                                    transform.scale * event.calculateZoom(),
+                                    event.calculateCentroid(useCurrent = false),
+                                    event.calculatePan(),
+                                )
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             }
                         } while (event.changes.any { it.pressed })
@@ -163,10 +176,16 @@ private fun ZoomableImageAttempt(
         Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = node.name,
+            contentScale = ContentScale.Fit,
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y),
+                    .graphicsLayer(
+                        scaleX = transform.scale,
+                        scaleY = transform.scale,
+                        translationX = transform.offset.x,
+                        translationY = transform.offset.y,
+                    ),
         )
     }
 }
