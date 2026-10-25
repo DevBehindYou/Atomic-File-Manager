@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
@@ -103,8 +102,6 @@ class ImageFocusedGestureComposeTest {
         }
         assertPixel(0.5f, 0.5f, Color.RED)
     }
-
-    private fun imageNode() = compose.onNodeWithContentDescription(image.name)
 
     private fun show(
         width: Int,
