@@ -51,7 +51,7 @@ internal class OpeningTypeResolution(
         val cancel: Job?
         synchronized(lock) {
             if (disposed || !scope.isActive || (!refresh && mutable.value.key == key)) return false
-            if (refresh && active != null) return false
+            if (refresh && (active != null || mutable.value.key != key)) return false
             pending = Pending(node, key, work)
             mutable.value = OpeningTypeResolutionState(key = key, resolving = true, cancelling = active != null)
             cancel = active?.job

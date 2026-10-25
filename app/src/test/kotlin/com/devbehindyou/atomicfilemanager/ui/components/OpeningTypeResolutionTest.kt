@@ -228,6 +228,26 @@ class OpeningTypeResolutionTest {
             assertEquals(third.id, request.state.value.result!!.node.id)
         }
 
+    @Test
+    fun staleManualRefreshCannotReplaceANewerReadySource() =
+        runTest {
+            val starts = mutableListOf<FileNodeId>()
+            val request =
+                OpeningTypeResolution(this) { source ->
+                    starts += source.id
+                    SelectedContentType.Unresolved(source, canIdentify = true)
+                }
+            assertTrue(request.select(first))
+            runCurrent()
+            assertTrue(request.select(second))
+            runCurrent()
+            val ready = request.state.value
+            assertFalse(request.select(first, refresh = true) { error("Stale identification must not run") })
+            runCurrent()
+            assertEquals(ready, request.state.value)
+            assertEquals(second.previewSourceKey(), request.state.value.key)
+            assertEquals(listOf(first.id, second.id), starts)
+        }
     private fun node(name: String) =
         FileNode(
             FileNodeId.file("/owned-prefix/$name"), name, name, "application/octet-stream", 100, 1000,
