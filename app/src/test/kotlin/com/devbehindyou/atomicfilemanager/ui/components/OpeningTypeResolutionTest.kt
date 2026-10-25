@@ -249,6 +249,59 @@ class OpeningTypeResolutionTest {
             assertEquals(listOf(first.id, second.id), starts)
         }
 
+    @Test
+    fun invalidatingAnObsoleteSelectionDrainsBeforeAdmittingTheLatestSource() =
+        runTest {
+            val release = CompletableDeferred<Unit>()
+            val starts = mutableListOf<FileNodeId>()
+            val request =
+                OpeningTypeResolution(this) { source ->
+                    starts += source.id
+                    if (source.id == first.id) withContext(NonCancellable) { release.await() }
+                    SelectedContentType.Unresolved(source)
+                }
+            request.select(first)
+            runCurrent()
+            request.select(second)
+            request.invalidateSelection()
+            assertEquals(null, request.state.value.key)
+            assertEquals(null, request.state.value.result)
+            assertTrue(request.state.value.resolving)
+            assertTrue(request.state.value.cancelling)
+            request.select(third)
+            runCurrent()
+            assertEquals(listOf(first.id), starts)
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(listOf(first.id, third.id), starts)
+            assertEquals(third.previewSourceKey(), request.state.value.key)
+            assertEquals(SelectedContentType.Unresolved(third), request.state.value.result)
+        }
+
+    @Test
+    fun invalidatingWithoutAReplacementFinishesEmptyAndAllowsALaterSelection() =
+        runTest {
+            val release = CompletableDeferred<Unit>()
+            val request =
+                OpeningTypeResolution(this) { source ->
+                    if (source.id == first.id) withContext(NonCancellable) { release.await() }
+                    SelectedContentType.Unresolved(source)
+                }
+            request.select(first)
+            runCurrent()
+            request.invalidateSelection()
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(OpeningTypeResolutionState(), request.state.value)
+            assertTrue(request.select(second))
+            runCurrent()
+            assertEquals(second.previewSourceKey(), request.state.value.key)
+            request.dispose()
+            request.invalidateSelection()
+            assertEquals(OpeningTypeResolutionState(disposed = true), request.state.value)
+            assertFalse(request.select(third))
+        }
+
     private fun node(name: String) =
         FileNode(
             FileNodeId.file("/owned-prefix/$name"), name, name, "application/octet-stream", 100, 1000,

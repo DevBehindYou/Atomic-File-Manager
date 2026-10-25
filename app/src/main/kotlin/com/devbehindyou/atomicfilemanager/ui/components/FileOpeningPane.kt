@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -110,8 +111,14 @@ fun FilePreviewPane(
             OpeningTypeResolution(scope) { typeResolver.resolve(it) }
         }
     val typeState by key(typeRequest) { typeRequest.state.collectAsState() }
+    val currentSelection by rememberUpdatedState(rawKey to dismissed)
+    val currentRequest by rememberUpdatedState(typeRequest)
     DisposableEffect(typeRequest) {
         onDispose { typeRequest.dispose() }
+    }
+    LaunchedEffect(typeRequest, typeState.disposed, typeState.resolving, dismissed) {
+        // A reused slot waits for the dismissed owner's cleanup before creating a new owner.
+        if (!dismissed && typeState.disposed && !typeState.resolving) resolutionGeneration++
     }
     val metadataType = openingMetadataType(rawDisplayed)
     val type = typeState.result.takeIf { typeState.key == rawKey && !typeState.resolving } ?: metadataType
@@ -142,16 +149,14 @@ fun FilePreviewPane(
 
     fun currentTypeIsReady(): Boolean {
         val current = typeRequest.state.value
-        return !dismissed && !current.disposed && !current.resolving &&
-            (metadataType != null || (current.key == rawKey && current.result != null))
+        return !currentSelection.second && currentSelection.first == rawKey && currentRequest === typeRequest &&
+            !current.disposed && !current.resolving && current.key == rawKey && current.result != null
     }
 
     fun dismiss() {
         dismissed = true
         typeRequest.dispose()
         preparationRequest.dispose()
-        // A future different file can reuse this slot, but this dismissed ID cannot restart it.
-        resolutionGeneration++
         onClose()
     }
 
@@ -197,7 +202,7 @@ fun FilePreviewPane(
                     // A shortcut failure cannot turn a launched reader into an open failure.
                 }
                 currentCoroutineContext().ensureActive()
-                onClose()
+                dismiss()
             } else {
                 problem = OpeningProblem.FAILED
             }
@@ -206,7 +211,16 @@ fun FilePreviewPane(
 
     val needsChoiceResolution = preferred == null || !useBuiltIn
     LaunchedEffect(rawKey, needsChoiceResolution, typeRequest, dismissed) {
-        if (dismissed || !needsChoiceResolution) return@LaunchedEffect
+        if (dismissed || typeRequest.state.value.disposed) return@LaunchedEffect
+        if (!needsChoiceResolution) {
+            val known = openingMetadataType(rawDisplayed)
+            if (known != null) {
+                typeRequest.select(rawDisplayed) { known }
+            } else if (typeRequest.state.value.key?.id != rawDisplayed.id) {
+                typeRequest.invalidateSelection()
+            }
+            return@LaunchedEffect
+        }
         typeRequest.select(rawDisplayed) { source ->
             val known = openingMetadataType(source)
             if (known != null) {
@@ -241,6 +255,7 @@ fun FilePreviewPane(
     }
 
     LaunchedEffect(
+        rawKey,
         displayed.id,
         displayedMime,
         useBuiltIn,
@@ -294,12 +309,10 @@ fun FilePreviewPane(
             gallery = gallery,
             onOpenExternalForNode = { shown ->
                 preparationRequest.dispose()
-                typeRequest.dispose()
                 // Strip only our exact presentation hint, preserving a different image or editor result.
                 val requested = if (shown.previewSourceKey() == engineNode.previewSourceKey()) rawDisplayed else shown
                 sourceSelection = PreviewSourceSelection(node, requested)
                 automaticAttempted = true
-                resolutionGeneration++
                 useBuiltIn = false
             },
         )

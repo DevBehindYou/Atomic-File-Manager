@@ -61,6 +61,22 @@ internal class OpeningTypeResolution(
         return true
     }
 
+    /** Retire an obsolete selection without starting a probe or replacing this owner. */
+    fun invalidateSelection() {
+        val cancel =
+            synchronized(lock) {
+                if (disposed) return
+                pending = null
+                mutable.value =
+                    OpeningTypeResolutionState(
+                        resolving = active != null,
+                        cancelling = active != null,
+                    )
+                active?.job
+            }
+        cancel?.cancel()
+    }
+
     fun dispose() {
         val cancel =
             synchronized(lock) {
@@ -108,6 +124,7 @@ internal class OpeningTypeResolution(
                     when {
                         disposed -> mutable.value = OpeningTypeResolutionState(disposed = true)
                         pending != null -> startPending()
+                        mutable.value.key == null -> mutable.value = OpeningTypeResolutionState()
                         mutable.value.key == next.key ->
                             mutable.value =
                                 OpeningTypeResolutionState(
