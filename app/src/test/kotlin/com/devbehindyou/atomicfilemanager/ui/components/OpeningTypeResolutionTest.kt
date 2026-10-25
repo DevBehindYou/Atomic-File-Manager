@@ -248,6 +248,7 @@ class OpeningTypeResolutionTest {
             assertEquals(second.previewSourceKey(), request.state.value.key)
             assertEquals(listOf(first.id, second.id), starts)
         }
+
     private fun node(name: String) =
         FileNode(
             FileNodeId.file("/owned-prefix/$name"), name, name, "application/octet-stream", 100, 1000,
