@@ -8,7 +8,10 @@ internal data class ImageTransform(val scale: Float = 1f, val offset: Offset = O
 
 /** Geometry for a centered ContentScale.Fit image, in viewport pixels. */
 internal object ImageTransformGeometry {
-    fun fittedSize(image: Size, viewport: Size): Size {
+    fun fittedSize(
+        image: Size,
+        viewport: Size,
+    ): Size {
         if (image.width <= 0f || image.height <= 0f || viewport.width <= 0f || viewport.height <= 0f) return Size.Zero
         val ratio = min(viewport.width / image.width, viewport.height / image.height)
         return Size(image.width * ratio, image.height * ratio)

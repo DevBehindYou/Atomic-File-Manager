@@ -132,7 +132,11 @@ private fun ZoomableImageAttempt(
 
     val imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
 
-    fun transformTo(value: Float, focus: Offset, pan: Offset = Offset.Zero) {
+    fun transformTo(
+        value: Float,
+        focus: Offset,
+        pan: Offset = Offset.Zero,
+    ) {
         transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
         onZoomChange(transform.scale > 1f)
     }
@@ -144,9 +148,16 @@ private fun ZoomableImageAttempt(
                 .clipToBounds()
                 .onSizeChanged { size ->
                     viewport = size
-                    transform = transform.copy(
-                        offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
-                    )
+                    transform =
+                        transform.copy(
+                            offset =
+                                ImageTransformGeometry.clamp(
+                                    transform.offset,
+                                    transform.scale,
+                                    imageSize,
+                                    size.toSize(),
+                                ),
+                        )
                 }
                 .pointerInput(node.id) {
                     detectTapGestures(onDoubleTap = { tap ->

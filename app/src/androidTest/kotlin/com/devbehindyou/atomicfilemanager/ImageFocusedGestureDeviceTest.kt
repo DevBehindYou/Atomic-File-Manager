@@ -95,79 +95,103 @@ class ImageFocusedGestureDeviceTest {
             assertPixel(0.5f, 0.5f, green = false)
         }
 
-    private fun withImage(width: Int, height: Int, marker: Boolean, check: () -> Unit) =
-        runBlocking<Unit> {
-            val context = compose.activity.applicationContext
-            val exports = File(context.cacheDir, "external-preview")
-            val exportsExisted = exports.exists()
-            val beforeExports = snapshot(exports)
-            val directory = Files.createTempDirectory(context.cacheDir.toPath(), "image-focused-").toFile().canonicalFile
-            val source = File(directory, "marker.png")
-            val sentinel = File(directory, "preserve-sentinel.bin")
-            val bytes = png(width, height, marker)
-            val sentinelBytes = byteArrayOf(31, 41, 59)
-            val shown = mutableStateOf(true)
-            var composed = false
-            var sourceWritten = false
-            var sentinelWritten = false
-            try {
-                source.writeBytes(bytes)
-                sourceWritten = true
-                sentinel.writeBytes(sentinelBytes)
-                sentinelWritten = true
-                val local = FileSystemBackend(context)
-                val node = (local.getNode(FileNodeId.file(source.absolutePath)) as FileResult.Success).value
-                val base = (context as AtomicApp).container
-                val container = object : AppContainer by base {
+    private fun withImage(
+        width: Int,
+        height: Int,
+        marker: Boolean,
+        check: () -> Unit,
+    ) = runBlocking<Unit> {
+        val context = compose.activity.applicationContext
+        val exports = File(context.cacheDir, "external-preview")
+        val exportsExisted = exports.exists()
+        val beforeExports = snapshot(exports)
+        val directory =
+            Files.createTempDirectory(
+                context.cacheDir.toPath(),
+                "image-focused-",
+            ).toFile().canonicalFile
+        val source = File(directory, "marker.png")
+        val sentinel = File(directory, "preserve-sentinel.bin")
+        val bytes = png(width, height, marker)
+        val sentinelBytes = byteArrayOf(31, 41, 59)
+        val shown = mutableStateOf(true)
+        var composed = false
+        var sourceWritten = false
+        var sentinelWritten = false
+        try {
+            source.writeBytes(bytes)
+            sourceWritten = true
+            sentinel.writeBytes(sentinelBytes)
+            sentinelWritten = true
+            val local = FileSystemBackend(context)
+            val node = (local.getNode(FileNodeId.file(source.absolutePath)) as FileResult.Success).value
+            val base = (context as AtomicApp).container
+            val container =
+                object : AppContainer by base {
                     override val imagePreviewHelper = ImagePreviewHelper({ local }, Dispatchers.IO)
                 }
-                compose.setContent {
-                    AtomicTheme(darkTheme = true, wallpaperAccent = false) {
-                        Box(Modifier.size(200.dp).testTag(VIEWPORT)) {
-                            if (shown.value) ZoomableImage(node, container)
-                        }
+            compose.setContent {
+                AtomicTheme(darkTheme = true, wallpaperAccent = false) {
+                    Box(Modifier.size(200.dp).testTag(VIEWPORT)) {
+                        if (shown.value) ZoomableImage(node, container)
                     }
-                }
-                composed = true
-                compose.waitUntil(15_000) {
-                    compose.onAllNodesWithContentDescription(node.name).fetchSemanticsNodes().isNotEmpty()
-                }
-                // The pixel wait is needed in addition to semantic publication.
-                compose.waitUntil(15_000) { pixel(0.5f, 0.5f, green = false) }
-                check()
-            } finally {
-                try {
-                    if (composed) {
-                        compose.runOnIdle { shown.value = false }
-                        compose.waitForIdle()
-                    }
-                    if (sourceWritten) assertArrayEquals("Original image bytes", bytes, source.readBytes())
-                    if (sentinelWritten) assertArrayEquals("Unrelated sentinel bytes", sentinelBytes, sentinel.readBytes())
-                    assertEquals(exportsExisted, exports.exists())
-                    assertEquals("Unrelated exports unchanged", beforeExports, snapshot(exports))
-                } finally {
-                    val failures = mutableListOf<String>()
-                    for (owned in listOf(source, sentinel)) {
-                        if (!owned.delete() && owned.exists()) failures += "Owned fixture cleanup failed"
-                    }
-                    // Delete only this empty captured directory; never recursively remove unexpected files.
-                    if (!directory.delete() && directory.exists()) failures += "Owned directory was not empty"
-                    assertTrue(failures.joinToString(), failures.isEmpty())
                 }
             }
+            composed = true
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithContentDescription(node.name).fetchSemanticsNodes().isNotEmpty()
+            }
+            // The pixel wait is needed in addition to semantic publication.
+            compose.waitUntil(15_000) { pixel(0.5f, 0.5f, green = false) }
+            check()
+        } finally {
+            try {
+                if (composed) {
+                    compose.runOnIdle { shown.value = false }
+                    compose.waitForIdle()
+                }
+                if (sourceWritten) assertArrayEquals("Original image bytes", bytes, source.readBytes())
+                if (sentinelWritten) {
+                    assertArrayEquals(
+                        "Unrelated sentinel bytes",
+                        sentinelBytes,
+                        sentinel.readBytes(),
+                    )
+                }
+                assertEquals(exportsExisted, exports.exists())
+                assertEquals("Unrelated exports unchanged", beforeExports, snapshot(exports))
+            } finally {
+                val failures = mutableListOf<String>()
+                for (owned in listOf(source, sentinel)) {
+                    if (!owned.delete() && owned.exists()) failures += "Owned fixture cleanup failed"
+                }
+                // Delete only this empty captured directory; never recursively remove unexpected files.
+                if (!directory.delete() && directory.exists()) failures += "Owned directory was not empty"
+                assertTrue(failures.joinToString(), failures.isEmpty())
+            }
         }
+    }
 
-    private fun assertPixel(x: Float, y: Float, green: Boolean) {
+    private fun assertPixel(
+        x: Float,
+        y: Float,
+        green: Boolean,
+    ) {
         compose.waitForIdle()
         assertTrue("Expected " + (if (green) "green" else "red") + " viewer pixel at ($x,$y)", pixel(x, y, green))
     }
 
-    private fun pixel(x: Float, y: Float, green: Boolean): Boolean {
+    private fun pixel(
+        x: Float,
+        y: Float,
+        green: Boolean,
+    ): Boolean {
         val pixels = compose.onNodeWithTag(VIEWPORT).captureToImage().toPixelMap()
-        val color = pixels[
-            (pixels.width * x).toInt().coerceIn(0, pixels.width - 1),
-            (pixels.height * y).toInt().coerceIn(0, pixels.height - 1),
-        ]
+        val color =
+            pixels[
+                (pixels.width * x).toInt().coerceIn(0, pixels.width - 1),
+                (pixels.height * y).toInt().coerceIn(0, pixels.height - 1),
+            ]
         return if (green) {
             color.green > 0.8f && color.red < 0.2f && color.blue < 0.2f
         } else {
@@ -175,7 +199,11 @@ class ImageFocusedGestureDeviceTest {
         }
     }
 
-    private fun png(width: Int, height: Int, marker: Boolean): ByteArray {
+    private fun png(
+        width: Int,
+        height: Int,
+        marker: Boolean,
+    ): ByteArray {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         try {
             bitmap.eraseColor(Color.RED)
