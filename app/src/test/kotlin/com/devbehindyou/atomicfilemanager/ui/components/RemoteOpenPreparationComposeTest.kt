@@ -176,7 +176,11 @@ class RemoteOpenPreparationComposeTest {
         assertTrue("A blocked read still owns its partial copy", owned.isFile)
         assertNoLaunchOrPreferenceMutation()
         compose.runOnIdle { stream.release.countDown() }
-        awaitCondition { stream.closed.get() && exports() == baselineExports }
+        // File deletion precedes job completion and the collector's next UI frame.
+        awaitCondition {
+            stream.closed.get() && exports() == baselineExports &&
+                !openAction(Entry.POLICY).fetchSemanticsNode().config.contains(SemanticsProperties.Disabled)
+        }
         openAction(Entry.POLICY).assertIsEnabled()
         assertNoLaunchOrPreferenceMutation()
     }
