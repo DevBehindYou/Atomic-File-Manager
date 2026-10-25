@@ -93,6 +93,7 @@ fun FilePreviewPane(
     var useBuiltIn by rememberSaveable(node.id.raw) { mutableStateOf(initialTarget?.mode == FileOpenMode.BUILT_IN) }
     var automaticAttempted by rememberSaveable(node.id.raw) { mutableStateOf(false) }
     var dismissed by rememberSaveable(node.id.raw) { mutableStateOf(false) }
+    var acknowledgedName by rememberSaveable(node.id.raw) { mutableStateOf<String?>(null) }
     var engineId by rememberSaveable(node.id.raw) { mutableStateOf(node.id.raw.takeIf { useBuiltIn }) }
     var engineMime by rememberSaveable(node.id.raw) { mutableStateOf(externalMimeType(node).takeIf { useBuiltIn }) }
     val launcher = remember(context) { ExternalFileApps(context.applicationContext) }
@@ -202,6 +203,7 @@ fun FilePreviewPane(
                     // A shortcut failure cannot turn a launched reader into an open failure.
                 }
                 currentCoroutineContext().ensureActive()
+                acknowledgedName = requestedMetadata.name
                 dismiss()
             } else {
                 problem = OpeningProblem.FAILED
@@ -290,7 +292,17 @@ fun FilePreviewPane(
         }
     }
 
-    if (dismissed) return
+    if (dismissed) {
+        // A caller may retain the pane after acknowledgement; keep its immutable name, without live controls.
+        acknowledgedName?.let { name ->
+            AtomicText(
+                name,
+                AtomicTextRole.Name,
+                modifier.fillMaxSize().background(Atomic.colors.background).padding(AtomicSpacing.s16),
+            )
+        }
+        return
+    }
     if (useBuiltIn) {
         // A committed engine hint keeps the mounted gallery/editor stable. It is never authoritative on handoff.
         val engineNode =
