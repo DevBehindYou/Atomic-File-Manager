@@ -1,0 +1,15 @@
+# Opening source metadata replacement — proposed consumers
+
+Prepared 25 October2026 as a test-only follow-up to the U06 remote preparation slice. Source base is focused branch `e70617a`, excluding deferred benchmark63. No production change or reproduced RED is claimed. Parent must review, scope-format, freeze, compile and run the cases before diagnosing a confirmed defect.
+
+## Source observation and scope
+
+FileOpeningPane remembers its displayed node by ID. BuiltInFilePreviewPane similarly remembers its shown node by ID. Request ownership keys include parent size/date, but source replacement with the same ID may retain the earlier name/MIME snapshot. This is a preexisting source-observed risk, separate from accepted Image bitmap reload behavior and new remote preparation progress/Cancel.
+
+OpeningSourceRevisionComposeTest defines four API34 native-graphics consumers using the actual policy pane, built-in fallback, exporter, scoped host URI boundary, reader discovery and launch construction. Two replace a parent FileNode with the same ID but changed name/MIME/size/date and expect the actual selected handoff to use its current MIME, ClipData label, staged filename extension, exact tiny fixture bytes and temporary read-only grants. Two equivalent different-ID replacement controls distinguish a general fixture/launch failure from ID-only remembered metadata. Both metadata variants intentionally remain generic preview types, so no image/media/document engine or unrelated automatic file read is involved.
+
+The controlled FTP backend has only this run's two UUID identities and returns generated 4/17-byte cache fixtures. Settings and recents use the established AtomicApp container replacement pattern, with original container restored in finally. A unique export sentinel and preexisting export snapshot are preserved. The suite creates at most one explicit export per case and deletes only that new copy plus its sentinel, without recursive deletion, real storage, permission/root changes or user data mutation. Settings update count and preserved settings are asserted.
+
+No Gradle, formatter, APK, device, performance or CI run was performed by the author. Expected filter: `*OpeningSourceRevisionComposeTest`; expected count4, all unrun. Parent must retain genuine old-source results, any fixture corrections, exact test SHA and source/app tree before preparing a focused repair. Successful source-ID controls alone do not establish same-ID acceptance. Tests do not cover in-flight source replacement, stale callback suppression, provider-level revision detection, storage revocation or external-reader process access.
+
+The helper's Android URI mapping is replaced only for this host consumer by the reviewed OwnedExportFileProviderShadow, which serves actual owned copied bytes lazily. This avoids the separately reproduced Windows root-path mismatch; it does not test real provider roots or grants. The native remote export contract carries real Android URI readback evidence separately. No RED is yet claimed.
