@@ -1,6 +1,6 @@
 # Modernization handover
 
-26 October 2026, base accepted #85 feature-integration `4d7157f`. Branch codex/plugin-modernization-audit; isolated worktree. Docs audit changes no app/Gradle/manifest/permissions/signing/artwork. Version v0.2 remains.
+26 October 2026, base accepted #85 feature-integration `4d7157f`. The audit originated on `codex/plugin-modernization-audit`; documentation is published separately from implementation through `codex/plugin-modernization-plan` ([PR #86](https://github.com/DevBehindYou/Atomic-File-Manager/pull/86)). Docs audit changes no app/Gradle/manifest/permissions/signing/artwork. Version v0.2 remains.
 
 Read the audit/matrix/architecture/dependencies/research and frozen N=42 progress ledger. Maintain each plugin's tasks/features/bugs/evidence as source increments land. Current opening remains separate parent-owned acceptance.
 
