@@ -5,21 +5,27 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Looper
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.data.backend.StorageBackendSelector
+import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.OwnedExportFileProviderShadow
 import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
 import com.devbehindyou.atomicfilemanager.domain.model.AppSettings
@@ -55,6 +61,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -80,6 +87,7 @@ class OpeningSourceRevisionComposeTest {
     private val source = mutableStateOf(originalNode)
     private val render = mutableStateOf(true)
     private val payload = AtomicReference(byteArrayOf(1, 2, 3, 4))
+    private var imagePayloads: Map<FileNodeId, ByteArray> = emptyMap()
     private val requests = ConcurrentLinkedQueue<FileNodeId>()
     private val closed = AtomicInteger()
     private val settings = SandboxSettings()
@@ -97,13 +105,14 @@ class OpeningSourceRevisionComposeTest {
                 override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> {
                     assertTrue("Only this test's two source identities may be read", id == firstId || id == nextId)
                     requests += id
-                    val bytes = payload.get().copyOf()
+                    val bytes = (imagePayloads[id] ?: payload.get()).copyOf()
                     return FileResult.Success(InputStreamProvider { ByteArrayInputStream(bytes) })
                 }
             }
         val controlled =
             object : AppContainer by originalContainer {
                 override val settingsRepository: SettingsRepository = settings
+                override val imagePreviewHelper = ImagePreviewHelper { backend }
                 override val storageBackendSelector = StorageBackendSelector(mapOf(BackendType.FTP to backend))
                 override val recentsRepository = NoOpRecents
             }
@@ -178,6 +187,52 @@ class OpeningSourceRevisionComposeTest {
         assertEquals(settings.initial, settings.settings.value)
     }
 
+    @Test
+    fun differentGallerySelectionSurvivesOriginalParentMetadataRefreshAndStillOwnsHandoff() {
+        val originalBytes = png(Color.GREEN)
+        val selectedBytes = png(Color.BLUE)
+        val originalImage = node(firstId, "original-$runId.png", "image/png", originalBytes.size.toLong(), 1000)
+        val selectedImage = node(nextId, "selected-$runId.png", "image/png", selectedBytes.size.toLong(), 1000)
+        imagePayloads = mapOf(firstId to originalBytes, nextId to selectedBytes)
+        source.value = originalImage
+        registerReader(mimes = listOf("image/png"))
+        show(Entry.FALLBACK, gallery = listOf(originalImage, selectedImage))
+        awaitCondition {
+            compose.onAllNodesWithContentDescription(originalImage.name).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("image_gallery").performTouchInput { swipeLeft() }
+        awaitCondition {
+            compose.onAllNodesWithContentDescription(selectedImage.name).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithText(selectedImage.name).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.runOnIdle {
+            source.value = originalImage.copy(name = "parent-refreshed-$runId.png", modifiedAt = 2000)
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText(selectedImage.name).assertIsDisplayed()
+        compose.onNodeWithTag("preview_open_external").performClick()
+        awaitCondition { shadowOf(app).peekNextStartedActivity() != null }
+        val chooser = checkNotNull(shadowOf(app).nextStartedActivity)
+        assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+        val view = checkNotNull(chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java))
+        assertEquals("image/png", view.type)
+        assertEquals(selectedImage.name, view.clipData!!.description.label.toString())
+        assertEquals(view.data, view.clipData!!.getItemAt(0).uri)
+        assertTrue(view.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+        assertEquals(0, view.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        assertEquals(0, view.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        assertEquals(0, view.flags and Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        val copied = (exports() - baselineExports).single()
+        assertTrue(copied.name.endsWith(".png"))
+        assertArrayEquals(selectedBytes, copied.readBytes())
+        checkNotNull(app.contentResolver.openInputStream(checkNotNull(view.data))).use {
+            assertArrayEquals(selectedBytes, it.readBytes())
+        }
+        assertEquals(0, closed.get())
+        assertEquals(0, settings.updateCalls.get())
+        assertEquals(settings.initial, settings.settings.value)
+    }
+
     private fun replaceThenOpen(
         entry: Entry,
         sameId: Boolean,
@@ -239,14 +294,17 @@ class OpeningSourceRevisionComposeTest {
         assertEquals(settings.initial, settings.settings.value)
     }
 
-    private fun show(entry: Entry) {
+    private fun show(
+        entry: Entry,
+        gallery: List<FileNode> = emptyList(),
+    ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 if (render.value) {
                     if (entry == Entry.POLICY) {
-                        FilePreviewPane(source.value, onClose = { closed.incrementAndGet() })
+                        FilePreviewPane(source.value, onClose = { closed.incrementAndGet() }, gallery = gallery)
                     } else {
-                        BuiltInFilePreviewPane(source.value, onClose = { closed.incrementAndGet() })
+                        BuiltInFilePreviewPane(source.value, onClose = { closed.incrementAndGet() }, gallery = gallery)
                     }
                 }
             }
@@ -304,6 +362,19 @@ class OpeningSourceRevisionComposeTest {
                 mimes.forEach { addDataType(it) }
             },
         )
+    }
+
+    private fun png(color: Int): ByteArray {
+        val bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+        try {
+            bitmap.eraseColor(color)
+            return ByteArrayOutputStream().use { output ->
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
+                output.toByteArray()
+            }
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun node(
