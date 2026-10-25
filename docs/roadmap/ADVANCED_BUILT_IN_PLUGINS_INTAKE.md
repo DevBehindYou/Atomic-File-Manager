@@ -2,7 +2,11 @@
 
 Recorded 22 October 2026. This is a requirements record, not an implementation, dependency selection, competitive research report or acceptance result. The user supplied the advanced eight-plugin request in attachment `1d435642-21f6-4deb-b73e-a86bab301554/Pasted text.txt` (SHA-256 `6D9DB73EF620B60870460FDE24DC6D1CA88337F5957397A1C37A20E21B3E1F96`). This document consolidates its requirements without treating candidate technologies or competitor claims as verified facts.
 
-## Entry gate and reporting boundaries
+## Execution steering — 26 October 2026
+
+The user's subsequent instruction to finish the eight-plugin modernization alongside continuing file-opening fixes supersedes the prior blanket defer-first sequencing for source audit, official research and independent isolated implementation. Existing active acceptance work still finishes without gate bypass or overlapping source ownership. The separate [modernization context](../plugins/modernization/PLUGIN_HANDOVER.md) and parent-reviewed [N=42 ledger](../plugins/modernization/PLUGIN_PROGRESS.md) now track this work. Benchmark deferral and unchanged phone permissions remain in force. This steering earns no completion credit and does not alter U01–U13.
+
+## Entry gate and reporting boundaries (original intake context)
 
 **Phase 0 comes first: finish the existing approved work and its gates.** Inspect active branches, PRs, issues, handovers and agents, continue the actual checkpoint, and avoid duplicate implementations or restarting completed work. Respect dependencies, isolated ownership, focused PRs, applicable current-head checks, independent review and clean guarded integration trials. Keep failed, pending, partial and accepted evidence distinct. No deployment, destructive action or gate bypass is authorized by a roadmap entry.
 
