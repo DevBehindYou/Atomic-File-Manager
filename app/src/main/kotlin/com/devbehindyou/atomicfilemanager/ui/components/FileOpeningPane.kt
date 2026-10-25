@@ -235,7 +235,7 @@ fun FilePreviewPane(
     }
 
     LaunchedEffect(node.id, rawKey, typeState, preferred, dismissed) {
-        if (dismissed || checkingType || type == null) return@LaunchedEffect
+        if (dismissed || checkingType) return@LaunchedEffect
         if (preferred == null) {
             val target = policySnapshot.targetFor(type.node.copy(mimeType = externalMimeType(type.node)))
             preferredComponent = target.component
