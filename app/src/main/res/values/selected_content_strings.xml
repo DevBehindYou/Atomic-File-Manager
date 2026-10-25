@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selected_type_checking">Checking file type…</string>
+    <string name="selected_type_identify">Identify file type</string>
+</resources>

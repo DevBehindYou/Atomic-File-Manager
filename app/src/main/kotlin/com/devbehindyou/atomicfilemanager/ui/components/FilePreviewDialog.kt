@@ -113,6 +113,7 @@ internal fun BuiltInFilePreviewPane(
     onOpenExternal: (() -> Unit)? = null,
     gallery: List<FileNode> = emptyList(),
     onOpenExternalForNode: ((FileNode) -> Unit)? = null,
+    authoritativeMetadata: FileNode = node,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? AtomicApp
@@ -124,10 +125,17 @@ internal fun BuiltInFilePreviewPane(
     var sourceSelection by remember(node.id) { mutableStateOf(PreviewSourceSelection(node)) }
     val shown = sourceSelection.forParent(node)
     val shownKey = shown.previewSourceKey()
+    // A routing hint can select an engine without becoming stored file metadata.
+    val recentSource =
+        if (shownKey == node.previewSourceKey() && authoritativeMetadata.id == shown.id) {
+            authoritativeMetadata
+        } else {
+            shown
+        }
     // Every preview counts as "opened" for Home > Recent (ALL_IN_ONE_PLAN.md 1.2).
     LaunchedEffect(shown.id) {
         try {
-            withContext(Dispatchers.IO) { app?.container?.recentsRepository?.recordOpened(shown) }
+            withContext(Dispatchers.IO) { app?.container?.recentsRepository?.recordOpened(recentSource) }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
