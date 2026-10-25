@@ -35,6 +35,9 @@ internal object ImageTransformGeometry {
         image: Size,
         viewport: Size,
     ): ImageTransform {
+        // Pointer replacement can leave no pointer pressed in both event samples.
+        // calculateCentroid then returns Unspecified; wait for a stable sample.
+        if (centroid == Offset.Unspecified || !centroid.x.isFinite() || !centroid.y.isFinite()) return current
         val scale = targetScale.coerceIn(1f, 6f)
         if (scale == 1f) return ImageTransform()
         val focus = centroid - Offset(viewport.width / 2f, viewport.height / 2f)

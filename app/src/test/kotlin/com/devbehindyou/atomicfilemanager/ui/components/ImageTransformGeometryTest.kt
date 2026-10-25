@@ -63,4 +63,21 @@ class ImageTransformGeometryTest {
         assertEquals(Offset(0f, 0f), ImageTransformGeometry.clamp(Offset(0f, 100f), 4f, Size(400f, 100f), viewport))
         assertEquals(Offset(0f, 25f), ImageTransformGeometry.clamp(Offset(0f, 100f), 5f, Size(400f, 100f), viewport))
     }
+
+    @Test
+    fun `pointer replacement without a continuing centroid preserves transform until stable input`() {
+        val current = ImageTransform(2f, Offset(-20f, 10f))
+        val ignored = ImageTransformGeometry.update(current, 2f, Offset.Unspecified, Offset.Zero, square, viewport)
+        assertEquals(current, ignored)
+        val continued = ImageTransformGeometry.update(ignored, 3f, Offset(140f, 100f), Offset.Zero, square, viewport)
+        assertEquals(ImageTransform(3f, Offset(-50f, 15f)), continued)
+    }
+
+    @Test
+    fun `nonfinite centroid cannot poison subsequent translations`() {
+        val current = ImageTransform(2f, Offset(-20f, 10f))
+        for (centroid in listOf(Offset(Float.POSITIVE_INFINITY, 100f), Offset(100f, Float.NaN))) {
+            assertEquals(current, ImageTransformGeometry.update(current, 2f, centroid, Offset.Zero, square, viewport))
+        }
+    }
 }
