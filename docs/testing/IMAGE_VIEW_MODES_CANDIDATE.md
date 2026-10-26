@@ -1,0 +1,5 @@
+# Image view modes — test-first consumers
+
+26 October 2026, base7457ffe. Five actual ZoomableImage consumers specify Fit screen/Fit width/Actual preview pixels, small-image shrinking, Compose saved-state mode restoration, same-ID revision reset and honest disabled controls beyond the existing6× ceiling. Real generated PNG bytes flow through ImagePreviewHelper and native-backed Robolectric rendering; pixel assertions distinguish fit/width/preview size from a no-op control. No new production API is needed to compile this baseline. It is uncompiled/unrun at author handoff and cannot yet be described as reproduced failure.
+
+The actual helper samples and caps its default preview at2048px with EXIF orientation. “Actual preview pixels” must never mean original-file full resolution. Original-size/high-resolution strategy, immersive/control visibility, supported animation, edits, full device/format/provider/performance acceptance and whole IMG1 remain open. Preserve original focused gesture/paging and recovery tests unchanged. No dependency, permission, source bytes, preferences or external assets change.
