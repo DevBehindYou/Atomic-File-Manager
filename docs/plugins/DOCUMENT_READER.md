@@ -32,3 +32,10 @@ Historical `4792db8` [preview validation](../testing/PREVIEW_TOOLS_VALIDATION.md
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained record of current read-only DOCX text fidelity, bounds, tests and future formats; no new Office engine is implied.
+## Source-session candidate — 26 October2026
+
+DOC-B01 / DOC-T01: source inspection found that the reader retained its result/retry operation only by identity. Same-ID modified time/size and replacement read callable did not invalidate that session. This is source-backed pending reproduction; unsupported Office fidelity remains a separate disclosed limit.
+
+The candidate keys the whole source session by identity, known modified time/size and read callable. The actual caller passes the bounded DocxPreviewHelper::read member reference; same helper rerenders retain its session. New known source/helper invalidates old parsed text/failure/search/font/navigation before rendering while existing coroutine ownership cancels old acquisition. Parser/ZIP/XML bounds, external-asset isolation, read-only behavior and explicit Retry remain.
+
+Seven new actual-helper/parser/Compose consumers specify modified/size/helper replacement, clearing old text while a fresh revision is blocked, explicit failure→Retry recovery, blocked Close and source-switch cancellation. ZIP bytes are generated in memory; tests perform no shared-storage mutation/network/external relationship loading. Distinct opened streams are counted once because both ZIP and outer helper own close paths. Baseline/source commits are separate and uncompiled/unrun at author handoff; record exact execution before marking DOC-B01 reproduced/resolved. Parent host/static/APK/Lint/native/review/CI/dependency/clean integration gates remain. No new format, Office engine, fidelity, complete DOC group or release claim. Version remainsv0.2.
