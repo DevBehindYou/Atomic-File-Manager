@@ -42,3 +42,8 @@ Host consumers: `GalleryTest`, `ImagePreviewHelperTest`, `PreviewTypeTest`, `Pre
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained record. Existing capabilities are documented; IMG-T01 passes focused host/selected native/CI/review gates and is accepted into feature integration through PR #80; broader IMG-T02 acceptance remains open. No new engine or completed advanced-image claim is introduced.
+## Focused transform candidate — 26 October 2026
+
+**IMG-T05 / P0 / source candidate; validation pending.** The separately audited IMG1 group now has an isolated focused transform increment: tap/pinch centroid preservation, fitted-bitmap pan bounds, viewport clipping and size-change re-clamping. Existing revision/Retry ownership and fit-scale one-finger paging remain. See [candidate validation](../testing/IMAGE_FOCUSED_TRANSFORMS_VALIDATION.md) and [modernization scope/progress](modernization/PLUGIN_PROGRESS.md).
+
+The tap-location and letterbox gaps are source observations until the parent retains controlled unchanged-source failures. Four pointer/native-pixel consumers and eight pure geometry contracts are prepared; the author ran no Gradle or device tests. Host/CI/device acceptance is open, and no full IMG1 or whole-plugin percentage credit is earned. Fit-width/original controls, restoration, animation/editing/high-resolution and the complete GIF journey remain open. Version stays v0.2.

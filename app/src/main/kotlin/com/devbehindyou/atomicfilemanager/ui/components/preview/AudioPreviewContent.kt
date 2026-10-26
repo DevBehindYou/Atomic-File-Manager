@@ -25,7 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,21 +45,27 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import com.devbehindyou.atomicfilemanager.AppContainer
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFactSheet
 import com.devbehindyou.atomicfilemanager.data.preview.MediaMetadata
+import com.devbehindyou.atomicfilemanager.data.preview.MediaPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.PreparedMedia
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 
 private const val SKIP_MS = 10_000L
@@ -67,36 +76,59 @@ fun AudioPreviewContent(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    var preparedMedia by remember(node.id) { mutableStateOf<PreparedMedia?>(null) }
-    var isLoading by remember(node.id) { mutableStateOf(true) }
-    var errorMessage by remember(node.id) { mutableStateOf<String?>(null) }
+    val helper = container.mediaPreviewHelper
+    // A known source revision owns preparation, player state and explicit retry attempts.
+    key(node.id, node.modifiedAt, node.size, helper) {
+        var attempt by remember { mutableIntStateOf(0) }
+        key(attempt) {
+            AudioPreparationAttempt(node, helper, modifier, onRetry = { attempt++ })
+        }
+    }
+}
 
-    LaunchedEffect(node.id) {
-        isLoading = true
+@Composable
+private fun AudioPreparationAttempt(
+    node: FileNode,
+    helper: MediaPreviewHelper,
+    modifier: Modifier,
+    onRetry: () -> Unit,
+) {
+    var preparedMedia by remember { mutableStateOf<PreparedMedia?>(null) }
+    var failure by remember { mutableStateOf<FileError?>(null) }
+    LaunchedEffect(Unit) {
         when (
-
-            container.mediaPreviewHelper.withMedia<Unit>(node.id, node.name) { media ->
-                preparedMedia = media
-                isLoading = false
-                kotlinx.coroutines.awaitCancellation()
-            }
+            val result =
+                helper.withMedia<Unit>(node.id, node.name) { media ->
+                    preparedMedia = media
+                    awaitCancellation()
+                }
         ) {
-            is FileResult.Success -> {
-                Unit
-            }
-            is FileResult.Failure -> {
-                errorMessage = "Failed to load audio file"
-                isLoading = false
-            }
+            is FileResult.Success -> Unit
+            is FileResult.Failure -> failure = result.error
         }
     }
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when {
-            isLoading -> AtomicLoading("Loading audio…")
-            errorMessage != null -> Text(errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
+            failure != null -> AudioPreparationFailure(failure!!, onRetry)
             preparedMedia != null -> AudioPlayerView(node = node, media = preparedMedia!!)
+            else -> AtomicLoading(stringResource(R.string.audio_preview_preparing))
         }
+    }
+}
+
+@Composable
+private fun AudioPreparationFailure(
+    error: FileError,
+    onRetry: () -> Unit,
+) {
+    Column(
+        Modifier.padding(AtomicSpacing.s16),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        AtomicText(stringResource(R.string.audio_prepare_failed), AtomicTextRole.BodySecondary)
+        if (error.recoverable) AtomicButton(stringResource(R.string.action_retry), onClick = onRetry)
     }
 }
 

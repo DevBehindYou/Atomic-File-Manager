@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -44,7 +47,7 @@ fun rememberPreviewPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
     val player =
         remember(uri) {
-            ExoPlayer.Builder(context.applicationContext).build().apply {
+            createPreviewPlayer(context).apply {
                 setMediaItem(MediaItem.fromUri(uri))
                 this.playWhenReady = previewAutoplayAllowed(playWhenReady, lifecycleOwner.lifecycle)
                 prepare()
@@ -62,6 +65,14 @@ fun rememberPreviewPlayer(
     }
     return player
 }
+
+/** Foreground audio/video previews delegate focus and output-route interruptions to their existing engine. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal fun createPreviewPlayer(context: Context): ExoPlayer =
+    ExoPlayer.Builder(context.applicationContext)
+        .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).build(), true)
+        .setHandleAudioBecomingNoisy(true)
+        .build()
 
 internal fun previewAutoplayAllowed(
     requested: Boolean,
