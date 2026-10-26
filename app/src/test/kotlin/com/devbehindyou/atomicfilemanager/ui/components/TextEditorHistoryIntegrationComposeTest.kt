@@ -57,7 +57,7 @@ class TextEditorHistoryIntegrationComposeTest {
             keyUp(Key.CtrlLeft)
         }
         compose.onNodeWithTag("text_editor_field").assertTextEquals("draft")
-        compose.onNodeWithText("FIND").performClick()
+        compose.onNodeWithContentDescription("Find").performClick()
         compose.onNodeWithTag("find_query").performTextReplacement("query")
         compose.onNodeWithTag("find_query").performKeyInput {
             keyDown(Key.CtrlLeft)
