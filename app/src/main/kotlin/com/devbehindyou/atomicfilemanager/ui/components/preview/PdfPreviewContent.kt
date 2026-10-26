@@ -41,6 +41,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextFiel
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.data.preview.PdfPreviewHelper
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
@@ -54,7 +55,9 @@ fun PdfPreviewContent(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    key(node.id) { PdfReader(node, container, modifier) }
+    val helper = container.pdfPreviewHelper
+    // A known revision/helper owns pages, failures and retries before any old raster can draw.
+    key(node.id, node.modifiedAt, node.size, helper) { PdfReader(node, helper, modifier) }
 }
 
 private data class PdfPageRequest(val index: Int, val retry: Int = 0)
@@ -62,7 +65,7 @@ private data class PdfPageRequest(val index: Int, val retry: Int = 0)
 @Composable
 private fun PdfReader(
     node: FileNode,
-    container: AppContainer,
+    helper: PdfPreviewHelper,
     modifier: Modifier,
 ) {
     var page by rememberSaveable(node.id.raw) { mutableIntStateOf(0) }
@@ -80,7 +83,7 @@ private fun PdfReader(
         openError = null
         pageCount = 0
         val result =
-            container.pdfPreviewHelper.withDocument(node.id) { document ->
+            helper.withDocument(node.id) { document ->
                 pageCount = document.pageCount
                 page = page.coerceIn(0, pageCount - 1)
                 requests.value = PdfPageRequest(page)

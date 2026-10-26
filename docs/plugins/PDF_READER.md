@@ -30,3 +30,10 @@ Historical `4792db8` [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md) and [pr
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and source/evidence record for the bounded raster reader. No new PDF dependency/text engine/advanced editing claim.
+## Source-session ownership candidate — 26 October 2026
+
+PDF-B01 / PDF-T01: source inspection found that the actual reader keyed its whole session only by node identity; same-ID modified time/size and helper replacement could retain old document/failure/page state. New test-only baseline is preserved separately before the candidate source correction. No executed reproduction or green result is claimed at author handoff.
+
+The reader now keys its session to identity, known modified time/size and actual helper identity, passing that helper explicitly into acquisition. A new known revision/helper resets page/zoom/jump/failure/retry state; ordinary rerenders retain the current document. Existing structured withDocument cancellation/renderer/descriptor/private-copy cleanup, page ordering, raster/spool caps and explicit Retry remain. Unknown unchanged metadata cannot prove a source change; this is not automatic filesystem observation.
+
+Actual-helper host consumers cover modified/size revisions, helper replacement, repeated explicit failed-open Retry and cancellation of blocked acquisition with owned-copy cleanup. Two generated-private-PDF native Compose consumers cover successful revised page/pixels and helper replacement/old-copy cleanup; originals and an unrelated sentinel are checked. All are uncompiled/unrun at source handoff. Native tests request no permission and add no activity/manifest entry. Parent must execute unchanged-source baseline, corrected affected tests/static/APKs/Lint, native fixtures, CI/review/dependency/clean integration gates. Full PDF1–PDF5, advanced engine/features, physical providers/performance and main/release stay open. Version remains v0.2.
