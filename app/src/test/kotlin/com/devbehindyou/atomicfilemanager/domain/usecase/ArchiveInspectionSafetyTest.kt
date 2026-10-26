@@ -116,8 +116,8 @@ class ArchiveInspectionSafetyTest {
 
             assertTrue(cancelled)
             assertTrue(
-                "Cancellation must stop header scanning, not consume the entire archive",
                 reads.get() < bytes.size,
+                "Cancellation must stop header scanning, not consume the entire archive",
             )
             assertTrue(closes.get() > 0)
         }
