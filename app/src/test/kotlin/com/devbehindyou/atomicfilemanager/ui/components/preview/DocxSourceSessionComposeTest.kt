@@ -229,9 +229,15 @@ class DocxSourceSessionComposeTest {
         FileResult.Success(
             InputStreamProvider {
                 object : FilterInputStream(bytes.inputStream()) {
+                    private var countedClosed = false
+
                     override fun close() {
                         super.close()
-                        closed.incrementAndGet()
+                        // ZIP and outer helper both close; count distinct owned streams, not calls.
+                        if (!countedClosed) {
+                            countedClosed = true
+                            closed.incrementAndGet()
+                        }
                     }
                 }
             },
