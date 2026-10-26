@@ -1,0 +1,11 @@
+# Markdown ownership and bounded-preview disclosure — candidate
+
+26 October 2026. Branch `codex/markdown-modernization`, base `7457ffe`; frozen test-only baseline `9c67f84242b08233cb0b2663c450ee94c6c2f893` (resolve the complete Git object before execution), source `ec0dbf5ffb3a1721a4933495626a84a01096a409`. No host, native, CI or integration result is claimed here.
+
+`MarkdownPreparationRecoveryComposeTest` has seven actual viewer/real `ReadFileContentUseCase` consumers. Expected baseline observations: five missing behavior assertions (failure/replacement, explicit Retry, known revision, actual reader replacement, bounded-preview disclosure), with two pending acquisition source-switch/Close cleanup controls. Retain actual XML/log/source separately when executed; do not label an expected failure as a reproduced defect before that run.
+
+The proposed repair changes only `MarkdownPreviewContent.kt` and localized Markdown loading/failure/disclosure strings. Keys cover ID/modifiedAt/size/reader, with explicit attempt-owned state. Recoverable Retry is user initiated. Actual bounded text reading, fence parsing, rendering subset and raw mode remain. Per-source reset prevents stale content/error publication; it is not continuous editing, process recovery, scroll restoration or a complete Markdown engine.
+
+Parent host gate: run the seven frozen consumers unchanged, existing `MarkdownBlocksTest`, `TextPreviewBoundsTest`, `PreviewTypeTest` and affected opening/preview consumers; configured ktlint/Detekt, debug/instrumentation APKs and debug Lint on exact source. Source author ran only scoped ktlint formatting and diff checks. No Gradle or ADB was run here.
+
+Native acceptance must use only owned synthetic fixtures and cover failure/recovery, same-ID refresh, raw/rendered disclosure, source-switch/Close and preserved source bytes. Physical storage/provider loss, restored position, narrow/landscape/accessibility, full CommonMark/GFM, untrusted links/assets/HTML and performance remain separate. No renderer/engine/permission/dependency/network/asset behavior is changed, and no input is uploaded. Version remains v0.2; all five Markdown capability groups and whole-plugin acceptance remain open.
