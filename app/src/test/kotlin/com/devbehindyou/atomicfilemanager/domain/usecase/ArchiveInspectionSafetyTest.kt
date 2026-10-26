@@ -100,10 +100,11 @@ class ArchiveInspectionSafetyTest {
             val owner = Job()
             val reads = AtomicInteger()
             val closes = AtomicInteger()
-            val source = source("many.tar", bytes, closes) { count ->
-                reads.addAndGet(count)
-                owner.cancel(CancellationException("owner closed"))
-            }
+            val source =
+                source("many.tar", bytes, closes) { count ->
+                    reads.addAndGet(count)
+                    owner.cancel(CancellationException("owner closed"))
+                }
             var cancelled = false
             try {
                 withContext(owner) { source.inspect(source.id) }
@@ -114,7 +115,10 @@ class ArchiveInspectionSafetyTest {
             }
 
             assertTrue(cancelled)
-            assertTrue("Cancellation must stop header scanning, not consume the entire archive", reads.get() < bytes.size)
+            assertTrue(
+                "Cancellation must stop header scanning, not consume the entire archive",
+                reads.get() < bytes.size,
+            )
             assertEquals(1, closes.get())
         }
 
@@ -149,8 +153,11 @@ class ArchiveInspectionSafetyTest {
                             object : ByteArrayInputStream(bytes) {
                                 override fun read(): Int = super.read().also { if (it >= 0) onRead(1) }
 
-                                override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
-                                    super.read(buffer, offset, length).also { if (it > 0) onRead(it) }
+                                override fun read(
+                                    buffer: ByteArray,
+                                    offset: Int,
+                                    length: Int,
+                                ): Int = super.read(buffer, offset, length).also { if (it > 0) onRead(it) }
 
                                 override fun close() {
                                     closes.incrementAndGet()
