@@ -4,10 +4,13 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
 
 data class ArchiveEntryInfo(
     val name: String,
@@ -45,6 +48,7 @@ class InspectArchiveUseCase
                 // Anything not recognised by name is read as ZIP, as before.
                 val kind = ArchiveFormats.kindOf(name) ?: ArchiveFormats.Kind.ZIP
                 val entries = mutableListOf<ArchiveEntryInfo>()
+                val browsePaths = HashSet<String>()
                 try {
                     inProvider.stream().use { stream ->
                         ArchiveFormats.open(
@@ -58,6 +62,7 @@ class InspectArchiveUseCase
                                 archive ->
                             var header = archive.next()
                             while (header != null) {
+                                coroutineContext.ensureActive()
                                 if (escapesTarget(header.path)) {
                                     return@withContext FileResult.Failure(
                                         FileError.SuspiciousArchive(header.path, "Path traversal sequence detected"),
@@ -72,6 +77,12 @@ class InspectArchiveUseCase
                                     )
                                 }
                                 val entryName = header.path.replace('\\', '/').trimStart('/')
+                                // Lazy browse rows use this exact normalized path as their identity.
+                                if (!browsePaths.add(entryName)) {
+                                    return@withContext FileResult.Failure(
+                                        FileError.SuspiciousArchive(entryName, "Duplicate entry path"),
+                                    )
+                                }
                                 val fileName = entryName.trimEnd('/').substringAfterLast('/')
                                 entries.add(
                                     ArchiveEntryInfo(
@@ -92,6 +103,8 @@ class InspectArchiveUseCase
                     FileResult.Failure(FileError.UnsupportedFormat(WRONG_PASSWORD))
                 } catch (_: ArchivePasswordRequired) {
                     FileResult.Failure(FileError.UnsupportedFormat(PASSWORD_PROTECTED))
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     FileResult.Failure(FileError.CorruptedArchive(archiveId.raw))
                 }
