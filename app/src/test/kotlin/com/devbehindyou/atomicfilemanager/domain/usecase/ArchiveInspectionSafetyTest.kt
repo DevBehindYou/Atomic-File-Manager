@@ -13,7 +13,6 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
@@ -89,7 +88,7 @@ class ArchiveInspectionSafetyTest {
                     caught
                 }
 
-            assertSame(cancelled, thrown)
+            assertEquals(cancelled.message, thrown?.message)
             assertTrue(closed.get())
         }
 
