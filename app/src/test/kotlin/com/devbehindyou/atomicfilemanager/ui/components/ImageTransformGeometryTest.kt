@@ -28,6 +28,18 @@ class ImageTransformGeometryTest {
     }
 
     @Test
+    fun `nonpannable axes canonicalize both pan directions and signed zeros`() {
+        for (pan in listOf(-900f, 900f, -0f, 0f)) {
+            val wide = ImageTransformGeometry.clamp(Offset(0f, pan), 2.5f, Size(400f, 100f), viewport)
+            val tall = ImageTransformGeometry.clamp(Offset(pan, 0f), 2.5f, Size(100f, 400f), viewport)
+            assertEquals(Offset.Zero, wide)
+            assertEquals(Offset.Zero, tall)
+            assertEquals(0f.toRawBits(), wide.y.toRawBits())
+            assertEquals(0f.toRawBits(), tall.x.toRawBits())
+        }
+    }
+
+    @Test
     fun `double tap keeps an off center image point at the tap`() {
         val result =
             ImageTransformGeometry.update(

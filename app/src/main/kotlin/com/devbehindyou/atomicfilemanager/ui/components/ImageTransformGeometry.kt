@@ -26,7 +26,12 @@ internal object ImageTransformGeometry {
         val fitted = fittedSize(image, viewport)
         val xLimit = ((fitted.width * scale - viewport.width) / 2f).coerceAtLeast(0f)
         val yLimit = ((fitted.height * scale - viewport.height) / 2f).coerceAtLeast(0f)
-        return Offset(offset.x.coerceIn(-xLimit, xLimit), offset.y.coerceIn(-yLimit, yLimit))
+        // A non-pannable axis has one canonical coordinate. coerceIn(-0f, 0f) can return -0f,
+        // whose packed Offset identity differs from +0f despite drawing at the same position.
+        return Offset(
+            if (xLimit == 0f) 0f else offset.x.coerceIn(-xLimit, xLimit),
+            if (yLimit == 0f) 0f else offset.y.coerceIn(-yLimit, yLimit),
+        )
     }
 
     /** Keep the image point under the previous centroid, then apply its viewport-space pan. */

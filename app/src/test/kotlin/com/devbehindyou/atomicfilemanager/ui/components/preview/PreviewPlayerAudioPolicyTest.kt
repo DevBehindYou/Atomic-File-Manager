@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -82,10 +83,10 @@ class PreviewPlayerAudioPolicyTest {
         assertEquals(C.USAGE_MEDIA, player.audioAttributes.usage)
         assertEquals(AudioManager.AUDIOFOCUS_GAIN, request.audioFocusRequest.focusGain)
         assertTrue(player.playWhenReady)
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_LOSS)
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse(player.playWhenReady)
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_GAIN)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_GAIN)
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse("Permanent loss needs a fresh explicit play action", player.playWhenReady)
     }
@@ -94,11 +95,11 @@ class PreviewPlayerAudioPolicyTest {
     fun transientFocusLossSuppressesPlaybackUntilFocusReturns() {
         prepare(play = true)
         val request = checkNotNull(audio.lastAudioFocusRequest) { "Preview did not request focus" }
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue("Transient loss retains the user's play request", player.playWhenReady)
         assertEquals(Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS, player.playbackSuppressionReason)
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_GAIN)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_GAIN)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(player.playWhenReady)
         assertEquals(Player.PLAYBACK_SUPPRESSION_REASON_NONE, player.playbackSuppressionReason)
@@ -109,12 +110,12 @@ class PreviewPlayerAudioPolicyTest {
         prepare(play = true)
         val request = checkNotNull(audio.lastAudioFocusRequest) { "Preview did not request focus" }
         player.volume = 0.6f
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(player.playWhenReady)
         assertEquals(Player.PLAYBACK_SUPPRESSION_REASON_NONE, player.playbackSuppressionReason)
         assertEquals(0.6f, player.volume, 0.001f)
-        request.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_GAIN)
+        dispatchFocusChange(request.listener, AudioManager.AUDIOFOCUS_GAIN)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(player.playWhenReady)
         assertEquals(0.6f, player.volume, 0.001f)
@@ -156,7 +157,32 @@ class PreviewPlayerAudioPolicyTest {
         player.playWhenReady = play
         player.prepare()
         assertTrue("Owned pending source must be admitted", checkNotNull(source).prepared.await(3, TimeUnit.SECONDS))
+        awaitPlaybackCallbacks()
         assertEquals(Player.STATE_BUFFERING, player.playbackState)
+    }
+
+    /** Platform focus listeners run on Media3's requested playback handler, not the test/main thread. */
+    private fun dispatchFocusChange(
+        listener: AudioManager.OnAudioFocusChangeListener,
+        change: Int,
+    ) {
+        val delivered = CountDownLatch(1)
+        assertTrue(
+            Handler(player.playbackLooper).post {
+                listener.onAudioFocusChange(change)
+                delivered.countDown()
+            },
+        )
+        assertTrue("Focus callback must reach the playback thread", delivered.await(3, TimeUnit.SECONDS))
+        awaitPlaybackCallbacks()
+    }
+
+    /** Drain commands queued by the callback before reading acknowledged application-thread state. */
+    private fun awaitPlaybackCallbacks() {
+        val commandsApplied = CountDownLatch(1)
+        assertTrue(Handler(player.playbackLooper).post { commandsApplied.countDown() })
+        assertTrue("Media3 playback commands must be acknowledged", commandsApplied.await(3, TimeUnit.SECONDS))
+        shadowOf(Looper.getMainLooper()).idle()
     }
 
     private fun awaitReceiver() = awaitCondition { shadowOf(app).hasReceiverForIntent(noisy) }
