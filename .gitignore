@@ -22,6 +22,9 @@ captures/
 # Keystores (never commit signing material)
 *.jks
 *.keystore
+*.p12
+signing.properties
+release-signing.properties
 
 # JVM crash dumps / Kotlin daemon diagnostics
 replay_pid*.log

@@ -1,0 +1,10 @@
+{
+  "tag": "v0.2.0-beta.1",
+  "versionName": "0.2.0-beta.1",
+  "versionCode": 2,
+  "applicationId": "com.devbehindyou.atomicfilemanager",
+  "minSdk": 27,
+  "apkName": "Atomic-File-Manager-0.2.0-beta.1.apk",
+  "certificateSha256": "976B82A67F452019371416A4151CE36D3AAD1D56FDD833242F7ED072D05198B7",
+  "releaseId": 424523060
+}
