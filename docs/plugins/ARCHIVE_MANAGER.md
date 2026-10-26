@@ -32,3 +32,14 @@ Retain existing integrity/ancestry fixes; do not duplicate completed work becaus
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained format/task/bug/risk/evidence record. No new engine, encrypted writes or complete archive-safety claim is introduced.
+## Inspection identity/cancellation candidate — 26 October 2026
+
+ARC-R01 is a source-backed browse risk: `InspectArchiveUseCase` accepts repeated normalized entry paths, while the actual archive list uses each returned path as its lazy-row key. Repeated TAR file headers or ZIP slash aliases can therefore supply duplicate browse identities. ARC-R02 is a source-backed lifetime risk: inspection catches `CancellationException` as corruption and has no cooperative per-header cancellation checkpoint. Existing extraction collision/cancellation guards do not establish the inspection contract. Neither is called a newly reproduced bug until the frozen parent baseline is executed.
+
+Frozen test-only baseline `11f4a85549979f1614cff95b858c01ecb7fa7a1a` adds six actual-inspector/real TAR and ZIP consumers. Four target repeated identities, normalized slash aliases, stream cancellation propagation and bounded post-cancel header scanning; two controls preserve distinct nested basenames/archive order and denied acquisition. Source correction `8bbd595` rejects duplicate normalized browse paths through the existing `SuspiciousArchive` failure/UI, checks cancellation between entries and rethrows cancellation while existing stream/archive scopes close. The final candidate includes the identical corrected baseline file; no engine, extraction, password/publication, destination, dependency or permission behavior is changed.
+
+The additional path set is bounded by the existing 100,000-entry ceiling and indexes the same path strings held by entries; no process-memory/performance measurement is inferred. Duplicate directory headers are conservatively rejected too. This is exact browse-key normalization (backslash-to-slash and current leading-slash handling), not case-folding, filesystem alias equivalence or complete archive-path policy. Synchronous decoder/header work may remain noninterruptible until a checkpoint. Full bombs/ratios/depth/symlink/case/security/provider/process-kill and performance acceptance remain open.
+
+See [the candidate validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md). Scoped formatting/diff checks pass; no Gradle, native, CI or integration test has run for this candidate. ARC-T01–T04, ARC1–ARC5 and version v0.2 remain as previously tracked; no complete capability-group credit is earned.
+
+- **26 October 2026, v0.2 candidate:** retain test-first inspection identity/lifetime contracts and the small source correction separately from accepted extraction safeguards. Preserve all wider format, browse/actions, mutation and physical acceptance tasks.
