@@ -16,11 +16,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.StateRestorationTester
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.AppContainer
@@ -110,6 +112,17 @@ class ImageViewModesComposeTest {
         compose.onNodeWithTag("image_mode_width").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithTag("image_mode_limit").assertExists()
         compose.onNodeWithTag("image_mode_fit").assertIsOn()
+    }
+
+    @Test
+    fun customGestureZoomSurvivesComposeSavedStateRestoration() {
+        val restoration = show(100, 400)
+        assertPixel(0.25f, 0.4f, Color.TRANSPARENT)
+        compose.onNodeWithTag("mode_viewport").performTouchInput { doubleClick(center) }
+        assertPixel(0.25f, 0.4f, Color.RED)
+        restoration.emulateSavedInstanceStateRestore()
+        awaitDecoded()
+        assertPixel(0.25f, 0.4f, Color.RED)
     }
 
     private fun show(
