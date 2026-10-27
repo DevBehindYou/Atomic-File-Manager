@@ -18,6 +18,7 @@
 - First provider and selected-file/app-folder versus broader browsing product. Preserve least privilege and explain the actual tradeoff.
 - Provider app registration, package/signing identity, allowed redirects and a disposable acceptance account. Public client IDs can be configuration; no confidential secret belongs in the APK.
 - Persistent offline retention and background transfers are separate decisions; foreground read-only browsing does not require inventing them.
-- A Box public-native authentication method needs verification before choosing it. MEGA needs SDK/dependency/ABI/size review before adoption.
+- A Box public-native authentication method needs verification before choosing it.
+- MEGA's [current documented Android 9.0/API28 minimum](https://github.com/meganz/sdk/blob/master/README.md#minimum-supported-os-versions) conflicts with Atomic API27. Before adoption, select and validate a compatible reviewed revision or an intentionally API28-gated optional connector; prove safe install/start/loading on API27 and retain dependency/licence/ABI/size checks. An app-wide minimum-SDK increase is not implied.
 
 Do independent contract fixtures before asking for registration. Do not request production passwords, reset phone permissions or reopen owner-deferred benchmarks. Update task state with source/PR, exact checks and limitations; retain failed evidence.

@@ -23,6 +23,8 @@ Reuse the existing U07 three-way Add storage design: Device apps, Cloud accounts
 
 Start with one provider. Drive remains the existing conditional first candidate; its selected-file product and broad-drive browser require different scopes. Dropbox or OneDrive can become first if registration/scope feasibility makes Drive unsuitable, then a second provider tests the abstraction. Do not silently choose broader permissions. Box and MEGA need the specific feasibility work in Research.
 
+MEGA's [current official minimum](https://github.com/meganz/sdk/blob/master/README.md#minimum-supported-os-versions) is Android 9.0/API28, above Atomic API27. Adoption requires a reviewed compatible revision or a consciously API28-gated optional connector with safe install/start/class and native-library loading verified on API27. This plan does not authorize an app-wide minimum-SDK increase.
+
 No automatic sync, persistent offline copy, universal resume, cross-provider atomic move or background transfer is promised by this plan. Metadata/content caching requires explicit ownership, bounds, expiry and disconnect cleanup. Do not recursively scan private cloud content to populate storage statistics.
 
 ## Ordered PR-sized increments
