@@ -4,10 +4,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextReplacement
@@ -58,14 +60,15 @@ class TextEditorHistoryIntegrationComposeTest {
         }
         compose.onNodeWithTag("text_editor_field").assertTextEquals("draft")
         compose.onNodeWithContentDescription("Find").performClick()
-        compose.onNodeWithTag("find_query").performTextReplacement("query")
-        compose.onNodeWithTag("find_query").performKeyInput {
+        val query = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("find_query")))
+        query.performClick().performTextReplacement("query")
+        query.performKeyInput {
             keyDown(Key.CtrlLeft)
             keyDown(Key.Z)
             keyUp(Key.Z)
             keyUp(Key.CtrlLeft)
         }
-        compose.onNodeWithTag("find_query").assertTextEquals("")
+        query.assertTextEquals("")
         assertEquals("draft", editor.state.value.value.text)
         compose.onNodeWithContentDescription("Undo").performClick()
         compose.onNodeWithTag("text_editor_field").assertTextEquals("original")
