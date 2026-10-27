@@ -33,3 +33,8 @@ hs_err_pid*.log
 
 # Compiled convention-plugin output
 build-logic/convention/bin/
+
+# Owner-requested local signing backups (never publish)
+/Atomic-File-Manager-release-signing-backup-*.zip
+/atomic-file-manager-release.cer
+/SIGNING-KEYS-PRIVATE.txt
