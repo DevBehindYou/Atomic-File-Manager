@@ -12,7 +12,7 @@ Dispatch the existing CI workflow at `codex/beta-0.2.0` only after creating the 
 
 Retain all failing/cancelled runs. Publish the prerelease only after applicable current-head checks, review concerns/dependencies and a clean guarded trial pass, plus the signed-runtime job and artifact checks. Main/stable release and the wider feature/plugin acceptance ledgers remain separate.
 
-Draft retrieval by the existing contents-read job token must be demonstrated by the actual manual run. Do not increase token permissions automatically if GitHub refuses access; retain the failed evidence and resolve the runtime gate before publication.
+Direct draft retrieval with the contents-read token is unavailable in the retained preflight. Do not increase token permissions automatically; use the bounded artifact-only transport below and retain an actual signed-runtime pass before publication.
 
 ## Read-only draft transport after the confirmed HTTP403
 
