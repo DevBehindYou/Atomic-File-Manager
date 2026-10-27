@@ -25,6 +25,8 @@ concurrency:
 
 jobs:
   static-analysis:
+    # The signed-runtime dispatch supplements the separately required current-head PR checks.
+    if: github.event_name != 'workflow_dispatch' || github.ref_name != 'codex/beta-0.2.0' || inputs.beta_asset_urls == ''
     name: Static analysis (ktlint, detekt, Lint)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -55,9 +57,10 @@ jobs:
             echo "kotlin.daemon.jvmargs=-Xmx2g -XX:+UseParallelGC -XX:MaxMetaspaceSize=512m"
           } >> ~/.gradle/gradle.properties
 
-      - name: Release transport guards (no network or credentials)
+      - name: Release artifact guards (no network or credentials)
         run: |
           python3 -B scripts/release/test_beta_transport.py
+          python3 -B scripts/release/test_verify_beta.py
           bash -n scripts/release/prepare_signed_beta.sh scripts/release/smoke_signed_beta.sh
       - name: ktlint
         run: ./gradlew ktlintCheck
@@ -81,6 +84,8 @@ jobs:
           retention-days: 14
 
   unit-tests:
+    # The signed-runtime dispatch supplements the separately required current-head PR checks.
+    if: github.event_name != 'workflow_dispatch' || github.ref_name != 'codex/beta-0.2.0' || inputs.beta_asset_urls == ''
     name: Unit tests and APK packaging
     runs-on: ubuntu-latest
     timeout-minutes: 60

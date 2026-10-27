@@ -12,6 +12,30 @@ def require(condition, message):
         raise SystemExit(message)
 
 
+def verify_signer_report(report, certificate_sha256):
+    """Check apksigner's verified report, accepting old and scheme-labelled output.
+
+    The invoking build/CI script must also require apksigner verify to exit zero.
+    Certificate digests, not public-key digests, identify the pinned release key.
+    """
+    lines = [line.strip() for line in report.splitlines()]
+    counts = [line for line in lines if line.startswith('Number of signers:')]
+    require(counts == ['Number of signers: 1'], 'APK must have exactly one signer')
+    require(re.fullmatch(r'[0-9A-Fa-f]{64}', certificate_sha256) is not None,
+            'Invalid pinned certificate digest')
+    certificates = [line for line in lines if 'certificate SHA-256 digest:' in line]
+    require(bool(certificates), 'Missing APK signer certificate digest')
+    for line in certificates:
+        # SDK36 uses a signer index; SDK37 labels each signing scheme. Do not
+        # ignore an unknown/malformed certificate line beside a valid one.
+        match = re.fullmatch(
+            r'(?:Signer #1 |(?:V1|V2|V3|V3\.1|V3\.2|V4) Signer: )'
+            r'certificate SHA-256 digest: ([0-9A-Fa-f]{64})', line)
+        require(match is not None, 'Unrecognized APK signer certificate report')
+        require(match.group(1).upper() == certificate_sha256.upper(),
+                'APK is not signed by the dedicated release key')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--directory', required=True, type=Path)
@@ -45,8 +69,7 @@ def main():
     cert = (directory / 'SIGNING_CERTIFICATE_SHA256.txt').read_text(encoding='utf-8-sig').strip()
     require(cert == config['certificateSha256'], 'Wrong public certificate asset')
     report = (directory / 'apksigner.txt').read_text(encoding='utf-8-sig')
-    certificates = re.findall(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)', report)
-    require(len(certificates) == 1 and certificates[0].upper() == cert, 'APK is not signed by the dedicated release key')
+    verify_signer_report(report, cert)
     badging = (directory / 'badging.txt').read_text(encoding='utf-8-sig')
     package = re.search(r"^package: name='([^']+)' versionCode='(\d+)' versionName='([^']*)'", badging, re.MULTILINE)
     require(package is not None, 'Missing APK package metadata')
