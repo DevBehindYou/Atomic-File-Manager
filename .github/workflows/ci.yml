@@ -55,6 +55,10 @@ jobs:
             echo "kotlin.daemon.jvmargs=-Xmx2g -XX:+UseParallelGC -XX:MaxMetaspaceSize=512m"
           } >> ~/.gradle/gradle.properties
 
+      - name: Release transport guards (no network or credentials)
+        run: |
+          python3 -B scripts/release/test_beta_transport.py
+          bash -n scripts/release/prepare_signed_beta.sh scripts/release/smoke_signed_beta.sh
       - name: ktlint
         run: ./gradlew ktlintCheck
 
