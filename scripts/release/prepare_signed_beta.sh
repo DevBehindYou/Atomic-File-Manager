@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p beta-smoke
+if python3 scripts/release/beta_transport.py has-input; then
+  python3 scripts/release/beta_transport.py fetch
+else
 release_id=$(python3 -c 'import json; print(json.load(open("scripts/release/beta-config.json"))["releaseId"])')
 gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" > beta-smoke/release.json
 python3 - <<'PY'
@@ -25,6 +28,7 @@ while IFS=$'\t' read -r asset_id asset_name; do
   gh api -H 'Accept: application/octet-stream' \
     "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "beta-smoke/$asset_name"
 done < beta-smoke/assets.tsv
+fi
 apk=$(python3 -c 'import json; print(json.load(open("scripts/release/beta-config.json"))["apkName"])')
 build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
 "$build_tools/apksigner" verify --verbose --print-certs "beta-smoke/$apk" > beta-smoke/apksigner.txt

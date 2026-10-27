@@ -8,8 +8,24 @@ Without this environment variable, CI retains its existing development debug-sig
 
 The public draft contains exactly the configured APK, `BETA_MANIFEST.json`, `SHA256SUMS.txt` and `SIGNING_CERTIFICATE_SHA256.txt`. BETA_MANIFEST names the exact source revision, app tree, version/package/minSDK, APK SHA256, certificate SHA256 and minified release status. The local build record retains matching R8 mapping evidence. Keep mapping/source logs local for diagnostics; do not upload secrets or signing backups.
 
-Dispatch the existing CI workflow at `codex/beta-0.2.0` only after creating the owner-authorized draft at that exact source SHA and uploading its explicit public assets. The branch-specific manual job resolves the configured draft by release ID with its existing read-only GitHub token, requires exactly four fully uploaded public assets and verifies source/app-tree/artifact identity, then installs those exact bytes in a disposable API34 emulator. It does not change phone permissions, uninstall the owner's app, run benchmarks or execute the legacy manual monkey job. Both normal required CI jobs still run.
+Dispatch the existing CI workflow at `codex/beta-0.2.0` only after creating the owner-authorized draft at that exact source SHA and uploading its explicit public assets. The branch-specific manual job consumes the four owner-resolved public-asset capabilities described below, verifies source/app-tree/artifact identity and installs those exact bytes in a disposable API34 emulator. Its legacy empty-input path still tries the draft API with the existing read-only token; that path has a retained HTTP403 and is not a runtime pass. It does not change phone permissions, uninstall the owner's app, run benchmarks or execute the legacy manual monkey job. Both normal required CI jobs still run.
 
 Retain all failing/cancelled runs. Publish the prerelease only after applicable current-head checks, review concerns/dependencies and a clean guarded trial pass, plus the signed-runtime job and artifact checks. Main/stable release and the wider feature/plugin acceptance ledgers remain separate.
 
 Draft retrieval by the existing contents-read job token must be demonstrated by the actual manual run. Do not increase token permissions automatically if GitHub refuses access; retain the failed evidence and resolve the runtime gate before publication.
+
+## Read-only draft transport after the confirmed HTTP403
+
+GitHub's existing contents-read token could not retrieve this private draft. Keep that permission unchanged. After the owner has uploaded exactly the four intended-public assets to the configured unpublished draft and set its exact source SHA, run this locally on the published beta branch:
+
+```text
+python scripts/release/beta_transport.py dispatch
+```
+
+This helper uses the owner's existing local `gh` authentication only to inspect the draft and resolve actual HTTP302 release-asset redirects. It then dispatches `ci.yml` at `codex/beta-0.2.0`, passing only four temporary asset-specific download capabilities, sizes and SHA256 digests through stdin. No owner token, signing key, password or private backup enters CI. An HTTP200 direct-body response is not a usable narrow capability and fails closed; the helper never substitutes the owner token. The [official release-asset API](https://docs.github.com/en/rest/releases/assets) supports both200 and302 responses; no fixed redirect lifetime is assumed.
+
+The read-only job reads the descriptor directly from the event file, avoiding shell interpolation or a step environment that prints it. It requires the expected source/release/tag, exact asset names, HTTPS release-assets host, no redirects and bounded bytes with matching size/digest. URLs are masked before use and are never saved under retained `beta-smoke` evidence. The existing independently pinned signer, source/app-tree, version/package, non-debuggable and checksum checks still run before installation. Checkout does not persist credentials.
+
+Workflow inputs are observable event data, and temporary links may grant download access before publication. This transport is only for those four files already authorized for public beta distribution. Never use it for signing backups, credentials or private data. Resolve fresh links immediately before dispatch; expiry or queue delay fails the runtime gate and requires a new owner dispatch, without increasing repository permissions. Publish only after current-head CI/review/clean-trial and the exact signed APK runtime pass.
+
+Pure transport tests (no network or credentials): `python scripts/release/test_beta_transport.py`.
