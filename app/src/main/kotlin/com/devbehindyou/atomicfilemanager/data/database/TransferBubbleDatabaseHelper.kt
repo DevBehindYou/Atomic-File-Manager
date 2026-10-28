@@ -8,6 +8,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubbleItem
+import java.util.UUID
 
 class TransferBubbleDatabaseHelper(
     context: Context,
@@ -147,6 +148,33 @@ class TransferBubbleDatabaseHelper(
             }
         }
         return items
+    }
+
+    /** Count and insert share a write transaction, including across helper instances. */
+    fun createBubble(name: String?): Result<TransferBubble> {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val currentCount = countBubbles()
+            if (currentCount >= TransferBubble.MAX_BUBBLES) {
+                return Result.failure(
+                    IllegalStateException("Maximum of ${TransferBubble.MAX_BUBBLES} transfer bubbles allowed"),
+                )
+            }
+            val bubble =
+                TransferBubble(
+                    id = UUID.randomUUID().toString(),
+                    displayName = name ?: "Bubble ${currentCount + 1}",
+                    sortOrder = currentCount,
+                )
+            if (!insertBubble(bubble)) {
+                return Result.failure(IllegalStateException("Failed to persist transfer bubble"))
+            }
+            db.setTransactionSuccessful()
+            return Result.success(bubble)
+        } finally {
+            db.endTransaction()
+        }
     }
 
     fun insertBubble(bubble: TransferBubble): Boolean {

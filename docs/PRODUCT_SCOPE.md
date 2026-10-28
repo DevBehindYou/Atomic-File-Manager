@@ -15,7 +15,7 @@
 * Full permission flows for API 27 → 37
 * The Atomic design system (`design/ATOMIC_DESIGN_SYSTEM.md`), dark/light theme. Decided 7 Oct 2026; replaces the earlier plain Material 3 baseline
 * Direct multi-selection drag-and-drop between folders, panes, and Transfer Bubbles
-* Up to 3 persistent Transfer Bubbles for virtual staging
+* Up to 7 persistent Transfer Bubbles for virtual staging
 * Instagram-style Quick Peek for images and videos with GestureArbiter
 * Multiple file hiding modes (Gallery Hide, Fast Obscure, Private Storage)
 * Full TalkBack support, reduce motion, font scaling to 200%

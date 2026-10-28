@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 
 /** File-backed Room checks: a fake DAO cannot establish transaction rollback or reopen durability. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 class SearchIndexReconciliationTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val name = "search-reconciliation-test.db"

@@ -1,10 +1,12 @@
+> **28 October 2026 platform decision:** the owner requested Android 9 / API 28 as the application and benchmark minimum. Android 8.1 / API 27 is no longer supported by new builds. Earlier dated API27 audit and test evidence remains historical; this decision does not establish MEGA integration or new runtime acceptance.
+
 # Current architecture — verified source inventory
 
 Audit date: 17 October 2026. Baseline: `7782660`. This inventory supersedes historical implementation claims in the original specification; those documents still describe product intent. Findings and implementation status live in [PROJECT_AUDIT](PROJECT_AUDIT.md) and [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md).
 
 ## Product and implemented surfaces
 
-Native Android file manager, API 27–36, Compose/Material 3 with the Atomic design system. Preserve beginner-friendly browsing, transfer bubbles, private files, preview, search, storage analysis and advanced tools. No web frontend or remote application server. Wi-Fi sharing runs a local HTTP server only when enabled.
+Native Android file manager, API 28–36, Compose/Material 3 with the Atomic design system. Preserve beginner-friendly browsing, transfer bubbles, private files, preview, search, storage analysis and advanced tools. No web frontend or remote application server. Wi-Fi sharing runs a local HTTP server only when enabled.
 
 Source directories under `app/src/main/kotlin/com/devbehindyou/atomicfilemanager/`:
 
@@ -43,7 +45,7 @@ flowchart TD
 
 ## Toolchain and dependencies
 
-`settings.gradle.kts` includes `:app`, `:lint-rules`, `:benchmark`, plus included `build-logic`. Convention plugins set minSdk 27, compile/target SDK 36 and **Java 21**, despite older docs saying 17. Gradle wrapper 9.3.1; catalog pins AGP 9.1.1, Kotlin 2.2.10, KSP 2.3.12, Compose BOM 2026.04.01, coroutines 1.9.0, Room 2.7.2, Coil 3.3.0, Media3 1.8.0. Hilt 2.57.2 is declared but manual wiring is active.
+`settings.gradle.kts` includes `:app`, `:lint-rules`, `:benchmark`, plus included `build-logic`. Convention plugins set minSdk 28, compile/target SDK 36 and **Java 21**, despite older docs saying 17. Gradle wrapper 9.3.1; catalog pins AGP 9.1.1, Kotlin 2.2.10, KSP 2.3.12, Compose BOM 2026.04.01, coroutines 1.9.0, Room 2.7.2, Coil 3.3.0, Media3 1.8.0. Hilt 2.57.2 is declared but manual wiring is active.
 
 Archive libraries: Commons Compress 1.28.0, XZ 1.10, Junrar 8.1.1, Zip4j 2.11.6. Networking: sshj 0.41.1, smbj 0.15.0; BouncyCastle artifacts deliberately aligned at 1.86. Vault uses Tink 1.23.0 and Android Keystore. Shizuku 13.1.5 is optional/read-only. Versions are repository facts, not claims that all are latest or vulnerability-free. No bulk upgrade is justified by this audit.
 

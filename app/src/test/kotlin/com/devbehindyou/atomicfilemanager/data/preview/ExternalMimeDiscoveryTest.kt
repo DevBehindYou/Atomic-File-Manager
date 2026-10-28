@@ -29,7 +29,7 @@ import org.robolectric.annotation.Config
 
 /** Exercise Android's actual MIME filter matching, not Robolectric's MIME-blind intent overrides. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 class ExternalMimeDiscoveryTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
     private val uri = Uri.parse("content://fixture/tree/root/document/report")
@@ -73,7 +73,7 @@ class ExternalMimeDiscoveryTest {
             assertTrue(result is FileResult.Success)
             val chooser = shadowOf(app).nextStartedActivity
             assertEquals(Intent.ACTION_CHOOSER, chooser.action)
-            @Suppress("DEPRECATION") // Typed getParcelableExtra needs API33; this fixture also runs API27.
+            @Suppress("DEPRECATION") // Typed getParcelableExtra needs API33; this fixture also runs API28.
             val view = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
             assertEquals("application/octet-stream", view.type)
             assertEquals(uri, view.data)

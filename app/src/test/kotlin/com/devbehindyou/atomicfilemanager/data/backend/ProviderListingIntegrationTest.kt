@@ -26,7 +26,7 @@ import org.robolectric.shadows.ShadowContentResolver
 
 /** Exercises ContentResolver/cursor plumbing with a controlled provider, not an OEM provider. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class ProviderListingIntegrationTest {
     private lateinit var provider: ListingProvider
     private lateinit var context: Context

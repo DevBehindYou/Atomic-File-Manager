@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class ProviderVideoThumbnailReaderTest {
     @Test
     fun providerWorkRunsOnIoAndReturnedBitmapsAreBoundedWithOneOwner() {
