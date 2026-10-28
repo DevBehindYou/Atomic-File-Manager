@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class SettingsStartupPreferencesTest {
     @Test
     fun `first ready value has saved theme color and authentication after IO-only preference reads`() =

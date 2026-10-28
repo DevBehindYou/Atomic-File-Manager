@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class HiddenFilesIntegrationTest {
     @get:Rule
     val temporary = TemporaryFolder()

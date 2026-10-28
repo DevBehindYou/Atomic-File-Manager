@@ -24,7 +24,7 @@ import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class WebDavSafetyTest {
     @Test
     fun `collision PUT is conditional and discard never deletes existing bytes`() =

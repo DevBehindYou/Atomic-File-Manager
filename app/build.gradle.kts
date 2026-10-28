@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("atomic.android.application")
     alias(libs.plugins.androidJunit5)
@@ -6,17 +8,36 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+val atomicReleaseSigning =
+    providers.environmentVariable("ATOMIC_RELEASE_SIGNING_PROPERTIES").orNull?.let { path ->
+        val signingFile = rootProject.file(path)
+        require(signingFile.isFile) { "Release signing properties file is missing" }
+        Properties().apply { signingFile.inputStream().use { input -> load(input) } }
+    }
+
+fun Properties.requiredSigningProperty(name: String): String =
+    getProperty(name)?.takeIf { it.isNotBlank() } ?: error("Missing release signing property: $name")
+
 android {
     namespace = "com.devbehindyou.atomicfilemanager"
 
     defaultConfig {
         applicationId = "com.devbehindyou.atomicfilemanager"
-        versionCode = 1
-        versionName = "0.1.0-phase1"
+        versionCode = 2
+        versionName = "0.2.0-beta.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
+        atomicReleaseSigning?.let { signing ->
+            create("atomicRelease") {
+                storeFile = rootProject.file(signing.requiredSigningProperty("storeFile"))
+                storePassword = signing.requiredSigningProperty("storePassword")
+                keyAlias = signing.requiredSigningProperty("keyAlias")
+                keyPassword = signing.requiredSigningProperty("keyPassword")
+                storeType = signing.getProperty("storeType", "PKCS12")
+            }
+        }
         val rootDebugKeystore = file("$rootDir/debug.keystore")
         if (rootDebugKeystore.exists()) {
             getByName("debug") {
@@ -40,7 +61,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // CI may build a development artifact without secrets; publishing requires the dedicated certificate.
+            signingConfig = signingConfigs.getByName(if (atomicReleaseSigning != null) "atomicRelease" else "debug")
         }
         // Target of the :benchmark macrobenchmarks (ALL_IN_ONE_PLAN.md 0.5, §16.1): same as release
         // (R8, not debuggable) so timings match what users get. The manifest is already profileable.

@@ -7,20 +7,19 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Definition-of-done, per AI_DEVELOPMENT_GUIDE.md: "Runs on an API 27 emulator and an
- * API 36 emulator without a crash." This is the Robolectric approximation of that
- * check, run on every PR; the real emulator matrix runs at merge-to-main
+ * Host startup coverage at the owner-requested API 28 minimum and API 34.
+ * This does not replace native emulator acceptance or the wider release matrix
  * (testing/TEST_STRATEGY.md §11).
  *
  * Uses JUnit4 + RobolectricTestRunner rather than JUnit5, deliberately, for this one
  * file — see PHASE_1_NOTES.md for the reasoning (it's run through the same JUnit
  * Platform test task as everything else, via the vintage engine).
  *
- * Parameterised across both ends of minSdk (27) and targetSdk (36) via
+ * Parameterised across minSdk (28) and the API 34 host fixture via
  * @Config(sdk = ...) rather than two separate test classes.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class MainActivitySmokeTest {
     @Test
     fun mainActivityLaunchesWithoutCrashing() {

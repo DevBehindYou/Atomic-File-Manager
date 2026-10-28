@@ -2,10 +2,12 @@
 
 Transfer Bubbles are Atomic File Manager's signature direct-manipulation staging system. They enable users to collect and organize groups of files across multiple folders and storage backends for future batch transfer—without copying bytes or cluttering the filesystem with temporary scratch copies.
 
+The seven-bubble increment is prepared on 28 October 2026; [candidate validation](testing/SEVEN_TRANSFER_BUBBLES_CANDIDATE.md) remains pending until the parent records actual checks.
+
 ## 1. Core Principles
 
 - **Virtual Staging Only**: A bubble holds *references* and metadata snapshots (`FileNodeId`, `displayNameSnapshot`, `sizeSnapshot`, `mimeSnapshot`). Adding files to a bubble is instantaneous.
-- **Strict Limit of 3 Bubbles**: The user may create up to **3 bubbles simultaneously** (`MAX_BUBBLES = 3`). This keeps the cognitive load manageable and UI uncluttered.
+- **Strict Limit of 7 Bubbles**: The user may create up to **7 bubbles simultaneously** (`MAX_BUBBLES = 7`). Creation is admitted atomically in SQLite so concurrent requests cannot exceed the cap; deleting a bubble releases its slot.
 - **Full Process & Configuration Survival**: Bubbles and their staged items are persisted in SQLite via `TransferBubbleDatabaseHelper` and managed via `TransferBubbleRepository`. They survive app backgrounding, rotation, and process death.
 - **No System Overlay Permission**: Bubbles are strictly in-app UI components anchored to a floating or dockable rail. Atomic File Manager never requests `SYSTEM_ALERT_WINDOW`.
 
@@ -41,7 +43,7 @@ data class TransferBubbleItem(
 
 - On phones, bubbles sit on an anchored, movable rail along the side of the Browse view.
 - Each bubble renders as a high-tonal Material 3 circular pill:
-  - Bubble index/badge number (`1`, `2`, `3`).
+  - Bubble index/badge number (`1` through `7`).
   - Item count badge (e.g. `● 8`).
   - Drop target animation when a file drag hovers over it.
 
@@ -49,7 +51,7 @@ data class TransferBubbleItem(
 
 ### 1. Staging Files (Adding to a Bubble)
 - **Drag & Drop**: Drag a single file or a multi-selection stack onto any bubble pill on the rail.
-- **Context Menu**: Long-press a file $\to$ *Add to Bubble* $\to$ choose Bubble 1, 2, 3 or `+ New Bubble`.
+- **Context Menu**: Long-press a file $\to$ *Add to Bubble* $\to$ choose an existing Bubble 1–7 or `+ New Bubble` while fewer than seven exist.
 - **Selection Toolbar**: In multi-selection mode, tap the *Add to Bubble* action icon in the top app bar.
 
 ### 2. Primary Action: Tap Bubble (Commit Transfer)
