@@ -4,6 +4,8 @@ Recorded 27 October 2026. **Research and planned work only; not shipped.** Cloud
 
 The plugin will connect supported cloud accounts to Atomic's Files, opening and operation interfaces. Keep native Kotlin/Compose and ship connector code with the app. No executable plugins, installers or independent updates are downloaded from GitHub, Google Drive or other providers.
 
+On 27 October 2026, the owner explicitly requested raising Atomic's global minimum SDK from API27 to API28 because of MEGA's documented requirement. This is the requested baseline; source integration and release validation are pending separately. It removes the planned API27 compatibility condition once integrated, but does not establish a working MEGA connector or change the first-provider decision.
+
 Existing Android-provider linked folders and network connections remain distinct connection methods. A provider app owning an Android SAF grant is not a direct Atomic OAuth account. Do not add inactive Connect controls or imply support by displaying provider logos.
 
 | Record | Purpose |

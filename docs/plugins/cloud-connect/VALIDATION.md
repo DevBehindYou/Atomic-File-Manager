@@ -2,6 +2,8 @@
 
 27 October 2026. **Documentation-only checkpoint.** Production source inspected at feature integration `863f78702de1066f6d7fc3c7f8dddef9788ffb6d`. Official documentation was read as recorded in [Research](RESEARCH.md). No cloud SDK was installed; no account was registered or accessed; no cloud request with credentials, Gradle build, ADB test or transfer was run.
 
+Owner decision on 27 October 2026: globally raise Atomic's minimum SDK to API28 because of MEGA. The API27 source audit above remains historical evidence. Source integration and release validation of the new baseline are separate and pending here; this documentation does not claim an API28 artifact pass or native MEGA compatibility. Matching a platform floor does not close SDK, auth/session, licence or provider-acceptance gates.
+
 This checkpoint claims source observations and a plan only. Host-verified/cloud-accepted implementation is zero; no separate numeric denominator is frozen yet. Do not change the existing eight-plugin N42 or count this documentation as a completed U07/U08/U12 milestone.
 
 ## Required evidence for implementation
