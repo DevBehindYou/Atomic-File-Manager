@@ -18,7 +18,7 @@ extensions.configure<ApplicationExtension> {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 27
+        minSdk = 28
         targetSdk = 36
     }
 

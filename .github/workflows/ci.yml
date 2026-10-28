@@ -235,7 +235,11 @@ jobs:
 
 
   beta-signed-runtime:
-    name: Signed beta APK runtime (emulator, manual)
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [28, 34]
+    name: Signed beta APK runtime (API ${{ matrix.api-level }}, manual)
     if: github.event_name == 'workflow_dispatch' && github.ref_name == 'codex/beta-0.2.0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -260,7 +264,7 @@ jobs:
       - name: Smoke the exact dedicated-key R8 beta in a disposable emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api-level }}
           arch: x86_64
           target: google_apis
           disable-animations: true
@@ -269,7 +273,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: signed-beta-smoke
+          name: signed-beta-smoke-api${{ matrix.api-level }}
           path: beta-smoke/
           if-no-files-found: ignore
           retention-days: 14
