@@ -13,7 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class BubblePositionPreferencesTest {
     @Test
     fun existingFloatKeysAreLoadedWithTheSameDockingAndClamping() =

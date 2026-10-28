@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowEnvironment
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 29])
+@Config(sdk = [28, 29])
 class SharedStorageAccessTest {
     @Before
     fun installPrimaryVolumeForPlatformEnvironmentCheck() {
@@ -146,7 +146,7 @@ class SharedStorageAccessTest {
     }
 
     @Test
-    @Config(sdk = [27, 29, 30, 34])
+    @Config(sdk = [28, 29, 30, 34])
     fun callerLauncherFailurePropagatesWithoutAnotherAttempt() {
         val context = SettingsContext(failures = 2)
         val failure = IllegalStateException("caller launcher unavailable")

@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 
 /** Real pinned Media3 control policy, with platform focus/broadcast delivery through Robolectric. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 @LooperMode(LooperMode.Mode.PAUSED)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PreviewPlayerAudioPolicyTest {

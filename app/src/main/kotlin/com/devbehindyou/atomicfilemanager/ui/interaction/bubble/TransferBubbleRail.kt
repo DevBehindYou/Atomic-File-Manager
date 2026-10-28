@@ -18,9 +18,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +44,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -83,6 +87,7 @@ fun TransferBubbleRail(
     var isRepositioning by remember { mutableStateOf(false) }
     var hasPositionInteraction by remember { mutableStateOf(false) }
     val velocityTracker = remember { VelocityTracker() }
+    val railScroll = rememberScrollState()
     var dragDistance by remember { mutableStateOf(Offset.Zero) }
     val displayedX by animateFloatAsState(
         targetValue = fractionX,
@@ -110,6 +115,7 @@ fun TransferBubbleRail(
                 Modifier
                     .absoluteOffset { IntOffset((displayedX * maxX).roundToInt(), (fractionY * maxY).roundToInt()) }
                     .onSizeChanged { railSize = it }
+                    .testTag("transfer_bubble_rail")
                     .pointerInput(maxX, maxY) {
                         detectDragGestures(
                             onDragStart = {
@@ -162,6 +168,8 @@ fun TransferBubbleRail(
                                 },
                             )
                     }
+                    .heightIn(max = maxHeight)
+                    .verticalScroll(railScroll, enabled = railScroll.maxValue > 0)
                     .padding(horizontal = 4.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.End,
