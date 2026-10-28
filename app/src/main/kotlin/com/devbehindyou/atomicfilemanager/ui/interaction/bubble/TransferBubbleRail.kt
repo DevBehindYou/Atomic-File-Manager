@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -110,6 +111,7 @@ fun TransferBubbleRail(
                 Modifier
                     .absoluteOffset { IntOffset((displayedX * maxX).roundToInt(), (fractionY * maxY).roundToInt()) }
                     .onSizeChanged { railSize = it }
+                    .testTag("transfer_bubble_rail")
                     .pointerInput(maxX, maxY) {
                         detectDragGestures(
                             onDragStart = {

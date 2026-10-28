@@ -77,7 +77,7 @@ class TransferBubbleRailComposeTest {
         val rail = compose.onNodeWithTag("transfer_bubble_rail")
         val viewport = compose.onNodeWithTag("bubble_viewport").fetchSemanticsNode().boundsInRoot
         assertTrue(rail.fetchSemanticsNode().boundsInRoot.left > viewport.center.x)
-        rail.performTouchInput { swipe(center, center - Offset(220f, 0f), durationMillis = 600) }
+        rail.performTouchInput { swipe(center, center - Offset(viewport.width * 0.75f, 0f), durationMillis = 600) }
         compose.waitForIdle()
         assertTrue(rail.fetchSemanticsNode().boundsInRoot.left < viewport.center.x)
         compose.onNodeWithContentDescription("Bubble 1, 0 items").assertIsDisplayed()
