@@ -34,7 +34,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class ImagePreviewHelperTest {
     @Test
     fun allEightExifOrientationsMapEveryCornerIncludingMirroredDiagonalTransforms() {

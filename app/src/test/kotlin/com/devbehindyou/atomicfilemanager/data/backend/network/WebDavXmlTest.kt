@@ -9,7 +9,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class WebDavXmlTest {
     @Test
     fun `parses namespaces and successful properties on minimum supported API`() {

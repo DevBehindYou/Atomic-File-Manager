@@ -24,7 +24,7 @@ A coverage percentage is not a goal. **Every invariant in
 | Unit — domain | JUnit 5 + Turbine + MockK | ~400 | JVM, every commit |
 | Unit — ViewModel | JUnit 5 + `runTest` + fakes | ~120 | JVM, every commit |
 | Integration — data | Robolectric + temp dirs + in-memory Room | ~150 | JVM, every commit |
-| Instrumented — storage | AndroidX Test on emulator | ~80 | API 27, 29, 30, 33, 36 |
+| Instrumented — storage | AndroidX Test on emulator | ~80 | API 28, 29, 30, 33, 36 |
 | UI — Compose | `createAndroidComposeRule` | ~90 | API 30 + 36 |
 | E2E journeys | Compose UI test, real files | 12 | API 29 + 36 |
 | Screenshot | Roborazzi | ~60 | JVM, every commit |
@@ -161,7 +161,7 @@ degraded**, which is a stated product requirement, not a nice-to-have.
 |---|---|
 | Every PR | Lint (including the seven custom rules), detekt, unit + Robolectric + screenshot tests |
 | Every PR | No new `@Suppress` on the custom Lint rules without a linked issue |
-| Merge to main | Instrumented tests on API 27, 29, 30, 33, 36 emulators |
+| Merge to main | Instrumented tests on API 28, 29, 30, 33, 36 emulators |
 | Nightly | Macrobenchmark against budgets; soak subset |
 | Release branch | Full soak, full device matrix, manual checklist |
 

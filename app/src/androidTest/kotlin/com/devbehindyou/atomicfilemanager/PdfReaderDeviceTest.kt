@@ -17,7 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
-/** Native renderer coverage; execute on the API 27 and API 34 device matrix. */
+/** Native renderer coverage; execute on the API 28 and API 34 device matrix. */
 @RunWith(AndroidJUnit4::class)
 class PdfReaderDeviceTest {
     @Test
