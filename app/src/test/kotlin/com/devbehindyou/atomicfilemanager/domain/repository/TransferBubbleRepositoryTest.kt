@@ -113,7 +113,10 @@ class TransferBubbleRepositoryTest {
 
             assertEquals(7, repository.bubbles.value.size)
             assertTrue(repository.bubbles.value.any { it.id == replacement.id })
-            assertEquals(listOf(retainedItem.id), repository.getBubble(created.first().id)!!.items.map { it.fileNodeId })
+            assertEquals(
+                listOf(retainedItem.id),
+                repository.getBubble(created.first().id)!!.items.map { it.fileNodeId },
+            )
             assertTrue(repository.createBubble("Still full").isFailure)
         }
 
