@@ -34,7 +34,7 @@ data class StorageAccessState(
 
 ## 1. Flow by API level
 
-### API 27–28 (Android 8.1, 9)
+### API 28 (Android 9)
 
 ```mermaid
 flowchart TD

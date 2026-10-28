@@ -1,10 +1,12 @@
+> **28 October 2026 platform decision:** the owner requested Android 9 / API 28 as the application and benchmark minimum. Android 8.1 / API 27 is no longer supported by new builds. Earlier dated API27 audit and test evidence remains historical; this decision does not establish MEGA integration or new runtime acceptance.
+
 > Current execution status (13 September 2026): nine tests passed on a rooted Android 14 / API 34 phone with an SD card. See [Phone verification](PHONE_VERIFICATION.md). Other Android versions and form factors remain untested.
 
 # Device and API Matrix
 
 ## 1. Why this file exists
 
-`minSdk 27` and `targetSdk 36` spans ten Android releases and three complete rewrites of the
+`minSdk 28` and `targetSdk 36` spans nine Android releases and three complete rewrites of the
 storage model. A feature that works on the emulator you happen to have open proves almost
 nothing. This matrix defines what must be verified where, before a release ships.
 
@@ -12,7 +14,7 @@ nothing. This matrix defines what must be verified where, before a release ships
 
 | API | Android | Tier | Why this level is non-negotiable |
 |---|---|---|---|
-| 27 | 8.1 | Emulator | minSdk floor. Legacy `READ/WRITE_EXTERNAL_STORAGE`, direct `File` access, glass tier C |
+| 28 | 9 | Emulator | minSdk floor. Legacy `READ/WRITE_EXTERNAL_STORAGE`, direct `File` access, glass tier C |
 | 29 | 10 | Emulator **+ physical if possible** | **The hardest version.** Scoped storage arrives, `requestLegacyExternalStorage` is unavailable to us at targetSdk 36, `MANAGE_EXTERNAL_STORAGE` does not exist. SAF + MediaStore only |
 | 30 | 11 | Emulator + physical | `MANAGE_EXTERNAL_STORAGE` arrives; `/Android/data` becomes permanently unreachable; SAF restricts Download and root trees |
 | 31 | 12 | Emulator | `RenderEffect` blur → **glass tier B begins**; dynamic colour begins; splash screen API |
@@ -22,7 +24,7 @@ nothing. This matrix defines what must be verified where, before a release ships
 | 36 | 16 | Emulator + physical | **Play target requirement from 31 Aug 2026.** Final compile/target level |
 | 37 | 17 | Emulator | Forward-compatibility smoke test only; not a ship gate |
 
-APIs 28, 32 are covered by nearest-neighbour testing except where a table below names them.
+API 32 is covered by nearest-neighbour testing except where a table below names them.
 
 ## 3. Physical device classes
 
@@ -44,7 +46,7 @@ Emulators cannot substitute for the last three rows. SD and OTG behaviour is
 
 Legend: ✅ must verify · ➖ not applicable at this level · ⚠ known constraint to confirm
 
-| Feature | 27 | 29 | 30 | 31 | 33 | 34 | 36 |
+| Feature | 28 | 29 | 30 | 31 | 33 | 34 | 36 |
 |---|---|---|---|---|---|---|---|
 | Legacy `File` browse of shared storage | ✅ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ |
 | SAF tree grant + persist across reboot | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -104,7 +106,7 @@ part of Phase 0 in `../roadmap/IMPLEMENTATION_ROADMAP.md`, not a later cleanup.
 ## 7. Emulator configuration
 
 ```text
-API 27  — Pixel 2,  x86_64, Google APIs,      2 GB RAM, SD image attached
+API 28  — Pixel 2,  x86_64, Google APIs,      2 GB RAM, SD image attached
 API 29  — Pixel 3a, x86_64, Google APIs,      3 GB RAM, SD image attached
 API 30  — Pixel 4,  x86_64, Google APIs,      4 GB RAM
 API 31  — Pixel 5,  x86_64, Google APIs,      4 GB RAM

@@ -98,6 +98,15 @@ class AudioPreparationRecoveryComposeTest {
         assertEquals(2, opens.get())
         compose.onNodeWithText("Owned audio metadata").assertIsDisplayed()
         retry.assertDoesNotExist()
+        // Preparation has succeeded; decoder failure is an independent phase for these fake bytes.
+        compose.onNodeWithText(app.getString(R.string.audio_prepare_failed)).assertDoesNotExist()
+        // This fixture tests staging, not decoded playback or rapid Close during active decoder I/O.
+        // Wait for the deliberately invalid source's real terminal load failure (and load-finally close).
+        awaitCondition {
+            compose.onAllNodesWithText(app.getString(R.string.viewer_playback_error))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(app.getString(R.string.viewer_playback_error)).assertIsDisplayed()
         compose.runOnIdle { render.value = false }
         awaitCondition { stagedFiles().isEmpty() }
     }

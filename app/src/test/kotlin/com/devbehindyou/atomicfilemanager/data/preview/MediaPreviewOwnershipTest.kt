@@ -33,7 +33,7 @@ import java.io.IOException
 import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class MediaPreviewOwnershipTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()

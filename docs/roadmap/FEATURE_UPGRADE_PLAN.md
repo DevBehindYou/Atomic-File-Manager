@@ -6,7 +6,7 @@ Prepared 21 October 2026. Based on the supplied master upgrade specification, [r
 
 ## Decisions already made
 
-- Preserve native Android, Kotlin, Compose, API 27 minimum and the Atomic design system.
+- Preserve native Android, Kotlin, Compose, API 28 minimum and the Atomic design system. The owner raised the platform floor to Android 9/API28 on 27 October 2026; earlier API27 evidence remains historical.
 - Keep viewers and tools bundled with the application. Settings → In-app plugins is an inventory of shipped functionality, with feature and limitation details.
 - No GitHub/Google Drive executable downloads, remote plugin installer, independent plugin update feed, or fake install/remove controls. Features update with the app.
 - Keep lightweight previews and external opening available. No advertised “Pro” capabilities until implemented and tested.
