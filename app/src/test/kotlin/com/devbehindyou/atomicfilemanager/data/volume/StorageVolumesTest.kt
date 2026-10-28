@@ -31,7 +31,7 @@ import java.io.File
 
 /** Real platform StorageManager enumeration with API-specific permission and directory discovery. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class StorageVolumesTest {
     @get:Rule val temporary = TemporaryFolder()
     private lateinit var context: VolumeContext
@@ -55,7 +55,7 @@ class StorageVolumesTest {
             addVolume("rw", readWrite, Environment.MEDIA_MOUNTED, primary = true, blocks = 1_000, available = 200)
             addVolume("ro", readOnly, Environment.MEDIA_MOUNTED_READ_ONLY, blocks = 2_000, available = 300)
             addVolume("removed", removed, Environment.MEDIA_UNMOUNTED, blocks = 500, available = 50)
-            // Deliberately reverse the platform's volume order to check API 27's real manager mapping.
+            // Deliberately reverse the platform's volume order to check API 28's real manager mapping.
             context.externalDirectories = listOf(appDirectory(readOnly), appDirectory(removed), appDirectory(readWrite))
 
             val volumes = StorageVolumes.enumerate(context).associateBy { it.id }

@@ -19,7 +19,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 class ExternalFileAppsTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
 
@@ -77,7 +77,7 @@ class ExternalFileAppsTest {
         )
         val chooser = shadowOf(app).nextStartedActivity
         assertEquals(Intent.ACTION_CHOOSER, chooser.action)
-        @Suppress("DEPRECATION") // Typed getParcelableExtra needs API33; this fixture also runs API27.
+        @Suppress("DEPRECATION") // Typed getParcelableExtra needs API33; this fixture also runs API28.
         val actual = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
         assertEquals(null, actual.component)
         assertEquals(uri, actual.data)

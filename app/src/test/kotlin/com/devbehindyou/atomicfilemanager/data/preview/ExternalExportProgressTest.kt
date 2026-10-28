@@ -35,7 +35,7 @@ import java.io.File
 import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class, shadows = [OwnedExportFileProviderShadow::class])
+@Config(sdk = [28, 34], application = Application::class, shadows = [OwnedExportFileProviderShadow::class])
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExternalExportProgressTest {
     private lateinit var ownedCache: File

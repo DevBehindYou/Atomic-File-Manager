@@ -14,7 +14,7 @@ import org.robolectric.annotation.LooperMode
 
 /** Checks the real Activity content observer before Compose's STARTED lifecycle can run. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 @LooperMode(LooperMode.Mode.PAUSED)
 class MainActivityFirstFrameTest {
     @Test

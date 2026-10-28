@@ -30,7 +30,7 @@ import org.robolectric.shadows.ShadowContentResolver
 
 /** Controlled ContentResolver provider coverage; this does not certify OEM provider behaviour. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 29])
+@Config(sdk = [28, 29])
 class SafAncestryTest {
     private lateinit var provider: AncestryProvider
     private lateinit var backend: SafBackend
