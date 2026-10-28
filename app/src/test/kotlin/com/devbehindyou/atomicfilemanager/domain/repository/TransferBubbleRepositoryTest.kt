@@ -25,6 +25,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.SQLiteMode
 import java.util.UUID
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.Executors
@@ -133,6 +134,7 @@ class TransferBubbleRepositoryTest {
         }
 
     @Test
+    @SQLiteMode(SQLiteMode.Mode.NATIVE)
     fun parallelAdmissionCapsSeven() =
         runTest(testDispatcher) {
             val secondHelper = TransferBubbleDatabaseHelper(context, dbName)
