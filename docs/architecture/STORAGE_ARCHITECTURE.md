@@ -103,7 +103,7 @@ can emit in chunks of 200 and the UI paints immediately.
 
 | Backend | Handles | Notes |
 |---|---|---|
-| **`FileSystemBackend`** | `file:` ids | Fastest. Available on API 27–28 always, and on API 30+ when All Files Access is granted. Uses `File.listFiles()` + `java.nio` where beneficial. Never used on API 29 for shared storage. |
+| **`FileSystemBackend`** | `file:` ids | Fastest. Available on API 28 always, and on API 30+ when All Files Access is granted. Uses `File.listFiles()` + `java.nio` where beneficial. Never used on API 29 for shared storage. |
 | **`SafBackend`** | `saf:` ids | Works everywhere from API 21. **Listing uses a single bulk `ContentResolver.query()` against `buildChildDocumentsUriUsingTree`**, projecting exactly the columns needed — never `DocumentFile.listFiles()`, which issues one query per child and is 10–50× slower. |
 | **`MediaStoreBackend`** | `media:` ids | Read-optimised index for categories, recents, largest-files and name search on the primary volume. Deletes go through `createDeleteRequest` on API 30+. General writes never go here. |
 

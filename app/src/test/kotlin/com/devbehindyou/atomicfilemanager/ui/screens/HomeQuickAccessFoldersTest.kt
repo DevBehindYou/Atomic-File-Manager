@@ -18,7 +18,7 @@ import java.io.IOException
 import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27])
+@Config(sdk = [28])
 class HomeQuickAccessFoldersTest {
     @Test
     fun filesDirectoryAndPublicPathsResolveOnIoWithTheSameFolderOrderAndFallback() =

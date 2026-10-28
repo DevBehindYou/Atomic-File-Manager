@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34], application = Application::class)
+@Config(sdk = [28, 34], application = Application::class)
 class FolderSortPreferencesTest {
     @Test
     fun dispatchAndReload() =

@@ -22,6 +22,9 @@ captures/
 # Keystores (never commit signing material)
 *.jks
 *.keystore
+*.p12
+signing.properties
+release-signing.properties
 
 # JVM crash dumps / Kotlin daemon diagnostics
 replay_pid*.log
@@ -30,3 +33,8 @@ hs_err_pid*.log
 
 # Compiled convention-plugin output
 build-logic/convention/bin/
+
+# Owner-requested local signing backups (never publish)
+/Atomic-File-Manager-release-signing-backup-*.zip
+/atomic-file-manager-release.cer
+/SIGNING-KEYS-PRIVATE.txt

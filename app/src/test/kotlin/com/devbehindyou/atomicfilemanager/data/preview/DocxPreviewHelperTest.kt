@@ -29,7 +29,7 @@ import java.util.zip.ZipOutputStream
 import kotlin.coroutines.EmptyCoroutineContext
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 34])
+@Config(sdk = [28, 34])
 class DocxPreviewHelperTest {
     @Test
     fun realZipPreservesHeadingsEmphasisListsTableOrderAndEscapedText() {
