@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 class TransferBubbleRepositoryImpl(
     private val dbHelper: TransferBubbleDatabaseHelper,
@@ -42,29 +41,9 @@ class TransferBubbleRepositoryImpl(
 
     override suspend fun createBubble(name: String?): Result<TransferBubble> =
         withContext(ioDispatcher) {
-            val currentCount = dbHelper.countBubbles()
-            if (currentCount >= TransferBubble.MAX_BUBBLES) {
-                return@withContext Result.failure(
-                    IllegalStateException("Maximum of ${TransferBubble.MAX_BUBBLES} transfer bubbles allowed"),
-                )
-            }
-
-            val bubbleNumber = currentCount + 1
-            val displayName = name ?: "Bubble $bubbleNumber"
-            val newBubble =
-                TransferBubble(
-                    id = UUID.randomUUID().toString(),
-                    displayName = displayName,
-                    sortOrder = currentCount,
-                )
-
-            val inserted = dbHelper.insertBubble(newBubble)
-            if (inserted) {
-                refresh()
-                Result.success(newBubble)
-            } else {
-                Result.failure(IllegalStateException("Failed to persist transfer bubble"))
-            }
+            val created = dbHelper.createBubble(name)
+            if (created.isSuccess) refresh()
+            created
         }
 
     override suspend fun addItemsToBubble(
