@@ -12,7 +12,7 @@ data class TransferBubble(
     val totalKnownSize: Long get() = items.sumOf { if (it.sizeSnapshot > 0) it.sizeSnapshot else 0L }
 
     companion object {
-        const val MAX_BUBBLES = 3
+        const val MAX_BUBBLES = 7
     }
 }
 

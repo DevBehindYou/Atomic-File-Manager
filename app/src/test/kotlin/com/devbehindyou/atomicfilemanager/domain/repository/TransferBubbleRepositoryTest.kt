@@ -8,12 +8,15 @@ import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
-import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -23,12 +26,16 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.util.UUID
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class TransferBubbleRepositoryTest {
     private lateinit var context: Context
     private lateinit var dbHelper: TransferBubbleDatabaseHelper
+    private lateinit var dbName: String
     private lateinit var repository: TransferBubbleRepositoryImpl
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -56,7 +63,7 @@ class TransferBubbleRepositoryTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         // Unique database name per test for isolation
-        val dbName = "test_bubbles_${UUID.randomUUID()}.db"
+        dbName = "test_bubbles_${UUID.randomUUID()}.db"
         dbHelper = TransferBubbleDatabaseHelper(context, dbName)
         repository = TransferBubbleRepositoryImpl(dbHelper, testDispatcher)
     }
@@ -64,35 +71,97 @@ class TransferBubbleRepositoryTest {
     @After
     fun tearDown() {
         dbHelper.close()
+        context.deleteDatabase(dbName)
     }
 
     @Test
-    fun `can create up to 3 transfer bubbles`() =
+    fun sevenBubbleSlots() =
         runTest(testDispatcher) {
-            val bubble1 = repository.createBubble("Bubble 1")
-            val bubble2 = repository.createBubble("Bubble 2")
-            val bubble3 = repository.createBubble("Bubble 3")
+            val names = (1..7).map { "Bubble $it" }
+            val results = (1..7).map { repository.createBubble(null) }
 
-            assertTrue(bubble1.isSuccess)
-            assertTrue(bubble2.isSuccess)
-            assertTrue(bubble3.isSuccess)
-
-            assertEquals(3, repository.bubbles.value.size)
-            assertEquals("Bubble 1", repository.bubbles.value[0].displayName)
-            assertEquals("Bubble 2", repository.bubbles.value[1].displayName)
-            assertEquals("Bubble 3", repository.bubbles.value[2].displayName)
+            assertTrue("All seven bubbles must be accepted", results.all { it.isSuccess })
+            assertEquals(7, repository.bubbles.value.size)
+            assertEquals(names, repository.bubbles.value.map { it.displayName })
+            assertEquals(7, repository.bubbles.value.map { it.id }.distinct().size)
         }
 
     @Test
-    fun `creating 4th bubble is rejected`() =
+    fun eighthRejected() =
         runTest(testDispatcher) {
-            repository.createBubble("B1")
-            repository.createBubble("B2")
-            repository.createBubble("B3")
+            repeat(7) { repository.createBubble("B${it + 1}").getOrThrow() }
+            val before = repository.bubbles.value
 
-            val fourth = repository.createBubble("B4")
-            assertTrue(fourth.isFailure)
-            assertEquals(TransferBubble.MAX_BUBBLES, repository.bubbles.value.size)
+            val eighth = repository.createBubble("B8")
+
+            assertTrue(eighth.isFailure)
+            assertEquals("Maximum of 7 transfer bubbles allowed", eighth.exceptionOrNull()?.message)
+            assertEquals(before, repository.bubbles.value)
+            assertEquals(7, dbHelper.countBubbles())
+        }
+
+    @Test
+    fun deletedSlotReusable() =
+        runTest(testDispatcher) {
+            val created = (1..7).map { repository.createBubble("B$it").getOrThrow() }
+            val retainedItem = createTestNode("keep.txt")
+            repository.addItemsToBubble(created.first().id, listOf(retainedItem))
+
+            repository.deleteBubble(created[3].id).getOrThrow()
+            val replacement = repository.createBubble("Replacement").getOrThrow()
+
+            assertEquals(7, repository.bubbles.value.size)
+            assertTrue(repository.bubbles.value.any { it.id == replacement.id })
+            assertEquals(listOf(retainedItem.id), repository.getBubble(created.first().id)!!.items.map { it.fileNodeId })
+            assertTrue(repository.createBubble("Still full").isFailure)
+        }
+
+    @Test
+    fun sevenSurviveReopen() =
+        runTest(testDispatcher) {
+            val created = (1..7).map { repository.createBubble("B$it").getOrThrow() }
+            val retainedItem = createTestNode("persist.txt")
+            repository.addItemsToBubble(created.last().id, listOf(retainedItem))
+            dbHelper.close()
+
+            dbHelper = TransferBubbleDatabaseHelper(context, dbName)
+            repository = TransferBubbleRepositoryImpl(dbHelper, testDispatcher)
+
+            assertEquals(created.map { it.id }, repository.bubbles.value.map { it.id })
+            assertEquals(listOf(retainedItem.id), repository.getBubble(created.last().id)!!.items.map { it.fileNodeId })
+            assertTrue(repository.createBubble("B8").isFailure)
+        }
+
+    @Test
+    fun parallelAdmissionCapsSeven() =
+        runTest(testDispatcher) {
+            val secondHelper = TransferBubbleDatabaseHelper(context, dbName)
+            try {
+                Executors.newFixedThreadPool(8).asCoroutineDispatcher().use { dispatcher ->
+                    val repositories =
+                        listOf(
+                            TransferBubbleRepositoryImpl(dbHelper, dispatcher),
+                            TransferBubbleRepositoryImpl(secondHelper, dispatcher),
+                        )
+                    val gate = CyclicBarrier(8)
+                    val results =
+                        withContext(dispatcher) {
+                            (0..7).map { index ->
+                                async {
+                                    gate.await(10, TimeUnit.SECONDS)
+                                    repositories[index % 2].createBubble("Concurrent $index")
+                                }
+                            }.awaitAll()
+                        }
+
+                    assertEquals(7, results.count { it.isSuccess })
+                    assertEquals(1, results.count { it.isFailure })
+                    assertEquals(7, dbHelper.countBubbles())
+                    assertEquals(7, dbHelper.getAllBubbles().map { it.id }.distinct().size)
+                }
+            } finally {
+                secondHelper.close()
+            }
         }
 
     @Test
