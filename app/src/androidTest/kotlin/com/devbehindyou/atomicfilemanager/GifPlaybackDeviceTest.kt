@@ -1,5 +1,7 @@
 package com.devbehindyou.atomicfilemanager
 
+import android.graphics.drawable.AnimatedImageDrawable
+import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -14,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -25,6 +28,8 @@ import com.devbehindyou.atomicfilemanager.ui.components.ZoomableImage
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -75,6 +80,23 @@ class GifPlaybackDeviceTest {
                 assertEquals("Stopped image must keep its frame", stopped, centerColor())
                 compose.onNodeWithContentDescription("Replay animation").performClick()
                 awaitBothFrames()
+                var owned: AnimatedImageDrawable? = null
+                compose.runOnIdle {
+                    owned =
+                        compose.activity.window.decorView.findViewWithTag<ImageView>("atomic_gif_drawable")
+                            .drawable as AnimatedImageDrawable
+                }
+                val animation = checkNotNull(owned)
+                compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+                InstrumentationRegistry.getInstrumentation().runOnMainSync { assertFalse(animation.isRunning) }
+                compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+                awaitBothFrames()
+                compose.runOnIdle { shown.value = false }
+                compose.waitForIdle()
+                InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                    assertFalse("Disposed GIF must stop", animation.isRunning)
+                    assertNull("Disposed GIF must detach its view", animation.callback)
+                }
                 assertArrayEquals(bytes, source.readBytes())
             } finally {
                 if (composed) compose.runOnIdle { shown.value = false }
@@ -92,7 +114,7 @@ class GifPlaybackDeviceTest {
                 if (color != 0) colors.add(color)
                 colors.size == 2
             }
-        } catch (failure: AssertionError) {
+        } catch (failure: Exception) {
             throw AssertionError("GIF did not show both frames; observed fixture colors=$colors", failure)
         }
         assertEquals(setOf(1, 2), colors)
