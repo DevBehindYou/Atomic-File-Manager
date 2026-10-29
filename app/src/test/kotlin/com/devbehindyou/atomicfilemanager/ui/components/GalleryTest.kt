@@ -31,6 +31,15 @@ class GalleryTest {
     )
 
     @Test
+    fun `GIF routing preserves normalized metadata and never animates folders`() {
+        assertTrue(Gallery.isGif(node("animation.GIF", mime = "text/plain")))
+        assertTrue(Gallery.isGif(node("opaque", mime = "IMAGE/GIF; charset=binary")))
+        assertFalse(Gallery.isGif(node("still.png", mime = "image/png")))
+        assertFalse(Gallery.isGif(node("opaque", mime = "image/*")))
+        assertFalse(Gallery.isGif(node("folder.gif", directory = true)))
+    }
+
+    @Test
     fun `images are known by mime type or extension, never folders`() {
         assertTrue(Gallery.isImage(node("IMG_1.JPG")))
         assertTrue(Gallery.isImage(node("scan", mime = "image/png")))

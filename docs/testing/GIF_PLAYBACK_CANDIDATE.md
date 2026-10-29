@@ -1,0 +1,15 @@
+# GIF playback repair — candidate
+
+29October2026. User-reported defect: GIFs are routed to the image viewer but ImagePreviewHelper.decodeImage uses BitmapFactory, yielding one static bitmap. Existing thumbnail support does not establish fullscreen animation. v0.2.1 stable target requires this gap fixed and tested.
+
+Implementation candidate: native API28 ImageDecoder.decodeDrawable with an immutable bounded encoded source, existing backend selection and IO dispatcher. No new library, remote executable plugin, storage grant, original-file write or engine update. Standard GIF filename or bounded normalized image/gif MIME selects the path; actual GIF87a/GIF89a payload signature is checked. Other static images keep their existing bitmap/EXIF path.
+
+Limits:16MiBencoded input(+one overflow byte),16MPsource canvas,2048maximum output dimension. Stream closure, cooperative between-read/prepost-decode cancellation, no-progress failure and typed backend errors are explicit. These limits do not prove a total-heap/frame-count/native-decode-time budget or interrupt arbitrary blocking provider calls.
+
+The shared static geometry/clipping/pinch/pan/double-tap surface is retained. Current-page and STARTED lifecycle own animation; Stop freezes and Replay restarts. Native stop/start resets; do not label it true Pause/Resume. Encoded loop counts are retained. Disposal stops animation, removes callbacks/observer and detaches the ImageView. Existing unpublished image-view-modes candidate c05d5d6 remains separate and must be reconciled after this repair; no fit-mode credit is claimed here.
+
+GifPlaybackDeviceTest uses a deterministic two-frame red/green looping GIF and a uniquely owned private-cache copy. It checks actual captured colours advancing, stable stopped pixels, replay, background stop/return, final stop/detachment and source bytes. The test-first baseline has unchanged production; its current build/run evidence must be retained separately from this candidate. No native pass is claimed yet. Existing static image gesture/orientation/recovery consumers remain required. New decoder tests cover invalid header, typed provider denial, bounded overflow consumption, IO failure, cancellation and zero-progress closure on API28/API34.
+
+Read-only review found no outstanding concrete source blocker after routing was changed to Gallery.isGif; actual native/host/static/artifact/CI/provider/format/performance acceptance remains open. No IMG2/IMG6 or whole-plugin completion credit.
+
+Official sources checked29October2026: [Android ImageDecoder](https://developer.android.com/reference/android/graphics/ImageDecoder), [AnimatedImageDrawable](https://developer.android.com/reference/android/graphics/drawable/AnimatedImageDrawable), [Coil GIF documentation](https://coil-kt.github.io/coil/gifs/). Context7 skill was read, but no Context7 tools were available; official sources were the fallback. Android's native decoder covers the minimum API28 without adding coil-gif; the existing Coil3.3.0 version is unchanged.

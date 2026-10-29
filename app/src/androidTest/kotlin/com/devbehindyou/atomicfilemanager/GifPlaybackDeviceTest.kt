@@ -12,8 +12,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -114,7 +114,7 @@ class GifPlaybackDeviceTest {
                 if (color != 0) colors.add(color)
                 colors.size == 2
             }
-        } catch (failure: Exception) {
+        } catch (failure: Throwable) {
             throw AssertionError("GIF did not show both frames; observed fixture colors=$colors", failure)
         }
         assertEquals(setOf(1, 2), colors)
