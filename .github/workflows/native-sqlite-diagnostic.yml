@@ -3,6 +3,12 @@ name: Native SQLite diagnostic
 # Evidence collection only. Required PR CI remains unchanged in ci.yml.
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/native-sqlite-diagnostic.yml'
+      - 'scripts/diagnostics/native-sqlite.init.gradle'
+      - 'scripts/diagnostics/native_sqlite_comparison.sh'
+      - 'docs/testing/NATIVE_SQLITE_DIAGNOSTIC.md'
 
 permissions:
   contents: read
