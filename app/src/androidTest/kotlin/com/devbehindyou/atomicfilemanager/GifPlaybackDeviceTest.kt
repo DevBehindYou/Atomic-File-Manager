@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -43,16 +44,24 @@ class GifPlaybackDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun framesAdvanceStopAndReplayWithoutChangingTheSource() =
+    fun framesAdvanceStopAndReplayWithoutChangingTheSource() = verifyPlayback(finite = false)
+
+    @Test
+    fun finiteGifCompletesAndReplaysWithoutChangingTheSource() = verifyPlayback(finite = true)
+
+    private fun verifyPlayback(finite: Boolean) =
         runBlocking<Unit> {
             val application = compose.activity.application
             val directory = Files.createTempDirectory(application.cacheDir.toPath(), "gif-playback-").toFile()
             val source = File(directory, "animation.gif")
             val shown = mutableStateOf(true)
+            val active = mutableStateOf(true)
             var composed = false
             try {
                 val bytes =
-                    InstrumentationRegistry.getInstrumentation().context.assets.open("gif/red-green.gif").use {
+                    InstrumentationRegistry.getInstrumentation().context.assets.open(
+                        if (finite) "gif/red-green-finite.gif" else "gif/red-green.gif",
+                    ).use {
                         it.readBytes()
                     }
                 source.writeBytes(bytes)
@@ -65,7 +74,9 @@ class GifPlaybackDeviceTest {
                 compose.setContent {
                     AtomicTheme(darkTheme = true, wallpaperAccent = false) {
                         if (shown.value) {
-                            Box(Modifier.size(240.dp).testTag("gif_viewport")) { ZoomableImage(node, container) }
+                            Box(Modifier.size(240.dp).testTag("gif_viewport")) {
+                                ZoomableImage(node, container, isActive = active.value)
+                            }
                         }
                     }
                 }
@@ -73,6 +84,21 @@ class GifPlaybackDeviceTest {
                 compose.waitUntil(15_000) {
                     compose.onAllNodesWithContentDescription(source.name).fetchSemanticsNodes().isNotEmpty()
                 }
+                awaitBothFrames()
+                if (finite) {
+                    compose.waitUntil(6_000) {
+                        compose.onNodeWithContentDescription("Stop animation").fetchSemanticsNode()
+                            .config.contains(SemanticsProperties.Disabled)
+                    }
+                    val completed = centerColor()
+                    Thread.sleep(750)
+                    assertEquals("Finite GIF must stay on its final frame", completed, centerColor())
+                    compose.onNodeWithContentDescription("Replay animation").performClick()
+                    awaitBothFrames()
+                    assertArrayEquals(bytes, source.readBytes())
+                    return@runBlocking
+                }
+                repeat(3) { compose.onNodeWithContentDescription("Replay animation").performClick() }
                 awaitBothFrames()
                 compose.onNodeWithContentDescription("Stop animation").performClick()
                 val stopped = centerColor()
@@ -87,6 +113,11 @@ class GifPlaybackDeviceTest {
                             .drawable as AnimatedImageDrawable
                 }
                 val animation = checkNotNull(owned)
+                compose.runOnIdle { active.value = false }
+                compose.waitForIdle()
+                InstrumentationRegistry.getInstrumentation().runOnMainSync { assertFalse(animation.isRunning) }
+                compose.runOnIdle { active.value = true }
+                awaitBothFrames()
                 compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
                 InstrumentationRegistry.getInstrumentation().runOnMainSync { assertFalse(animation.isRunning) }
                 compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
