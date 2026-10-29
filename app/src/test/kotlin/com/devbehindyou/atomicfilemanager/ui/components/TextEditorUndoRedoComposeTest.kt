@@ -37,7 +37,7 @@ import org.robolectric.annotation.Config
 /** Actual controls share document-owned history and preserve save admission. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], qualifiers = "w411dp-h891dp", shadows = [ControlKeyCharacterMapShadow::class])
 class TextEditorUndoRedoComposeTest {
     @get:Rule val compose = createComposeRule()
     private val dispatcher = UnconfinedTestDispatcher()
