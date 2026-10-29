@@ -38,7 +38,7 @@ class MarkdownOwnershipDeviceTest {
     @Test
     fun retryRevisionAndRawDisclosurePreserveOwnedSourceAndSentinel() =
         runBlocking<Unit> {
-            val context = compose.activity.applicationContext
+            val context = compose.activity.application
             val directory = Files.createTempDirectory(context.cacheDir.toPath(), "markdown-ownership-").toFile()
             val source = File(directory, "preview.md")
             val sentinel = File(directory, "sentinel.bin")
