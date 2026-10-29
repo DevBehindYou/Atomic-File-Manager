@@ -11,7 +11,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -59,7 +59,9 @@ class GifPlaybackDeviceTest {
                     }
                 compose.setContent {
                     AtomicTheme(darkTheme = true, wallpaperAccent = false) {
-                        if (shown.value) { Box(Modifier.size(240.dp).testTag("gif_viewport")) { ZoomableImage(node, container) } }
+                        if (shown.value) {
+                            Box(Modifier.size(240.dp).testTag("gif_viewport")) { ZoomableImage(node, container) }
+                        }
                     }
                 }
                 composed = true
@@ -67,11 +69,11 @@ class GifPlaybackDeviceTest {
                     compose.onAllNodesWithContentDescription(source.name).fetchSemanticsNodes().isNotEmpty()
                 }
                 awaitBothFrames()
-                compose.onNodeWithText("Stop animation").performClick()
+                compose.onNodeWithContentDescription("Stop animation").performClick()
                 val stopped = centerColor()
                 Thread.sleep(750)
                 assertEquals("Stopped image must keep its frame", stopped, centerColor())
-                compose.onNodeWithText("Replay animation").performClick()
+                compose.onNodeWithContentDescription("Replay animation").performClick()
                 awaitBothFrames()
                 assertArrayEquals(bytes, source.readBytes())
             } finally {
@@ -84,10 +86,14 @@ class GifPlaybackDeviceTest {
 
     private fun awaitBothFrames() {
         val colors = mutableSetOf<Int>()
-        compose.waitUntil(6_000) {
-            val color = centerColor()
-            if (color != 0) colors.add(color)
-            colors.size == 2
+        try {
+            compose.waitUntil(6_000) {
+                val color = centerColor()
+                if (color != 0) colors.add(color)
+                colors.size == 2
+            }
+        } catch (failure: AssertionError) {
+            throw AssertionError("GIF did not show both frames; observed fixture colors=$colors", failure)
         }
         assertEquals(setOf(1, 2), colors)
     }
