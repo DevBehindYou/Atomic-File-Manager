@@ -7,8 +7,10 @@ import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.automirrored.outlined.TextSnippet
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.automirrored.outlined.WrapText
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AllInbox
@@ -104,6 +106,8 @@ object AtomicIcons {
     val Refresh: ImageVector = Icons.Outlined.Refresh
     val Replay: ImageVector = Icons.Outlined.Replay
     val Restore: ImageVector = Icons.Outlined.Restore
+    val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
+    val Redo: ImageVector = Icons.AutoMirrored.Outlined.Redo
     val OpenExternally: ImageVector = Icons.AutoMirrored.Outlined.OpenInNew
     val Preview: ImageVector = Icons.Outlined.Preview
     val WrapText: ImageVector = Icons.AutoMirrored.Outlined.WrapText
