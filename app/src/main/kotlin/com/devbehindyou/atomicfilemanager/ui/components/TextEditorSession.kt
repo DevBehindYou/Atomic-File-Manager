@@ -30,6 +30,8 @@ internal data class TextEditorSessionState(
     val current: FileNode? = null,
     val value: TextFieldValue = TextFieldValue(),
     val savedText: String = "",
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
     val format: TextFormat? = null,
     val loading: Boolean = true,
     val openError: FileError? = null,
@@ -51,6 +53,7 @@ internal class TextEditorSession(
 ) {
     private val mutableState = MutableStateFlow(TextEditorSessionState(current = node))
     val state = mutableState.asStateFlow()
+    private val history = TextEditorHistory()
     private var closed = false
     private var generation = 0L
     private var revision = 0L
@@ -91,9 +94,32 @@ internal class TextEditorSession(
     }
 
     fun edit(value: TextFieldValue) {
-        if (!closed && !state.value.loading && !state.value.saving && state.value.format != null) {
-            mutableState.value = state.value.copy(value = value, saveError = null, saveUnconfirmed = false)
-        }
+        if (!canEdit()) return
+        val previous = state.value.value
+        if (previous.text != value.text) history.record(previous)
+        publishEdit(value)
+    }
+
+    fun undo() {
+        if (canEdit()) history.undo(state.value.value)?.let(::publishEdit)
+    }
+
+    fun redo() {
+        if (canEdit()) history.redo(state.value.value)?.let(::publishEdit)
+    }
+
+    private fun canEdit(): Boolean =
+        !closed && !state.value.loading && !state.value.saving && state.value.format != null
+
+    private fun publishEdit(value: TextFieldValue) {
+        mutableState.value =
+            state.value.copy(
+                value = value,
+                canUndo = history.canUndo,
+                canRedo = history.canRedo,
+                saveError = null,
+                saveUnconfirmed = false,
+            )
     }
 
     /** Admission is synchronous, so a second click cannot enqueue another save. */
@@ -154,7 +180,8 @@ internal class TextEditorSession(
         generation++
         revision++
         loadJob?.cancel()
-        // Release both draft and original text immediately, including after hidden-route disposal.
+        history.clear()
+        // Release draft, original and history immediately, including after hidden-route disposal.
         mutableState.value = TextEditorSessionState(loading = false)
         return true
     }

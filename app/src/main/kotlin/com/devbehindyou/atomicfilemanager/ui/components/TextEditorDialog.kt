@@ -33,6 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -195,7 +203,20 @@ internal fun TextEditorSessionDialog(
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s4),
                         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        AtomicIconButton(
+                            AtomicIcons.Undo,
+                            stringResource(R.string.editor_undo),
+                            onClick = session::undo,
+                            enabled = state.canUndo && !state.loading && !state.saving,
+                        )
+                        AtomicIconButton(
+                            AtomicIcons.Redo,
+                            stringResource(R.string.editor_redo),
+                            onClick = session::redo,
+                            enabled = state.canRedo && !state.loading && !state.saving,
+                        )
                         AtomicChip(
                             stringResource(R.string.editor_find),
                             selected = findOpen,
@@ -214,6 +235,8 @@ internal fun TextEditorSessionDialog(
                         wrap,
                         readOnly = state.saving,
                         onChange = session::edit,
+                        onUndo = session::undo,
+                        onRedo = session::redo,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -262,6 +285,8 @@ private fun EditorBody(
     wrap: Boolean,
     readOnly: Boolean,
     onChange: (TextFieldValue) -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = Atomic.colors
@@ -292,7 +317,20 @@ private fun EditorBody(
                 readOnly = readOnly,
                 textStyle = mono,
                 cursorBrush = SolidColor(colors.content),
-                modifier = Modifier.testTag("text_editor_field").then(if (wrap) Modifier.fillMaxWidth() else Modifier),
+                modifier =
+                    Modifier.testTag("text_editor_field")
+                        .onPreviewKeyEvent { event ->
+                            val undoKey = event.key == Key.Z
+                            val redoKey = event.key == Key.Y && !event.isShiftPressed
+                            if (!event.isCtrlPressed || event.isAltPressed || (!undoKey && !redoKey)) {
+                                false
+                            } else {
+                                if (event.type == KeyEventType.KeyDown && !readOnly) {
+                                    if (redoKey || event.isShiftPressed) onRedo() else onUndo()
+                                }
+                                true
+                            }
+                        }.then(if (wrap) Modifier.fillMaxWidth() else Modifier),
             )
         }
     }
