@@ -1,5 +1,7 @@
 # Feature upgrade execution progress
 
+**Current reconciliation, 29 October 2026:** [completed slices, remaining gates and PR queue](PLAN_RECONCILIATION_2026-10-29.md). Beta 0.2.0-beta.1 is published; fixed U01–U13 credit remains 15% host / 8% accepted. Dated checkpoints below retain their original evidence.
+
 Updated 26 October 2026, retaining the actual dates for each phone check below. Scope: [FEATURE_UPGRADE_PLAN](FEATURE_UPGRADE_PLAN.md), U01–U13. This ledger is separate from the older modernization roadmap's 78% implementation figure.
 
 ## Fixed progress calculation
