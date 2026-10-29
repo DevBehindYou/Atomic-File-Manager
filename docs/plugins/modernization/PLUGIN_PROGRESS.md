@@ -1,5 +1,7 @@
 # Plugin progress — frozen capability ledger
 
+**Reconciled 29 October 2026:** [plugin-by-plugin state and candidate queue](../../roadmap/PLAN_RECONCILIATION_2026-10-29.md). PR88 reliability slices are accepted and six further candidates are prepared; complete-group credit remains 0/42 host / 0/42 accepted. Audit coverage is 8/8, not modernization completion.
+
 26 October 2026: **fully modernized plugins 0/8 = 0%**. Existing accepted inventory/version v0.2 (#81) is baseline context, not modernization credit. Existing feature plan remains 15% host (2/13), 8% accepted (1/13).
 
 Parent-reviewed fixed denominator **N=42** capability groups in PLUGIN_FEATURE_MATRIX: Image 6, Video 6, Audio 5, PDF 5, Editor 6, Markdown 5, Document 4, Archive 5. **Host-verified 0/42 = 0%; fully accepted 0/42 = 0%.** Source audit 8/8 coverage is only stage coverage. The parent reviewed the 42 rows against the full intake and froze this denominator on 26 October 2026; all nested requirements remain authoritative.
