@@ -1,6 +1,6 @@
 # Plan reconciliation — 29 October 2026
 
-Status: review checkpoint; implementation remains paused for this reconciliation. This document supersedes stale current-status summaries below the linked historical records, without rewriting their dated evidence. It awards no new implementation or acceptance credit.
+Status: historical review snapshot, completed before the owner resumed implementation on 29 October. Implementation was paused during this reconciliation. This document supersedes stale current-status summaries below the linked historical records, without rewriting their dated evidence. It awards no new implementation or acceptance credit.
 
 ## Sources and method
 
