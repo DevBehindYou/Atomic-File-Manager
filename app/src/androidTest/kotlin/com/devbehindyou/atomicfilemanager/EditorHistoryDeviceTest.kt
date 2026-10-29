@@ -2,6 +2,7 @@ package com.devbehindyou.atomicfilemanager
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.text.TextRange
@@ -107,6 +109,26 @@ class EditorHistoryDeviceTest {
                 compose.onNodeWithContentDescription(context.getString(R.string.editor_redo)).performClick()
                 compose.onNodeWithTag("text_editor_field").assertTextEquals(edited)
                 compose.runOnIdle { assertEquals(TextRange(1 + inserted.length), editor.state.value.value.selection) }
+                // Native key dispatch complements the scoped JVM keyboard-map fixture.
+                compose.onNodeWithTag("text_editor_field").performClick().performKeyInput {
+                    keyDown(Key.CtrlLeft)
+                    keyDown(Key.Z)
+                    keyUp(Key.Z)
+                    keyUp(Key.CtrlLeft)
+                }
+                compose.onNodeWithTag("text_editor_field").assertTextEquals(original)
+                compose.onNodeWithTag("text_editor_save").assertIsNotEnabled()
+                compose.onNodeWithTag("text_editor_field").performKeyInput {
+                    keyDown(Key.CtrlLeft)
+                    keyDown(Key.ShiftLeft)
+                    keyDown(Key.Z)
+                    keyUp(Key.Z)
+                    keyUp(Key.ShiftLeft)
+                    keyUp(Key.CtrlLeft)
+                }
+                compose.onNodeWithTag("text_editor_field").assertTextEquals(edited)
+                compose.onNodeWithTag("text_editor_save").assertIsEnabled()
+                assertArrayEquals("Keyboard history must not write the source", originalBytes, source.readBytes())
                 compose.onNodeWithTag("text_editor_save").performClick()
                 compose.waitUntil(15_000) { saved.get() == 1 && !editor.state.value.saving }
                 compose.onNodeWithTag("text_editor_save").assertIsNotEnabled()
