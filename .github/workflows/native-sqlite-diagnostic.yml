@@ -1,0 +1,40 @@
+name: Native SQLite diagnostic
+
+# Evidence collection only. Required PR CI remains unchanged in ci.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-sqlite-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sqlite-comparison:
+    name: Unchanged SQLite consumers — normal versus isolated forks
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: Collect both diagnostic outcomes
+        shell: bash
+        run: |
+          chmod +x gradlew
+          bash scripts/diagnostics/native_sqlite_comparison.sh
+      - name: Upload complete diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-sqlite-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/native-sqlite-diagnostic
+          if-no-files-found: error
+          retention-days: 14
