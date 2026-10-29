@@ -10,4 +10,4 @@ The init script disables test output/cache reuse for both runs and writes ordere
 
 The shell records a failed normal result and still runs the isolated comparison. It exits nonzero if either invocation fails; upload-artifact always runs. Cancellation/timeouts are incomplete evidence, not successful diagnostics. Missing reports or task-execution timestamps must be checked before inferring consumer execution, especially if Gradle fails before the test task. A passing narrow isolated run does not establish that the full suite is repaired; preserve full-suite failures and identify the initialization difference before proposing a scoped fix.
 
-Parent review, local script/YAML static validation and explicit dispatch are pending. No local Gradle, push, PR or remote workflow run is performed by the diagnostic author. The published beta remains frozen.
+Bash syntax validation and parsed YAML manual-only/read-only/single-job scope checks pass. Parent review, Gradle init-script execution and explicit dispatch remain pending. No local Gradle, push, PR or remote workflow run is performed by the diagnostic author. The published beta remains frozen.
