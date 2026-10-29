@@ -3,14 +3,15 @@ package com.devbehindyou.atomicfilemanager
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -42,6 +43,8 @@ class GifPlaybackDeviceTest {
             val application = compose.activity.application
             val directory = Files.createTempDirectory(application.cacheDir.toPath(), "gif-playback-").toFile()
             val source = File(directory, "animation.gif")
+            val shown = mutableStateOf(true)
+            var composed = false
             try {
                 val bytes =
                     InstrumentationRegistry.getInstrumentation().context.assets.open("gif/red-green.gif").use {
@@ -56,22 +59,23 @@ class GifPlaybackDeviceTest {
                     }
                 compose.setContent {
                     AtomicTheme(darkTheme = true, wallpaperAccent = false) {
-                        Box(Modifier.size(240.dp).testTag("gif_viewport")) { ZoomableImage(node, container) }
+                        if (shown.value) { Box(Modifier.size(240.dp).testTag("gif_viewport")) { ZoomableImage(node, container) } }
                     }
                 }
+                composed = true
                 compose.waitUntil(15_000) {
                     compose.onAllNodesWithContentDescription(source.name).fetchSemanticsNodes().isNotEmpty()
                 }
                 awaitBothFrames()
-                compose.onNodeWithContentDescription("Stop animation").performClick()
+                compose.onNodeWithText("Stop animation").performClick()
                 val stopped = centerColor()
                 Thread.sleep(750)
                 assertEquals("Stopped image must keep its frame", stopped, centerColor())
-                compose.onNodeWithContentDescription("Replay animation").performClick()
+                compose.onNodeWithText("Replay animation").performClick()
                 awaitBothFrames()
                 assertArrayEquals(bytes, source.readBytes())
             } finally {
-                compose.setContent { }
+                if (composed) compose.runOnIdle { shown.value = false }
                 compose.waitForIdle()
                 if (source.exists()) assertTrue(source.delete())
                 assertTrue("Unexpected files must be retained", directory.delete())
