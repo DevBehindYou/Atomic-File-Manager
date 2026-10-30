@@ -7,4 +7,6 @@
     <string name="image_load_too_large">This image exceeds the preview limits. Open it in another app.</string>
     <string name="image_load_memory">There is not enough memory to preview this image. Close other viewers and try again.</string>
     <string name="image_load_failed">The image could not be loaded. Try again or open it in another app.</string>
+    <string name="gif_stop">Stop animation</string>
+    <string name="gif_replay">Replay animation</string>
 </resources>

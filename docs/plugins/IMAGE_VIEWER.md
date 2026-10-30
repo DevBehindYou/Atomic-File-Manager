@@ -18,7 +18,7 @@ Format recognition is not a decoder matrix. A sampled bitmap does not establish 
 | --- | --- | --- |
 | IMG-T01 | P0 / accepted into feature integration | PR #80 head3ef374a passes CI40106431841 and guarded merge82e7e94; preserve evidence and track wider touch/provider acceptance under IMG-T02 |
 | IMG-T02 | P0 / open acceptance | Corrupt/missing/denied/disconnected inputs, rapid switching and recreation/transform behavior across supported APIs/providers |
-| IMG-T03 | P1 / deferred audit/research | Animation and high-resolution strategy; evaluate native compatibility, memory/size and licensing before engines |
+| IMG-T03 | P0 / GIF repair under native validation | PR #101: actual animated playback, finite completion, Replay, ownership and API28 compatibility; high-resolution strategy remains separate |
 | IMG-T04 | P1 / deferred | Metadata/view controls and safe edit/save-copy workflows with original-integrity tests |
 
 ## Bugs and risks
@@ -47,3 +47,11 @@ Host consumers: `GalleryTest`, `ImagePreviewHelperTest`, `PreviewTypeTest`, `Pre
 **IMG-T05 / P0 / source candidate; validation pending.** The separately audited IMG1 group now has an isolated focused transform increment: tap/pinch centroid preservation, fitted-bitmap pan bounds, viewport clipping and size-change re-clamping. Existing revision/Retry ownership and fit-scale one-finger paging remain. See [candidate validation](../testing/IMAGE_FOCUSED_TRANSFORMS_VALIDATION.md) and [modernization scope/progress](modernization/PLUGIN_PROGRESS.md).
 
 The tap-location and letterbox gaps are source observations until the parent retains controlled unchanged-source failures. Four pointer/native-pixel consumers and eight pure geometry contracts are prepared; the author ran no Gradle or device tests. Host/CI/device acceptance is open, and no full IMG1 or whole-plugin percentage credit is earned. Fit-width/original controls, restoration, animation/editing/high-resolution and the complete GIF journey remain open. Version stays v0.2.
+
+## GIF defect and stable target — 29 October2026
+
+IMG-B04: animated GIF files currently display one static frame through BitmapFactory; confirmed source defect and user report. Native API28 playback is an isolated candidate under validation, with real-pixel/Stop/Replay/lifecycle/original-integrity tests and input/dimension limits. No GIF pass is yet claimed. See [GIF candidate evidence](../testing/GIF_PLAYBACK_CANDIDATE.md) and [v0.2.1 stable acceptance](../roadmap/STABLE_0_2_1_ACCEPTANCE.md). Plugin metadata remains v0.2 and IMG2/IMG6 remain open.
+
+### 30 October repair checkpoint
+
+[PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101), source60031fa, passes normal CI host/static/packaging. API34 native:7/8 passed; finite fixture first-frame capture missed its brief initial frame. API28 aborts in native heap-buffer reads before completing the first case. Callback disposal crash from9c96985 is not reproduced in the passing API34 looping/lifecycle/disposal case. The direct-buffer compatibility repair and finite-fixture observation correction remain candidates until current-source native checks pass. Original failures and exact artifact identities are retained in [GIF evidence](../testing/GIF_PLAYBACK_CANDIDATE.md). No complete IMG2/IMG6 credit.
