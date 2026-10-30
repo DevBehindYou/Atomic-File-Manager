@@ -35,7 +35,7 @@ internal class GifPreviewDecoder(
                             if (count == -1) break
                             if (count == 0) throw IOException("GIF stream made no progress")
                             output.write(buffer, 0, count)
-                            if (output.size() > MAX_BYTES) return@withContext tooLarge(id)
+                            if (output.size() > MAX_BYTES) throw GifBudgetExceeded()
                         }
                         output.toByteArray()
                     }
@@ -43,8 +43,15 @@ internal class GifPreviewDecoder(
                     return@withContext FileResult.Failure(FileError.UnsupportedFormat("GIF"))
                 }
                 currentCoroutineContext().ensureActive()
+                // API28's animated decoder reads heap buffers through JNI on an unattached thread.
+                // A direct buffer keeps frame reads native; never mutate it after decode begins.
+                val encoded =
+                    ByteBuffer.allocateDirect(bytes.size).apply {
+                        put(bytes)
+                        flip()
+                    }
                 val drawable =
-                    ImageDecoder.decodeDrawable(ImageDecoder.createSource(ByteBuffer.wrap(bytes))) { decoder, info, _ ->
+                    ImageDecoder.decodeDrawable(ImageDecoder.createSource(encoded)) { decoder, info, _ ->
                         val width = info.size.width
                         val height = info.size.height
                         if (width <= 0 || height <= 0 || width.toLong() * height > MAX_PIXELS) throw GifBudgetExceeded()

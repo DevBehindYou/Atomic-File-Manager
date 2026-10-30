@@ -86,6 +86,31 @@ class GifPreviewDecoderTest {
         }
 
     @Test
+    fun encodedBudgetRemainsPrimaryWhenClosingAlsoFails() =
+        runTest {
+            var consumed = 0
+            val input =
+                object : InputStream() {
+                    override fun read() = error("Bulk reads required")
+
+                    override fun read(
+                        buffer: ByteArray,
+                        offset: Int,
+                        length: Int,
+                    ): Int {
+                        buffer.fill(0, offset, offset + length)
+                        consumed += length
+                        return length
+                    }
+
+                    override fun close(): Unit = throw IOException("close failure")
+                }
+            val result = GifPreviewDecoder({ backend(input) }, StandardTestDispatcher(testScheduler)).decode(ID)
+            assertTrue(result is FileResult.Failure && result.error is FileError.FileTooLarge)
+            assertEquals(16 * 1024 * 1024 + 1, consumed)
+        }
+
+    @Test
     fun readFailureClosesAndRemainsRecoverable() =
         runTest {
             var closed = false

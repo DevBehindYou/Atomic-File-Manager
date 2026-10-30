@@ -84,20 +84,26 @@ class GifPlaybackDeviceTest {
                 compose.waitUntil(15_000) {
                     compose.onAllNodesWithContentDescription(source.name).fetchSemanticsNodes().isNotEmpty()
                 }
-                awaitBothFrames()
                 if (finite) {
                     compose.waitUntil(6_000) {
                         compose.onNodeWithContentDescription("Stop animation").fetchSemanticsNode()
                             .config.contains(SemanticsProperties.Disabled)
                     }
                     val completed = centerColor()
+                    assertEquals("Finite GIF must finish on the green frame", 2, completed)
                     Thread.sleep(750)
                     assertEquals("Finite GIF must stay on its final frame", completed, centerColor())
                     compose.onNodeWithContentDescription("Replay animation").performClick()
                     awaitBothFrames()
+                    compose.waitUntil(6_000) {
+                        compose.onNodeWithContentDescription("Stop animation").fetchSemanticsNode()
+                            .config.contains(SemanticsProperties.Disabled)
+                    }
+                    assertEquals("Replay must finish on the green frame", 2, centerColor())
                     assertArrayEquals(bytes, source.readBytes())
                     return@runBlocking
                 }
+                awaitBothFrames()
                 repeat(3) { compose.onNodeWithContentDescription("Replay animation").performClick() }
                 awaitBothFrames()
                 compose.onNodeWithContentDescription("Stop animation").performClick()
