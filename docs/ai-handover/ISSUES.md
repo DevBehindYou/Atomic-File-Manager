@@ -1,67 +1,36 @@
-# Issues
+# Issues and failed approaches
 
-Last updated: 2026-10-08
+Updated **4 November 2026**. Historical IDs/fixes remain in [the archive](history/2026-11-04-pre-refresh/ISSUES.md).
 
-## Open
+## ISS-101 — GIF acceptance incomplete
 
-### ISS-001 — The production signing key is not configured
+Status: PARTIAL. Original BitmapFactory preview showed one static frame. Candidate 9c96985 failed phone disposal: `AnimatedImageDrawable.lambda$postOnAnimationEnd$2` iterated a cleared callback list. Callback-free 60031fa passed the looping API34 journey, but API28 aborted on `AnimatedImageTh -> ByteArrayStream::read -> get_env_or_die` (`Failed to get JNIEnv for JavaVM`). Its 600 ms finite fixture also expired before initial API34 capture.
 
-Status: UNRESOLVED (needs the owner)
+Source-backed repairs at fb856a6: lifecycle/current-page coroutine owns playback without native animation callbacks; immutable direct ByteBuffer avoids per-frame heap-array JNI reads; finite fixture retains actual Replay colours and natural-completion assertions with a usable observation interval. Host/API28/API34 CI passes (TESTING). Current phone, review and integration gates remain. Encoded/dimension caps are not a whole-heap/frame-count/time guarantee. Stop/Replay is not true Pause/Resume.
 
-Impact: Release APKs are signed with the debug key (`app/build.gradle.kts`, `signingConfig = debug`), so they cannot be published on Play.
+## ISS-102 — Markdown acceptance and CI trigger gap
 
-Next step:
+Status: PARTIAL. Published 7d54483 static CI passes; full unit/native cancelled. Its workflow watches only workflow/native-fixture files, omitting production viewer/reader/strings. Proposed trigger repair was never applied: recovered checkout remains clean. Add exact paths from PENDING. Combining Markdown/GIF conflicts in `docs/plugins/modernization/PLUGIN_PROGRESS.md`; production sources are disjoint. Preserve both partial records and denominator.
 
-1. The owner creates an upload key.
-2. Store it as CI secrets (names to choose, for example `SIGNING_KEYSTORE_BASE64`, `SIGNING_KEY_PASSWORD`). Never commit it.
-3. Add a `release` signingConfig that reads them.
+## ISS-103 — Missing local evidence/worktrees
 
-### ISS-002 — Device-only behaviour has never run on hardware
+Status: VERIFIED absence; cause UNKNOWN. Primary `build/audit-tools` and nested checkout directories were absent on 30 October. Git retains refs/stale registrations. Recovered GIF/Markdown managed checkouts exist. GIF full-build log stops after compilation, lacks `.exit`, and no Java build is running. Never infer success or claim missing raw logs still exist. Recover hosted evidence by run/source IDs; inspect retained commits/ownership before pruning anything.
 
-Status: UNRESOLVED
+## ISS-104 — Measured performance baseline deferred
 
-Impact: The following are IMPLEMENTED_UNTESTED on a phone:
+Status: BROKEN measured scenarios; owner deferred execution. Prior 100-file startup/scroll scenarios failed; provider fixture correctness passed separately. Later preflight hung on root-manager probing. Owner chose unchanged permissions and deferred benchmarking. Host/provider tests, packaging and system-compositor rows do not establish an Atomic performance baseline or speedup.
 
-- SMB against a live server
-- mDNS discovery on a real network
-- USB OTG
-- Shizuku
-- Wi-Fi share from a PC browser
-- a real process kill mid-copy
-- the baseline profile, monkey run and JankStats
+## ISS-105 — Native SQLite JNI intermittency
 
-Next step: TASK-001 to TASK-005 in `PENDING.md`.
+Status: UNKNOWN root cause. PR#98 retained 42 native SQLite failures before assertions, then an unchanged rerun passed. PR#100 compares six unchanged consumers under normal/isolated forks; 49 cases each passed. A diagnostic pass is not an app fix. Preserve failures; don't globally switch to LEGACY SQLite to conceal them.
 
-## Resolved (recent; one line each, the PR has the detail)
+## Superseded issues
 
-| ID | Problem | Root cause | Fix |
-|---|---|---|---|
-| ISS-010 | R8 release failed on SFTP | sshj references GSS/JAAS classes that Android lacks | `-dontwarn org.ietf.jgss.**`, `javax.security.auth.login.**` (PR #23) |
-| ISS-011 | `checkDebugDuplicateClasses` failed | bcprov 1.85.2 next to bcutil 1.84 | Pin all BouncyCastle jars to 1.86 (ADR-005, PR #28) |
-| ISS-012 | API 27 smoke test crashed | `RECEIVER_NOT_EXPORTED` permission path on old Android | `RECEIVER_EXPORTED` (ADR-006, PR #33) |
-| ISS-013 | Lint `MissingPermission` on notify | No `POST_NOTIFICATIONS` check | Check before notifying (PR #32) |
-| ISS-014 | Lint `ContextCastToActivity` | `LocalContext as Activity` | `LocalActivity.current` (PR #32) |
-| ISS-015 | `ProcessKillTest` race | `lateinit recovery` was read by the queue's start-up on another thread | `CompletableDeferred` (PR #37) |
-| ISS-016 | `ProcessKillTest` mid-write failed after the buffer grew to 256 KB | The 300 KB payload was killed on its first chunk, before the async journal write recorded RUNNING | Payload sized from `BUFFER_SIZE` (×4); old payload failed 1 in 8 local runs, new one 0 in 12 (PR #38) |
+ISS-001 (missing release key) is OBSOLETE: dedicated signing/published beta exist. ISS-002 (no hardware work ever) is OBSOLETE as a blanket claim: selected native/phone journeys pass, while wider network/USB/process-death/performance remains PARTIAL. API27 is no longer the supported baseline.
 
-## Failed approaches
+## Do not repeat
 
-### FA-001 — A large, fixed test payload for "mid-write"
-
-Attempt: Hard-code the payload size (300,000 bytes) in `ProcessKillTest`.
-
-Why it failed: It silently depended on the 64 KB buffer. A larger buffer turned "mid-write" into "first write" and raced the journal.
-
-Do not repeat: Size kill-point fixtures from `FileOperationsEngine.BUFFER_SIZE`.
-
-### FA-002 — Ending detekt/ktlint and push in one `&&` chain whose earlier output is filtered
-
-Attempt: `ktlint ... | grep -v ... && git commit && git push`.
-
-Why it failed: `grep -v` changes the exit status, so a branch was pushed with ktlint errors (PR #40, fixed in a follow-up commit).
-
-Do not repeat: Check ktlint's own exit code before committing.
-
-### FA-003 — Dropping the category walk in favour of the search index
-
-Not attempted on purpose. See ADR-004: it would hide new camera photos for up to 6 hours.
+- Array-backed animated buffers on API28 or callback unregister around queued completion caused real crashes.
+- Initial finite-frame capture must not assume a brief frame survives cold UI synchronization; test Replay and natural completion explicitly.
+- ADB exit 0, a compiled APK, a cancelled build, old-head CI, missing logs or planned agent work do not establish acceptance.
+- Preserve original failures and exact provenance. Keep FA-001 buffer-relative kill fixtures, FA-002 linter exit-code checks and FA-003 category freshness prerequisites from the archive.
