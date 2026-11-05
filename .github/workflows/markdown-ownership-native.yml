@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/markdown-ownership-native.yml'
       - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/MarkdownOwnershipDeviceTest.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/MarkdownPreviewContent.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/MarkdownBlocks.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/domain/usecase/ReadFileContentUseCase.kt'
+      - 'app/src/main/res/values/markdown_preview_strings.xml'
 
 permissions:
   contents: read
