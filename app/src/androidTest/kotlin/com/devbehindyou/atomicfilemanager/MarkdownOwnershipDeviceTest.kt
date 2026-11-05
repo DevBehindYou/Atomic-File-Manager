@@ -83,7 +83,7 @@ class MarkdownOwnershipDeviceTest {
                 awaitText("Native original")
                 assertEquals(2, reads.get())
                 assertArrayEquals(original, source.readBytes())
-                compose.onNodeWithText("Raw").performClick()
+                compose.onNodeWithContentDescription("Raw").performClick()
                 awaitText("# Native original")
 
                 val revised = "# Native revised".toByteArray()
@@ -103,7 +103,7 @@ class MarkdownOwnershipDeviceTest {
                 }
                 val disclosure = context.getString(R.string.markdown_preview_truncated)
                 awaitText(disclosure)
-                compose.onNodeWithText("Raw").performClick()
+                compose.onNodeWithContentDescription("Raw").performClick()
                 compose.onNodeWithText(disclosure).assertIsDisplayed()
                 assertEquals(4, reads.get())
                 assertArrayEquals("The viewer must not rewrite its source", bounded, source.readBytes())
