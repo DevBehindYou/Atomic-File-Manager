@@ -1,38 +1,32 @@
-# Testing
+# Verification evidence
 
-## Current validation — 20 October 2026
+Refreshed **4 November 2026**. Hosted conclusions/logs were read; this refresh ran no Gradle, instrumentation, benchmark or release command.
 
-Current source `4792db8` includes Files storage shortcuts, persisted List/Grid views, content-sized top options, responsive icon-card action menus and distinct theme-aware icons/colours for 15 file families. All 917 app JVM/Robolectric cases, 28 custom Lint-rule cases, ktlint/detekt and debug/instrumentation packaging pass. All 13 selected API34 phone cases pass; manual popup sizing, Commands/Select grids and coloured folder icons are verified. The installed debug APK matches the recorded build hash, and the settled app is back on Home. The current selected log contains no StrictMode or fatal errors; a prior InsetsSourceControl warning remains historical evidence. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete Gradle run (exit 0). See [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader provider, hardware, recovery, performance and owner-signing acceptance remains open.
+| ID | Source / check | Status and result |
+| --- | --- | --- |
+| E-GIF-CI | fb856a6; [41064609636](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/41064609636) | VERIFIED: unit/APK and static/Detekt/Lint jobs SUCCESS |
+| E-GIF-NATIVE | Same PR head; [41064609699](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/41064609699) | VERIFIED: 8 native cases pass on API28 and 8 on API34; finite/looping controls, active-page/lifecycle/disposal, static gesture/EXIF/BMP |
+| E-GIF-LOCAL | Managed GIF `.local-evidence/gif-fb856a6-validation.log` | UNKNOWN completion: ends after Java compile, `.exit` absent, no Java build observed |
+| E-GIF-PHONE | Latest repair fb856a6 | UNKNOWN: no retained current-repair phone result found; older phone run failed callback disposal |
+| E-GIF-PREV | 60031fa; CI40931415358/native40931415466 | Historical 1306 host cases pass; API34 native 7/8; API28 process abort. Recovered artifacts below |
+| E-MD-CI | 7d54483; [40915350269](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/40915350269), [40915350076](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/40915350076) | PARTIAL: static SUCCESS, unit/APK/native CANCELLED |
+| E-MD-LOCAL | Earlier e217005/4c8fc5f | Historical recorded 16 host cases and packaging pass; combined 7d54483 validation interrupted. Missing old raw files cannot establish a current pass |
+| E-PDF | Published dd800b8, CI40356491147 | BROKEN unit/APK; static SUCCESS. Not evidence for local 579d1be |
+| E-ARCHIVE | Published 5942082, CI40356811778 | VERIFIED host/static only. Not evidence for newer local 61af2e8 |
+| E-DOC | Published 09ec9e5, CI40356891772 | BROKEN unit/APK; static SUCCESS. Not evidence for local eb2d15a |
+| E-EDITOR | #90 source 331a3fc, merge b995e23 | Scoped accepted record: 43 focused host cases, full CI, API34 emulator/phone. No complete EDT credit |
+| E-SQLITE | ac15738; [40909140527](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/40909140527), CI40909140613 | VERIFIED check conclusions; 49 cases per normal/isolated fork recorded. Root cause remains unknown |
 
-Current modernization verification: see [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). The previous complete host checkpoint `5705606` passed 712 app tests, 28 custom Lint tests, ktlint/detekt and debug/instrumentation packaging. Four automated phone tests passed earlier; the later startup manual surface recorded zero StrictMode disk warnings. The current validation above supersedes that host/device checkpoint. [MODERNIZATION_VALIDATION](../testing/MODERNIZATION_VALIDATION.md) preserves earlier Lint/release evidence. Broader device/recovery/performance acceptance remains. Do not apply historical green CI to the current branch.
+Skipped manual full-device/signed-runtime jobs are not successful executions. GIF native success does not establish all providers, huge/long GIFs, true pause/resume, accessibility, performance or complete Image modernization.
 
-Historical last verified feature commit: `e2b1509` (`main`)
+## Retained evidence and provenance
 
-| Check | Status | Evidence |
-|---|---|---|
-| ktlint, detekt, Android Lint (debug and release, custom rules) | VERIFIED | CI job "Static analysis" green on every merged PR |
-| Unit and Robolectric tests | VERIFIED | CI job "Unit tests and APK packaging": about 535 tests, plus a Robolectric smoke test on SDK 27 and 34 |
-| Debug and R8 release APK packaging | VERIFIED | Same CI job |
-| Process-kill recovery (simulated) | VERIFIED | `ProcessKillTest`, 4 kill points (JVM) |
-| SFTP backend | VERIFIED (in-process server) | sshd-based tests |
-| Instrumented device tests | UNKNOWN for current `main` | The emulator job runs only by hand (`workflow_dispatch`); the last known pass was 12 tests on an API 34 phone, on 15 Sep 2026, before Phases 1–4 |
-| Release launch and monkey (10,000 events) | NOT RUN | Added in PR #39 |
-| Macrobenchmarks (startup, scroll, baseline profile) | NOT RUN | They need a device |
+GIF root: `C:/Users/temp/ChatGPT-Accounts/KAYA/codex/worktrees/gif-playback-recovery/Atomic-File-Manager`. Ignored `.local-evidence/ci-60031fa/{api28,api34,host}` contains recovered old CI reports, native logs, exact APKs and source/app-tree/hash identities. Latest native artifacts remain on GitHub with 14-day retention: capture identities before phone installation. CI debug signing is ephemeral; do not clear app data or uninstall to install an incompatible signature. Rebuild with existing local debug identity if needed.
 
-## How to run locally
+Old primary `build/audit-tools` paths are absent. A historical description in Git is not recovery of raw local evidence. Live phone/APK/permission state was not read during this handover.
 
-```bash
-./gradlew ktlintCheck detekt :app:lintDebug :app:lintRelease
-./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
-```
+## Beta and signing boundary
 
-CI (`.github/workflows/ci.yml`) is the build authority. Agents without an Android SDK can still run ktlint and detekt as standalone jars on changed files. Pure Kotlin tests can run in a plain Kotlin/JVM Gradle project that compiles `domain/`, `data/operations`, `data/search` and similar folders.
+[Published prerelease](https://github.com/DevBehindYou/Atomic-File-Manager/releases/tag/v0.2.0-beta.1), verified live 4 November: tag `v0.2.0-beta.1`, source `02605684b2b0bab41f2546f69b859c542a375ac6`, versionCode 2, published 28 October at 17:46 UTC. APK `Atomic-File-Manager-0.2.0-beta.1.apk`: 15,075,706 bytes; SHA256 `bbd5b14fa3b29f15b22756a3bbbce2eeb620aa696aa4ed98f5eb419fb97572fb`. Manifest/checksum/public certificate-fingerprint assets are present. [Publication record](../testing/BETA_0_2_0_PUBLICATION_VALIDATION.md) owns original signature/runtime verification; beta was not reinstalled here.
 
-## Not tested (needs hardware)
-
-SMB live, mDNS, USB OTG, Shizuku, Wi-Fi share from a browser, a real process kill, cold start and scroll budgets, copy speed on SD and USB. See `PENDING.md` P0.
-
-## Known gaps
-
-- No large-data test (100,000 files, a 4 GB file); see TASK-013.
-- The device matrix covers only an API 34 phone.
+Private key/backup location: `C:/Users/temp/Documents/Atomic-File-Manager-Signing`. Owner-requested ignored root copies include `atomic-file-manager-release.keystore`, `signing.properties`, `Atomic-File-Manager-release-signing-backup-2026-10-26-verified.zip`, debug keystore and public certificate. Record locations/presence only, never values. Backup ZIP is not encrypted. Never publish key material, rotate keys, rewrite beta tag/assets or substitute debug signing for stable release.

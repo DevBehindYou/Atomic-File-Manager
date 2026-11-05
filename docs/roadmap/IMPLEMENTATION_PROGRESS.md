@@ -1,5 +1,7 @@
 # Implementation progress
 
+**Current reconciliation, 29 October 2026:** [original-plan comparison and remaining work](PLAN_RECONCILIATION_2026-10-29.md). The 78% below is historical weighted implementation coverage, not overall acceptance. Dedicated signing and beta distribution are now complete; broader M13 gates remain open.
+
 21 October addition: the expanded [feature upgrade plan](FEATURE_UPGRADE_PLAN.md) is complete as a planning deliverable. Its U01–U13 ledger is separate from the modernization percentage below. The bundled plugins inventory is implemented; see [increment validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md). This does not mark the new cloud/viewer/performance requirements complete.
 
 20 October 2026; baseline `7782660`. Weights/acceptance: [OPTIMIZATION_ROADMAP](OPTIMIZATION_ROADMAP.md).
