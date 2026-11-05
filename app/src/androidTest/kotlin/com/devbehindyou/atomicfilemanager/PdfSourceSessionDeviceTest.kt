@@ -120,7 +120,7 @@ class PdfSourceSessionDeviceTest {
                 object : ContextWrapper(context) {
                     override fun getCacheDir() = cache
                 }
-            return object : AppContainer by DefaultAppContainer(context) {
+            return object : AppContainer by DefaultAppContainer(compose.activity.application) {
                 override val pdfPreviewHelper = PdfPreviewHelper(privateContext) { backend }
             }
         }
