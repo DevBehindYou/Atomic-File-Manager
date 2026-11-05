@@ -1,24 +1,17 @@
-# AI Handover Index
+# AI handover index
 
-Protocol: AI-HANDOVER/V2
+Protocol: **AI-HANDOVER/V2**. Refreshed **4 November 2026**. Documentation handover; no stable-release completion claim.
 
-Active modernization: [implementation progress](../roadmap/IMPLEMENTATION_PROGRESS.md), [audit](../architecture/PROJECT_AUDIT.md), [roadmap](../roadmap/OPTIMIZATION_ROADMAP.md), and [performance evidence](../testing/PERFORMANCE_BASELINE.md). Historical feature completion is distinct from the new fixes' acceptance.
+Read in order:
 
-Start here:
+1. [STATE.yaml](STATE.yaml): compact snapshot and source identities.
+2. [HANDOVER.md](HANDOVER.md): orientation.
+3. [CURRENT_STATE.md](CURRENT_STATE.md): branches, PRs, worktrees.
+4. [PENDING.md](PENDING.md): prioritized exit gates.
+5. [NEXT_AGENT.md](NEXT_AGENT.md): continuation procedure.
 
-1. `STATE.yaml`: a compact snapshot of the current state
-2. `HANDOVER.md`: a quick summary
-3. `CURRENT_STATE.md`: the present state in detail
-4. `PENDING.md`: remaining work, in priority order
-5. `NEXT_AGENT.md`: how to continue
+Read on demand: [TESTING](TESTING.md), [ISSUES](ISSUES.md), [PROJECT_CONTEXT](PROJECT_CONTEXT.md), [DECISIONS](DECISIONS.md), [CHANGES](CHANGES.md).
 
-Read only when one of the above points to them:
+Scope owners: [feature plan](../roadmap/FEATURE_UPGRADE_PLAN.md), [feature ledger](../roadmap/FEATURE_UPGRADE_PROGRESS.md), [advanced intake](../roadmap/ADVANCED_BUILT_IN_PLUGINS_INTAKE.md), [42-group matrix](../plugins/modernization/PLUGIN_FEATURE_MATRIX.md). This handover reconciles freshness; it does not shrink requirements.
 
-- `ISSUES.md`: open issues, recently resolved issues, failed approaches
-- `CHANGES.md`: what each PR changed, and why
-- `DECISIONS.md`: technical decisions (ADRs)
-- `TESTING.md`: verification evidence and gaps
-- `PROJECT_CONTEXT.md`: goal, scope, stack, constraints
-- `history/`: archived handoffs; not current state
-
-Source of truth for product scope and the plan: `docs/roadmap/ALL_IN_ONE_PLAN.md`.
+[Archived pre-refresh handover](history/2026-11-04-pre-refresh/README.md): historical facts, not current instructions. Do not load by default.

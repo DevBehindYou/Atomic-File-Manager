@@ -1,70 +1,103 @@
 protocol: AI-HANDOVER/V2
-updated: 2026-10-20
-project: atomic-file-manager   # repo DevBehindYou/Atomic-File-Manager
-objective: evidence-based architecture modernization; safety fixes and integrated validation
-
+updated: "2026-11-04"
+timezone: Asia/Calcutta
+project: Atomic File Manager
+repository: DevBehindYou/Atomic-File-Manager
+objective: "v0.2.1 stable: eight bundled plugins functional, modernized and accepted; finish feature/optimization gates"
+current_request: documentation handover; no implementation or device run started by this refresh
+snapshot:
+  status: VERIFIED
+  confidence: HIGH
+  limit: Git/CI/release metadata rechecked; phone and interrupted local build not revalidated
 repo:
-  branch: codex/architecture-audit
-  commit: "4792db8" # source checkpoint; 917 host and 13 selected device cases pass
-  baseline: "7782660"
-  dirty: true # preserved user icon artwork; source checkpoint excludes the docs-only follow-up
-  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
-
+  primary: C:/Users/temp/Documents/GitHub/Atomic-File-Manager
+  primary_branch: codex/beta-0.2.0
+  primary_commit: 02605684b2b0bab41f2546f69b859c542a375ac6
+  primary_dirty: true
+  primary_untracked: docs/design/icon-variations/ (user artwork; preserve)
+  main: 7782660972148ed4b2db8f5a43a402995a5d730c
+  integration_branch: codex/feature-upgrade-base
+  integration_commit: b995e23e96d3c1a68f78b9c25395045cb7e99e47
+  handover_branch: codex/handover-2026-11-04
+  handover_source_base: b995e23e96d3c1a68f78b9c25395045cb7e99e47
+  handover_changes: documentation only; resulting commit identity lives in Git
+  open_pr_count_before_handover: 24
 stack:
-  - kotlin-2.2.10
-  - jetpack-compose (bom 2026.04.01) + atomic design system
-  - agp-9.1.1 / gradle-9.3.1 / java-21
-  - android minSdk 27, targetSdk 36
-  - room v4 + sqliteopenhelper
-  - manual DI (AppContainer), hilt declared but unused
-
+  language: Kotlin 2.2.10 / Compose / Atomic design system
+  build: AGP 9.1.1 / Gradle 9.3.1 / JDK 21
+  android: min28 / compile36 / target36
+  dependency_graph: manual AppContainer / DefaultAppContainer
 status:
-  build: PASS             # 4792db8 complete static/test/Lint/debug/release/benchmark packaging run, exit 0
-  unit_tests: PASS        # 917 app + 28 custom-rule cases; zero failures/errors/skips
-  device_tests: PARTIAL   # all 13 selected surface cases pass; broader hardware/recovery acceptance remains
-  runtime: PARTIAL        # current 13-case log clean; prior InsetsSourceControl diagnostic retained
-  release_signing: BROKEN  # debug-signed (ISS-001)
-  plan_phases_0_4: IMPLEMENTED
-  plan_16_optimization: PARTIAL
-
+  stable_0_2_1: NOT_IMPLEMENTED
+  beta_publication: VERIFIED
+  dedicated_release_signing: VERIFIED
+  plugin_modernization: PARTIAL
+  gif_ci_host_and_api28_api34: VERIFIED
+  gif_current_phone_acceptance: UNKNOWN
+  gif_integration_merge: NOT_IMPLEMENTED
+  gif_local_full_validation: UNKNOWN
+  markdown_combined_acceptance: PARTIAL
+  measured_device_benchmark: BROKEN
 progress:
-  implemented_weight: "47/60 (~78%) of modernization roadmap; 26/26 first batch"
-  source: docs/roadmap/IMPLEMENTATION_PROGRESS.md
-  remaining: Startup access/volume loading-state polish, retained historical Android resource diagnostic, M12 hygiene, broader device/performance acceptance, current-head CI and human/owner gates
-
-done:
-  - "M01 source-linked audit, architecture, decisions, roadmap and performance methodology"
-  - "Startup and comparison preference IO, plugin-loading cleanup and storage-access adapter integrated"
-  - "Thumbnails/viewers, live Tasks, Files controls, adaptive menus and typed icons implemented; 917 host and 13 selected phone cases pass"
-  - plan phases 0-4 (PRs #1-#37)
-  - "§16: H1 H2 H3 H7 H8 H10, StrictMode, JankStats, monkey job (#38 #39)"
-  - "§16 partial: H4 H5 H6 H9 (#39 #40 #41)"
-
-pending:
-  P0: [TASK-001 emulator job, TASK-002 baseline profile, TASK-003 network on hardware, TASK-004 usb checklist, TASK-005 real process kill]
-  P1: [TASK-006 play policy (owner), TASK-007 signing (owner)]
-  P2: [TASK-010..TASK-016]
-
-constraints:
-  - focused PRs on codex/<topic>; high-risk filesystem changes require human review
-  - no fabricated attribution, session trailers or validation evidence
-  - never skip or disable tests; never rewrite shared history
-  - no secrets in repo
-  - plain-language UI (plan §7.4); every mutation through FileOperationsEngine + journal
-
-critical_files:
-  - docs/roadmap/ALL_IN_ONE_PLAN.md
-  - app/src/main/kotlin/com/devbehindyou/atomicfilemanager/AtomicApp.kt
-  - app/src/main/kotlin/com/devbehindyou/atomicfilemanager/MainActivity.kt
-  - app/src/main/kotlin/com/devbehindyou/atomicfilemanager/domain/usecase/FileOperationsEngine.kt
-  - app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/operations/OperationQueue.kt
-  - .github/workflows/ci.yml
-
+  feature_denominator: 13
+  feature_host_complete: 2
+  feature_host_percent: 15
+  feature_accepted: 1
+  feature_accepted_percent: 8
+  plugin_denominator: 42
+  plugin_host_complete: 0
+  plugin_accepted: 0
+  plugin_percent: 0
+  fully_modernized_plugins: 0
+  plugin_count: 8
+  audited_plugins: 8
+  cloud: ninth requested track; research/planning only; excluded from N42
+current_candidates:
+  gif:
+    pr: 101
+    head: fb856a6dac87ede7b6fbed58697a0be5e1b4a6b8
+    local_branch: codex/gif-playback-recovery
+    remote_branch: codex/image-gif-playback
+    ci: 41064609636
+    native_ci: 41064609699
+    native_cases: 8 passed on each of API28 and API34
+  markdown:
+    pr: 89
+    head: 7d544836da8f3ae766a288fbf4243444c723243b
+    local_checkout: detached and clean
+    status: PARTIAL
+    missing: full combined/native gates; production workflow trigger follow-up
+release:
+  tag: v0.2.0-beta.1
+  source: 02605684b2b0bab41f2546f69b859c542a375ac6
+  prerelease: true
+  published_utc: "2026-10-28T17:46:00Z"
+  apk_sha256: bbd5b14fa3b29f15b22756a3bbbce2eeb620aa696aa4ed98f5eb419fb97572fb
+  apk_bytes: 15075706
+  version_code: 2
+  immutable: true
+execution:
+  live_child_agents_observed: 0
+  java_build_processes_observed: 0
+  automation: permanently deleted by owner; manual continuation only
+  benchmark: owner deferred; preserve permissions; no su probes
 next:
-  - inspect preserved worktree changes and build/audit-tools log plus exit markers
-  - read docs/testing/MENU_REFINEMENT_VALIDATION.md and latest menu-refinement-complete logs; interrupted runs are not passes
-  - retain passing native fixture and physical popup/row-action evidence; broaden hardware tests only within authorization
-  - review focused draft PRs at their exact heads; run benchmark/profile measurements only within authorized hardware scope
-  - TASK-001..005 device, baseline profile and hardware checks when environment exists
-
-confidence: 4792db8 host/static/package and selected phone gates pass; broader device, recovery and performance acceptance open
+  - TASK-101 GIF phone artifact acceptance, review and clean integration trial
+  - TASK-102 existing Markdown PR and source-trigger gap
+  - TASK-103 reconcile local vs published PDF/Document/Archive candidates
+  - TASK-104 complete remaining N42 requirements and stable acceptance
+critical_files:
+  - docs/roadmap/FEATURE_UPGRADE_PLAN.md
+  - docs/roadmap/FEATURE_UPGRADE_PROGRESS.md
+  - docs/roadmap/ADVANCED_BUILT_IN_PLUGINS_INTAKE.md
+  - docs/plugins/modernization/PLUGIN_FEATURE_MATRIX.md
+  - docs/plugins/modernization/PLUGIN_PROGRESS.md
+  - docs/testing/BETA_0_2_0_PUBLICATION_VALIDATION.md
+constraints:
+  - bundled Kotlin/Compose plugins; no executable plugin downloads
+  - one local Gradle build on 8 GB host; isolated parallel source ownership
+  - no force-push, test weakening, fabricated validation or bulk old-PR merges
+  - auto-merge only after current applicable green checks, review, dependencies and clean trial
+  - integration is not main or stable release completion
+  - preserve artwork, files, settings, permissions, signing material and ignored evidence
+  - never include signing secrets in handover, Git or public artifacts
