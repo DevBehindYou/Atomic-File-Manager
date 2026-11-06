@@ -1,0 +1,7 @@
+# Audio WAV native acceptance candidate
+
+The Android suite at integration `1c85c8142d279a1f4714676be70ff6676852c5b7` has no fixture that plays a local audio file. This candidate targets the WAV portion of AUD-T02 and AUD2 through the normal built-in preview route. Existing host preparation and lifecycle checks remain in place. [Audio plugin record](../plugins/AUDIO_PLAYER.md) · [Capability matrix](../plugins/modernization/PLUGIN_FEATURE_MATRIX.md)
+
+`AudioWavDeviceTest` generates a silent eight-second mono PCM WAV and sentinel in a uniquely owned app cache directory. The real FILE backend and built-in preview load the source. The test checks a paused start, advancing Media3 playback position, a frozen clock after Pause, the rewind action and a return to zero at natural completion. It closes the preview, checks both files byte for byte and removes only the owned files and the exact synthetic Recent entry. This covers the playback clock and controls. Audible output, other formats, provider loss, lifecycle STOP, focus interruptions and performance remain separate gates.
+
+The API 28 and API 34 workflow runs the single fixture when its workflow, test or direct source paths change. Each job retains its PR event head, actual checkout, app tree, APK hashes, reports and APKs. Compilation and emulator execution are pending. This is a test and workflow addition. Full capability credit remains 0/42, with 0/8 fully modernized plugins. [Native workflow](../../.github/workflows/audio-wav-native.yml)
