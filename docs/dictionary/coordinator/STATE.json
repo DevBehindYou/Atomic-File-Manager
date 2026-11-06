@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-11-07",
+  "timezone": "Asia/Calcutta",
+  "mode": "Documentation coordination only; no Claude session launched",
+  "repository": "DevBehindYou/Atomic-File-Manager",
+  "integration": {
+    "branch": "codex/feature-upgrade-base",
+    "head": "89140e3f3d4a746e6a907912042911cb10c8f6a3",
+    "release_accepted": false
+  },
+  "coordination_branch": "codex/claude-coordinator-50",
+  "initial_task_counts": {
+    "assigned": 50,
+    "claimed": 0,
+    "accepted": 0,
+    "denominator": 50
+  },
+  "canonical_progress": {
+    "feature_host": {
+      "complete": 2,
+      "total": 13,
+      "rounded_percent": 15
+    },
+    "feature_accepted": {
+      "complete": 1,
+      "total": 13,
+      "rounded_percent": 8
+    },
+    "plugin_host": {
+      "complete": 0,
+      "total": 42
+    },
+    "plugin_accepted": {
+      "complete": 0,
+      "total": 42
+    },
+    "fully_modernized_plugins": {
+      "complete": 0,
+      "total": 8
+    },
+    "audit_coverage": {
+      "complete": 8,
+      "total": 8
+    },
+    "cloud": "separate ninth track; researched/planned, no live connector"
+  },
+  "observed_open_pr_count": 20,
+  "codex_reserved_prs": [
+    {
+      "number": 103,
+      "head": "c80a3ce4cdb1cdc6c6a71dae04c91a2626ab8ac4",
+      "state": "OPEN",
+      "draft": true,
+      "normal_checks": "SUCCESS",
+      "normal_run": 42242968794,
+      "native_checks": "SUCCESS API28 and API34",
+      "native_run": 42242968650,
+      "next_gate": "fresh review/dependencies/current-target trial and guarded integration merge"
+    },
+    {
+      "number": 105,
+      "head": "0673896a4b8ec744c7b9c356935943f691ddbefe",
+      "state": "OPEN",
+      "draft": true,
+      "normal_checks": "SUCCESS",
+      "normal_run": 42244590360,
+      "native_checks": "SUCCESS API28 and API34",
+      "native_run": 42244590510,
+      "next_gate": "exact scoped evidence/review/current-target trial and guarded integration merge"
+    },
+    {
+      "number": 63,
+      "state": "OPEN",
+      "gate": "owner-deferred measured benchmarking; do not run root probes"
+    }
+  ],
+  "other_open_pr_numbers": [
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "accepted_scoped_prs": [
+    89,
+    90,
+    91,
+    92,
+    93,
+    100,
+    101,
+    104
+  ],
+  "known_gates": [
+    "All N42 whole groups remain open",
+    "Stable v0.2.1 and main promotion remain open",
+    "Benchmarking deferred; phone permissions unchanged",
+    "Cloud real authentication needs provider/scope/registration and test-account evidence",
+    "SQLite nativeOpen root cause unproven"
+  ],
+  "snapshot_limit": "Checks observed from GitHub on November 7; not a promise that current head or base remains unchanged. Fetch/review before acting."
+}
