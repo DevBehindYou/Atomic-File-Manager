@@ -196,7 +196,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C011 — Verify actual player interruptions and noisy-output policy
 
-**P0 · implementing · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: VID1.
 
@@ -660,7 +660,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C036 — Make TXT/CSV/RTF/DOCX fidelity and fallback precise
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: DOC1.
 
@@ -674,7 +674,7 @@ Source areas: `document routing`, `docs/plugins/DOCUMENT_READER.md`, `document f
 
 **Validation.** Real routing/selection/search fixtures and malformed/unsupported handling, no private uploads. A text extract must never be labeled faithful Office pagination.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c036-document-fidelity-precision. PR: #111 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C037 — Render structured DOCX paragraphs and tables
 
@@ -766,7 +766,7 @@ Source areas: `domain/usecase/ArchiveFormats.kt`, `archive fixtures`.
 
 **Validation.** Valid, truncated, wrong-password, missing-volume and unsupported-method fixtures. Compare extracted bytes, preserve originals, record licences/hashes and actionable unsupported errors.
 
-Branch: codex/claude-c041-rar5-honest-errors. PR: #110 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c041-rar5-honest-errors. PR: #110 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C042 — Extend archive security and work-budget defenses
 

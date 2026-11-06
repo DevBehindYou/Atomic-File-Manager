@@ -41,3 +41,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C011 [#109](https://github.com/DevBehindYou/Atomic-File-Manager/pull/109) `fb11f2e`: a test-only native focus journey with workflow `preview-audio-focus-native.yml`. CI `42297378751` passed and the API 34 native job passed; API 28 was still running. Becoming-noisy needs headset/Bluetooth hardware, which is a recorded blocker. Lease: `task-C011`, plus `area-media` (held since C002).
 - C041 [#110](https://github.com/DevBehindYou/Atomic-File-Manager/pull/110) `de3caa0`: RAR5 is reported honestly and RAR 4 entry CRCs are now verified. 43 archive host tests pass. Leases: `area-archive-operations`, `task-C041`. Shares `FilePreviewDialog.kt` with #108 in different functions (`archiveError` vs `ApkSummary`).
 - Next: C036 (document fidelity/fallback) or C047 (dependency provenance), whichever does not collide with held areas.
+
+## 2026-11-06T23:05Z UTC — C011 and C041 hosted checks green; C036 published
+
+- C011 [#109](https://github.com/DevBehindYou/Atomic-File-Manager/pull/109) `fb11f2e`: native focus journey passed on both API 28 and API 34 emulators (run `42297379230`), and CI `42297378751` passed. Host and native verified; noisy-output hardware blocker stands.
+- C041 [#110](https://github.com/DevBehindYou/Atomic-File-Manager/pull/110) `de3caa0`: CI `42298802654`, archive native `42298802470` and DOCX native `42298802590` passed on API 28/34.
+- C036 [#111](https://github.com/DevBehindYou/Atomic-File-Manager/pull/111) `8e3e1cd`: precise DOCX fallbacks and RTF routing, with 39 focused host tests. Leases: `area-documents`, `task-C036`; `area-opening` is already held by Claude for C002 (`PreviewType.kt`).
+- Open Claude PRs awaiting Codex review: #107 (docs), #108, #109, #110, #111. None is merged. Accepted count stays 0/50.
