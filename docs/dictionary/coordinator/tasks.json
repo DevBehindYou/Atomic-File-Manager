@@ -50,7 +50,7 @@
       "title": "Close remaining preview IO and cancellation gaps",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "acceptance_pending",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -73,10 +73,10 @@
       "evidence": [
         "Slice 1 head 5793d04 on base 89140e3: ktlintCheck, detekt and 25 focused host tests pass (Exif 5, revision 3, MetadataText 7, ApkFacts 2, ImageLoadRecovery 3, FileOpeningRecovery 5; 0 failed/skipped) in 1m 54s.",
         "Failing controls on unchanged logic: EXIF cancellation cleanup removed 1/5 fail; old produceState keys 3/3 fail.",
-        "Record: docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md; IMAGE_VIEWER.md section."
+        "Record: docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md; IMAGE_VIEWER.md section.",
+        "Hosted on #108 head 5793d04: CI run 42296477121 (Static analysis; Unit tests and APK packaging) success; DOCX preview native run 42296477126 success on API28 and API34. mergeStateStatus CLEAN."
       ],
       "remaining": [
-        "Hosted CI (full unit suite, Lint, APK) on #108 head.",
         "Codex review, integration of #106/#107, clean current-target trial.",
         "MediaPreviewHelper blocking retriever: no defect reproduced; CompareSheet/DeleteSheet unkeyed produceState recorded for later."
       ],
@@ -339,7 +339,7 @@
       "title": "Verify actual player interruptions and noisy-output policy",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "implementing",
       "dependencies": [
         "C001"
       ],
@@ -355,10 +355,19 @@
       "expected_outcome": "Playback obeys focus and source lifetime consistently.",
       "validation": "Native pause/resume/close/source-switch tests with actual Media3. Calls/Bluetooth require available authorized hardware; record those separately. Keep player releases and sentinel integrity asserted.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c011-native-focus-interruptions",
+      "pr": "#109 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head fb11f2e on 89140e3: test-only PreviewAudioFocusDeviceTest (permanent loss, transient suppression/resume, ducking at unchanged volume, source integrity) + workflow preview-audio-focus-native.yml. Local compileDebugAndroidTestKotlin/ktlint/detekt success.",
+        "Hosted: CI run 42297378751 success; native run 42297379230 API34 job passed, API28 in progress when recorded.",
+        "Record: docs/testing/PREVIEW_AUDIO_FOCUS_NATIVE_C011.md; VIDEO_PLAYER.md section."
+      ],
+      "remaining": [
+        "API28 native job result.",
+        "Becoming-noisy native acceptance blocked: ACTION_AUDIO_BECOMING_NOISY is a protected broadcast; needs physical headset/Bluetooth route loss (hardware). Host coverage exists.",
+        "Calls and API35+ focus rules not covered.",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1273,7 +1282,7 @@
       "title": "Verify actual archive formats and encrypted variants",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -1290,10 +1299,20 @@
       "expected_outcome": "Fixture-backed read/browse/extract/create capability table.",
       "validation": "Valid, truncated, wrong-password, missing-volume and unsupported-method fixtures. Compare extracted bytes, preserve originals, record licences/hashes and actionable unsupported errors.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c041-rar5-honest-errors",
+      "pr": "#110 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head de3caa0 on 89140e3: RAR5 signature detection -> UnsupportedFormat(RAR5 archive); RarStream CRC32 verification. 43 archive host tests pass (0 failed/skipped); ktlint/detekt pass.",
+        "Reproductions: CRC-flipped stored RAR4 extracted as Success before the checksum fix; disabling RAR5 detection fails 3/3 real RAR 7.23 fixtures.",
+        "Record: docs/testing/ARCHIVE_RAR_VARIANTS_C041.md; ARCHIVE_MANAGER.md section."
+      ],
+      "remaining": [
+        "Hosted CI on #110.",
+        "RAR5 reading needs engine decision (ARC-T03).",
+        "Compressed/multi-volume RAR4 fixtures need an older tool or owner sample.",
+        "Encrypted 7z maps to damaged; no local 7-Zip to make a fixture (tool blocker).",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {

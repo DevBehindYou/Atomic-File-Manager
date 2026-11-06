@@ -34,3 +34,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - Evidence: 25 focused host tests and ktlint/detekt pass. Failing controls were reproduced for each defect. Hosted CI is pending.
 - Overlap note: #103 (Codex) also appends to `IMAGE_VIEWER.md`; expect an append-only conflict. No overlap with #103's Kotlin files.
 - Next: C011 native audio-focus interruption journey (`area-media`), while #108 CI runs.
+
+## 2026-11-06T22:10Z UTC — Claude publishes C011 and C041; C002 hosted checks green
+
+- C002 [#108](https://github.com/DevBehindYou/Atomic-File-Manager/pull/108) `5793d04`: CI `42296477121` and DOCX native `42296477126` (API 28/34) passed, merge state CLEAN. The task is host verified; Codex review and the #106/#107 integration are still needed.
+- C011 [#109](https://github.com/DevBehindYou/Atomic-File-Manager/pull/109) `fb11f2e`: a test-only native focus journey with workflow `preview-audio-focus-native.yml`. CI `42297378751` passed and the API 34 native job passed; API 28 was still running. Becoming-noisy needs headset/Bluetooth hardware, which is a recorded blocker. Lease: `task-C011`, plus `area-media` (held since C002).
+- C041 [#110](https://github.com/DevBehindYou/Atomic-File-Manager/pull/110) `de3caa0`: RAR5 is reported honestly and RAR 4 entry CRCs are now verified. 43 archive host tests pass. Leases: `area-archive-operations`, `task-C041`. Shares `FilePreviewDialog.kt` with #108 in different functions (`archiveError` vs `ApkSummary`).
+- Next: C036 (document fidelity/fallback) or C047 (dependency provenance), whichever does not collide with held areas.

@@ -28,7 +28,7 @@ Branch: codex/claude-c001-reconcile-delta. PR: #107 (into codex/claude-coordinat
 
 ### C002 — Close remaining preview IO and cancellation gaps
 
-**P0 · acceptance_pending · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: U06, U09.
 
@@ -42,7 +42,7 @@ Source areas: `data/preview`, `domain/usecase`, `ui/components/preview`.
 
 **Validation.** Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.
 
-Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
@@ -196,7 +196,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C011 — Verify actual player interruptions and noisy-output policy
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · implementing · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: VID1.
 
@@ -210,7 +210,7 @@ Source areas: `ui/components/preview/PreviewPlayer.kt`, `Video native tests`.
 
 **Validation.** Native pause/resume/close/source-switch tests with actual Media3. Calls/Bluetooth require available authorized hardware; record those separately. Keep player releases and sentinel integrity asserted.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c011-native-focus-interruptions. PR: #109 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C012 — Persist revision-aware video resume and display state
 
@@ -752,7 +752,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C041 — Verify actual archive formats and encrypted variants
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: ARC1, ARC4.
 
@@ -766,7 +766,7 @@ Source areas: `domain/usecase/ArchiveFormats.kt`, `archive fixtures`.
 
 **Validation.** Valid, truncated, wrong-password, missing-volume and unsupported-method fixtures. Compare extracted bytes, preserve originals, record licences/hashes and actionable unsupported errors.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c041-rar5-honest-errors. PR: #110 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C042 — Extend archive security and work-budget defenses
 
