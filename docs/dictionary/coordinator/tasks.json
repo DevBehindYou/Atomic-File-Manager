@@ -12,7 +12,7 @@
       "title": "Reconcile the live delta and claim the first slice",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "implementing",
       "dependencies": [],
       "scope": [
         "U04",
@@ -28,10 +28,19 @@
       "expected_outcome": "A source-identified delta report, accurate ownership and a first implementation plan.",
       "validation": "Record Git HEAD/app tree, clean or explained status, worktrees, active PR heads/check URLs and remaining gates. Codex reviews reconciliation. No whole-plugin credit for this audit.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c001-reconcile-delta",
       "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "evidence": [
+        "2026-11-06T20:47Z UTC: integration codex/feature-upgrade-base 89140e3f3d4a746e6a907912042911cb10c8f6a3, app tree 3cb2d6f9554cd59e412960c00489acc0db146b11; main 7782660; matches STATE.json snapshot.",
+        "PR #106 head 982d97a OPEN: Coordinator validation run 42290117364 success; CI run 42290117084 in progress when observed; not integrated.",
+        "PR #103 c80a3ce open draft, 7 ahead/11 behind integration; PR #105 0673896 open draft, 0 behind; PR #63 585e9f2 deferred. Codex-owned, untouched.",
+        "Accepted merges #89/#90/#91/#92/#93/#100/#101/#104 verified as integration ancestors; stale 4 November PENDING entries superseded (pointer added, history kept).",
+        "Delta report: docs/dictionary/coordinator/C001_RECONCILIATION.md. No application, Gradle, ADB or device action."
+      ],
+      "remaining": [
+        "Codex review of the C001 reconciliation PR.",
+        "Integration of coordinator PR #106 into codex/feature-upgrade-base before any C002 application edit."
+      ],
       "last_updated": "2026-11-07"
     },
     {

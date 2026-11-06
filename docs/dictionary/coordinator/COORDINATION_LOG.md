@@ -18,3 +18,11 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - Independent review identified missing dependency guards for the final report and acceptance matrix, plus the pre-integration handoff gap. C050 now requires C001–C049; C048 requires its feature and build prerequisites. The handoff explicitly identifies the temporary coordination branch and gates application work on integration of this PR.
 - Eight coordinator smoke tests pass in disposable empty Git repositories. They cover queue corruption, premature final acceptance, concurrent acquisition, duplicate claims from another directory, wrong-token release, invalid resource paths and independent resources.
 - The first sandbox attempt failed during temporary Git-repository setup and cleanup permissions; its four pure queue tests passed, but its four lease tests did not run successfully. A subsequent authorized temporary-fixture run passed all eight in 6.969 seconds. No application/Gradle/device tests were run or claimed for this documentation/tooling change.
+
+## 2026-11-06T20:43Z UTC (7 November, Asia/Calcutta) — Claude Code claims C001
+
+- Actor: Claude Code. Task: C001. Branch `codex/claude-c001-reconcile-delta` in linked worktree `C:/Users/temp/Documents/GitHub/afm-claude/c001`, based on coordinator head `982d97a` because #106 is not integrated yet.
+- Leases acquired in sorted order: `area-coordinator`, `area-progress`, `task-C001`. Lease status was empty before acquisition. Tokens stay in local session state.
+- File scope: `docs/dictionary/coordinator/{C001_RECONCILIATION.md,tasks.json,ROADMAP_50.md,COORDINATION_LOG.md}` and a dated pointer in `docs/ai-handover/PENDING.md`. No application source.
+- Observed integration `89140e3` (app tree `3cb2d6f`), unchanged from the snapshot. #106 open with Coordinator validation passed and CI in progress. #103 is 11 commits behind integration, so its recorded green runs predate the #100/#104 merges. #105 is current. #63 remains deferred. Legacy #44–#60 patch-equivalence counts are recorded for Codex only.
+- Result: [C001 reconciliation](C001_RECONCILIATION.md). Next: Codex review. After #106 is integrated, Claude claims C002 (`area-media`, `area-opening`) on `codex/claude-c002-preview-io-cancellation`. C006 waits for #103 and C016 waits for #105.
