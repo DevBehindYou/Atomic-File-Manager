@@ -1,14 +1,14 @@
 protocol: AI-HANDOVER/V2
-updated: "2026-11-04"
+updated: "2026-11-06"
 timezone: Asia/Calcutta
 project: Atomic File Manager
 repository: DevBehindYou/Atomic-File-Manager
 objective: "v0.2.1 stable: eight bundled plugins functional, modernized and accepted; finish feature/optimization gates"
-current_request: documentation handover; no implementation or device run started by this refresh
+current_request: resumed implementation; finish current Markdown acceptance after accepted GIF slice
 snapshot:
   status: VERIFIED
   confidence: HIGH
-  limit: Git/CI/release metadata rechecked; phone and interrupted local build not revalidated
+  limit: GIF current artifact and phone accepted. Combined Markdown CI is pending. Other handover pages retain the 4 November snapshot.
 repo:
   primary: C:/Users/temp/Documents/GitHub/Atomic-File-Manager
   primary_branch: codex/beta-0.2.0
@@ -17,7 +17,7 @@ repo:
   primary_untracked: docs/design/icon-variations/ (user artwork; preserve)
   main: 7782660972148ed4b2db8f5a43a402995a5d730c
   integration_branch: codex/feature-upgrade-base
-  integration_commit: b995e23e96d3c1a68f78b9c25395045cb7e99e47
+  integration_commit: 33152a5bc92e38bc34a2e72a962e61405da55b56
   handover_branch: codex/handover-2026-11-04
   handover_source_base: b995e23e96d3c1a68f78b9c25395045cb7e99e47
   handover_changes: documentation only; resulting commit identity lives in Git
@@ -33,8 +33,9 @@ status:
   dedicated_release_signing: VERIFIED
   plugin_modernization: PARTIAL
   gif_ci_host_and_api28_api34: VERIFIED
-  gif_current_phone_acceptance: UNKNOWN
-  gif_integration_merge: NOT_IMPLEMENTED
+  gif_current_phone_acceptance: VERIFIED
+  gif_integration_merge: VERIFIED
+  gif_local_apk_packaging: VERIFIED
   gif_local_full_validation: UNKNOWN
   markdown_combined_acceptance: PARTIAL
   measured_device_benchmark: BROKEN
@@ -61,12 +62,17 @@ current_candidates:
     ci: 41064609636
     native_ci: 41064609699
     native_cases: 8 passed on each of API28 and API34
+    phone_cases: 8 passed on API34 in 13.586 seconds
+    integration_merge: 33152a5bc92e38bc34a2e72a962e61405da55b56
   markdown:
     pr: 89
-    head: 7d544836da8f3ae766a288fbf4243444c723243b
-    local_checkout: detached and clean
+    head: 560db5762003e76e2ec9562530d1d2067accabdf
+    local_selector_repair: eecca4908ab0b313daefb0ed277349aa44364a06
+    accepted_dependency: 33152a5bc92e38bc34a2e72a962e61405da55b56
+    resulting_combined_head: recorded by Git; do not infer runtime acceptance
+    local_checkout: codex/markdown-native-trigger-recovery; combined dependency merge prepared
     status: PARTIAL
-    missing: full combined/native gates; production workflow trigger follow-up
+    missing: current combined CI/native gates; original native failure 42063448882 retained; workflow triggers repaired
 release:
   tag: v0.2.0-beta.1
   source: 02605684b2b0bab41f2546f69b859c542a375ac6
@@ -77,13 +83,12 @@ release:
   version_code: 2
   immutable: true
 execution:
-  live_child_agents_observed: 0
-  java_build_processes_observed: 0
+  live_child_agents_observed: snapshot-dependent; inspect live agents before resuming
+  java_build_processes_observed: parent serializes local GIF/Markdown builds; recheck before launching
   automation: permanently deleted by owner; manual continuation only
   benchmark: owner deferred; preserve permissions; no su probes
 next:
-  - TASK-101 GIF phone artifact acceptance, review and clean integration trial
-  - TASK-102 existing Markdown PR and source-trigger gap
+  - TASK-102 current Markdown selector repair and combined dependency acceptance; GIF TASK-101 slice accepted
   - TASK-103 reconcile local vs published PDF/Document/Archive candidates
   - TASK-104 complete remaining N42 requirements and stable acceptance
 critical_files:

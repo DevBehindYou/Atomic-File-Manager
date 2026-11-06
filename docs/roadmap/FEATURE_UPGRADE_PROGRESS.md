@@ -4,6 +4,8 @@
 
 Updated 26 October 2026, retaining the actual dates for each phone check below. Scope: [FEATURE_UPGRADE_PLAN](FEATURE_UPGRADE_PLAN.md), U01–U13. This ledger is separate from the older modernization roadmap's 78% implementation figure.
 
+**6 November checkpoint.** The GIF repair in [PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101) passed the API 28 and 34 native matrix and eight physical API 34 cases, then merged into feature integration as `33152a5`. This completes a bounded U09 repair. The rest of U09 remains open, and the fixed feature count stays **2/13 host verified (15%), 1/13 accepted (8%)**. See the [GIF validation record](../testing/GIF_PLAYBACK_CANDIDATE.md).
+
 ## Fixed progress calculation
 
 Report two figures using 13 equally weighted milestones. Host-verified delivery = milestones whose complete planned implementation and applicable host checks passed / 13. Accepted delivery = milestones with their required device/provider evidence, resolved review concerns and merged PR / 13. Partial slices do not count as a complete milestone. Round percentages to the nearest whole percent. These are coarse milestone indicators, not effort or release-readiness estimates.
@@ -198,3 +200,9 @@ Before publication the owner also requested seven transfer bubbles. Capacity is 
 The four actual-pointer host cases and eight-request/two-helper Native SQLite fixture (seven successes, one rejection) are scoped host evidence, not physical-touch acceptance. Earlier failures, cancellations and historical pending records remain retained. Main/stable and the phone are unchanged; the dedicated release key cannot update the installed debug-signed app. Original private backup and owner-requested ignored root signing copies remain private. Keep the public tag/assets frozen and use a new release version for future plugin work.
 
 Publication earns no additional whole-milestone credit: **15% host verified / 8% accepted** for the original feature plan; advanced eight-plugin modernization remains **0/42 groups, 0/8 complete (0%)**. Wider provider/recovery/performance gates, owner-deferred benchmarks, phone permissions and the removed automation policy remain unchanged.
+
+## Scoped Editor acceptance and Markdown validation — 29 October
+
+Editor PR90 head331a3fc passes43 affected host cases, static/both APKs/debug Lint, current-head CI40908472546 and scoped API34 emulator40908472385/phone history-and-staged-save integrity cases. Retained failing keyboard baseline and download-reset CI evidence are classified separately. Review, accepted dependencies and a fresh clean trial precede feature-integration b995e23; see the Editor validation record for exact trees/hashes and limits. Documentation99/98 are integrated as00a07a5/8d7163d; main and frozen public beta026 remain unchanged. Fixed feature credit remains15% host verified(2/13)/8% accepted(1/13); this partial EDT2/EDT6 repair earns no complete N42 group.
+
+Markdown baseline9c67f84 has five reproduced failures/two passing cancellation controls; e217005 passes16 host cases and corrected4c8fc5f passes static/both APKs/debug Lint. A native owned-file fixture compiles but is unrun; combined validation follows accepted dependency merge3933cd5. The initial Context/Application fixture compilation failure is retained. All MD groups remain open. Separate SQLite diagnostic100 passes49 unchanged cases in each of normal and isolated modes plus full CI; the earlier42-case native-JNI failure is retained and its ultimate cause remains unproven. No root probe, benchmark resumption, permission mutation or recurring automation is introduced.
