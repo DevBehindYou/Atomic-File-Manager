@@ -6,6 +6,8 @@ Updated 26 October 2026, retaining the actual dates for each phone check below. 
 
 **6 November checkpoint.** The GIF repair in [PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101) passed the API 28 and 34 native matrix and eight physical API 34 cases, then merged into feature integration as `33152a5`. This completes a bounded U09 repair. The rest of U09 remains open, and the fixed feature count stays **2/13 host verified (15%), 1/13 accepted (8%)**. See the [GIF validation record](../testing/GIF_PLAYBACK_CANDIDATE.md).
 
+**6 November plugin integration.** Markdown #89, PDF #91, Archive #92 and DOCX #93 passed their scoped gates and merged into feature integration, which reached `76eff0c`. Markdown also passed its physical API 34 phone case. U10 and U11 have accepted slices and remain partial. Fixed credit stays **2/13 host verified (15%) and 1/13 accepted (8%)**. [Plugin ledger](../plugins/modernization/PLUGIN_PROGRESS.md#6-november-accepted-slices)
+
 ## Fixed progress calculation
 
 Report two figures using 13 equally weighted milestones. Host-verified delivery = milestones whose complete planned implementation and applicable host checks passed / 13. Accepted delivery = milestones with their required device/provider evidence, resolved review concerns and merged PR / 13. Partial slices do not count as a complete milestone. Round percentages to the nearest whole percent. These are coarse milestone indicators, not effort or release-readiness estimates.
@@ -22,9 +24,9 @@ Current: **15% host verified (2/13), 8% accepted (1/13)**. U01 is accepted. U04 
 | U06 Opening defaults | Policy, remote preparation and metadata slices integrated; selected-content slice passes scoped host/phone gates, CI/merge pending | [PR #64](https://github.com/DevBehindYou/Atomic-File-Manager/pull/64), [#84](https://github.com/DevBehindYou/Atomic-File-Manager/pull/84) and [#85](https://github.com/DevBehindYou/Atomic-File-Manager/pull/85) accepted; [#87](https://github.com/DevBehindYou/Atomic-File-Manager/pull/87) passes149 host cases/static/APKs/Lint and six exact-artifact API34 cases. Wider provider/format/performance/recovery gates remain open; no complete U06 credit |
 | U07 Storage-account contracts | Planned | Preserve real system-provider/network behavior |
 | U08 First direct cloud connector | Planned | Provider/scope registration and real test account |
-| U09 Media/images | Image load recovery #80 and Video preparation Retry #82 integrated; wider acceptance open | Scoped host/native app-surface evidence below; real media playback, broader formats/gestures and complete milestone acceptance remain open |
-| U10 PDF/documents | Planned | Engine/capability evaluation |
-| U11 Editor/archives | Planned | Recovery and mutation invariants |
+| U09 Media/images | Image load recovery #80, Video preparation Retry #82 and GIF playback #101 integrated | Broader formats, gestures, playback and performance gates remain open. [GIF validation](../testing/GIF_PLAYBACK_CANDIDATE.md) |
+| U10 PDF/documents | Partial. PDF session #91 and DOCX session #93 slices accepted | Engine capabilities, provider evidence and broader reader gates remain open. [PDF validation](../testing/PDF_SOURCE_SESSION_CANDIDATE.md) · [DOCX validation](../testing/DOCUMENT_SOURCE_SESSION_CANDIDATE.md) |
+| U11 Editor/archives | Partial. Editor history #90 and Archive inspection #92 slices accepted | Draft recovery, archive formats, provider acceptance and mutation invariants remain open. [Archive validation](../testing/ARCHIVE_INSPECTION_CANDIDATE.md) · [Markdown validation](../testing/MARKDOWN_OWNERSHIP_CANDIDATE.md) |
 | U12 Second connector/network | Planned | Shared contracts and actual provider/hardware tests |
 | U13 Recovery/release acceptance | Open | Process-kill, performance, exact-head CI and owner signing |
 
