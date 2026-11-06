@@ -122,7 +122,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C007 — Expand malformed and long-animation GIF resource coverage
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · implementing · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: IMG2, IMG6.
 
@@ -136,7 +136,7 @@ Source areas: `data/preview/GifPreviewDecoder.kt`, `GIF native fixtures`.
 
 **Validation.** Native API28/34 fixtures, repeated close/reopen and original/sentinel hashes. Record peak allocations where available. Preserve historical JNI failures and do not substitute static first-frame rendering for animation.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c007-gif-hostile-inputs. PR: #112 (into codex/feature-upgrade-base). Evidence records: 2. Updated: 2026-11-07.
 
 ### C008 — Evaluate high-resolution and additional-image decoding
 

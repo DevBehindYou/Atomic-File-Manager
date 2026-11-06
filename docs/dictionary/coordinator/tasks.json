@@ -214,7 +214,7 @@
       "title": "Expand malformed and long-animation GIF resource coverage",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C002"
@@ -232,10 +232,18 @@
       "expected_outcome": "Actionable bounded failures and no retained decoder after close/replacement.",
       "validation": "Native API28/34 fixtures, repeated close/reopen and original/sentinel hashes. Record peak allocations where available. Preserve historical JNI failures and do not substitute static first-frame rendering for animation.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c007-gif-hostile-inputs",
+      "pr": "#112 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head ce199cc on 89140e3: test-only GifHostileInputTest through real ImageDecoder (Robolectric native, API28/34): huge canvas -> FileTooLarge, wide canvas scaled <=2048, four truncations -> UnsupportedFormat(GIF), oversized frame descriptor within caps, input closed exactly once. 10 new + 14 existing GIF tests pass; ktlint/detekt pass. No defect found.",
+        "Record: docs/testing/GIF_HOSTILE_INPUTS_C007.md."
+      ],
+      "remaining": [
+        "Hosted CI on #112 (pending at handoff).",
+        "Native long-animation/replacement/decoder-release fixtures wait for Codex PR #103 (owns gif-playback-native.yml and GifPlaybackDeviceTest).",
+        "IMAGE_VIEWER.md update deferred to one docs pass after #103/#108 merge.",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1149,7 +1157,7 @@
         "Record: docs/testing/DOCUMENT_FIDELITY_PRECISION_C036.md (fidelity matrix); DOCUMENT_READER.md section."
       ],
       "remaining": [
-        "Hosted CI and DOCX native on #111.",
+        "Hosted CI and DOCX native on #111 (pending at handoff).",
         "No RTF/CSV-table/.doc/encrypted Office reading (C040 engine evaluation).",
         "Codex review and merge gates."
       ],
