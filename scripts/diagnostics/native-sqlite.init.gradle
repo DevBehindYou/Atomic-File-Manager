@@ -1,0 +1,77 @@
+import java.security.MessageDigest
+import java.time.Instant
+import org.gradle.api.tasks.testing.Test
+
+// Only the requested app unit-test task is touched; CLI --tests filters remain intact.
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.findProject(':app')
+    // Init scripts also execute for included convention builds, which have no :app.
+    if (app == null) return
+    app.tasks.named('testDebugUnitTest', Test).configure { task ->
+        def mode = System.getProperty('atomic.sqlite.diagnostic.mode')
+        if (!(mode in ['normal', 'isolated', 'full-trace'])) {
+            throw new GradleException('Expected diagnostic mode normal, isolated or full-trace')
+        }
+        def output = new File(gradle.rootProject.projectDir, 'build/native-sqlite-diagnostic/' + mode)
+        output.mkdirs()
+        reports.html.outputLocation.set(new File(output, 'html'))
+        reports.junitXml.outputLocation.set(new File(output, 'xml'))
+        // Run actual consumers again; do not accept a cached/up-to-date test result.
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
+        if (mode == 'isolated') {
+            maxParallelForks = 1
+            forkEvery = 1
+            jvmArgs '-Xlog:class+load=info,library=debug:file=' +
+                new File(output, 'jvm-%p.log').absolutePath + ':time,level,tags'
+        } else if (mode == 'full-trace') {
+            // Keep independent rolling buffers so exception volume cannot evict library load events.
+            def decorators = 'utctime,uptime,pid,tid,level,tags'
+            def libraryLog = new File(output, 'jvm-library-%p.log').absolutePath
+            def exceptionLog = new File(output, 'jvm-exceptions-%p.log').absolutePath
+            jvmArgs "-Xlog:library=debug:file=${libraryLog}:${decorators}:filecount=3,filesize=1M",
+                "-Xlog:exceptions=info:file=${exceptionLog}:${decorators}:filecount=4,filesize=8M"
+            reports.junitXml.outputPerTestCase = true
+            beforeSuite { suite ->
+                if (suite.className != null) {
+                    logger.lifecycle("SQLITE_TRACE ${Instant.now()} START ${suite.className}")
+                }
+            }
+            afterSuite { suite, result ->
+                if (suite.className != null) {
+                    logger.lifecycle("SQLITE_TRACE ${Instant.now()} END ${suite.className} " +
+                        "tests=${result.testCount} failures=${result.failedTestCount}")
+                }
+            }
+        }
+        doFirst {
+            def provenance = new File(output, 'test-runtime.txt')
+            provenance.withPrintWriter('UTF-8') { writer ->
+                writer.println('mode=' + mode)
+                writer.println('task=' + path)
+                writer.println('javaLauncher=' + javaLauncher.get().executablePath)
+                writer.println('maxHeapSize=' + maxHeapSize)
+                writer.println('maxParallelForks=' + maxParallelForks)
+                writer.println('forkEvery=' + forkEvery)
+                writer.println('jvmArgs=' + jvmArgs)
+                writer.println('includeTestsMatching=' + filter.includePatterns)
+                writer.println('commandLineIncludePatterns=' + filter.commandLineIncludePatterns)
+                writer.println('Runtime classpath in order:')
+                classpath.files.each { entry ->
+                    writer.println(entry.absolutePath)
+                    if (entry.isFile() && entry.name.endsWith('.jar') &&
+                            (entry.name.contains('robolectric') || entry.name.contains('native') ||
+                             entry.name.contains('shadows-framework') || entry.name.contains('android-all'))) {
+                        def digest = MessageDigest.getInstance('SHA-256')
+                        entry.withInputStream { input ->
+                            byte[] buffer = new byte[65536]
+                            int count
+                            while ((count = input.read(buffer)) > 0) digest.update(buffer, 0, count)
+                        }
+                        writer.println('SHA256=' + digest.digest().encodeHex().toString())
+                    }
+                }
+            }
+        }
+    }
+}
