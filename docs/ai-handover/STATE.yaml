@@ -4,11 +4,11 @@ timezone: Asia/Calcutta
 project: Atomic File Manager
 repository: DevBehindYou/Atomic-File-Manager
 objective: "v0.2.1 stable: eight bundled plugins functional, modernized and accepted; finish feature/optimization gates"
-current_request: resumed implementation; finish current Markdown acceptance after accepted GIF slice
+current_request: continued plugin implementation and acceptance
 snapshot:
   status: VERIFIED
   confidence: HIGH
-  limit: GIF current artifact and phone accepted. Combined Markdown CI is pending. Other handover pages retain the 4 November snapshot.
+  limit: scoped plugin results and merges through 6 November. Wider capability and release gates remain open.
 repo:
   primary: C:/Users/temp/Documents/GitHub/Atomic-File-Manager
   primary_branch: codex/beta-0.2.0
@@ -17,7 +17,7 @@ repo:
   primary_untracked: docs/design/icon-variations/ (user artwork; preserve)
   main: 7782660972148ed4b2db8f5a43a402995a5d730c
   integration_branch: codex/feature-upgrade-base
-  integration_commit: 33152a5bc92e38bc34a2e72a962e61405da55b56
+  integration_commit: 76eff0c34822885fd18e945e39f04b818a83b4bf
   handover_branch: codex/handover-2026-11-04
   handover_source_base: b995e23e96d3c1a68f78b9c25395045cb7e99e47
   handover_changes: documentation only; resulting commit identity lives in Git
@@ -37,7 +37,8 @@ status:
   gif_integration_merge: VERIFIED
   gif_local_apk_packaging: VERIFIED
   gif_local_full_validation: UNKNOWN
-  markdown_combined_acceptance: PARTIAL
+  markdown_combined_acceptance: VERIFIED
+  pdf_archive_docx_scoped_acceptance: VERIFIED
   measured_device_benchmark: BROKEN
 progress:
   feature_denominator: 13
@@ -66,13 +67,35 @@ current_candidates:
     integration_merge: 33152a5bc92e38bc34a2e72a962e61405da55b56
   markdown:
     pr: 89
-    head: 560db5762003e76e2ec9562530d1d2067accabdf
-    local_selector_repair: eecca4908ab0b313daefb0ed277349aa44364a06
-    accepted_dependency: 33152a5bc92e38bc34a2e72a962e61405da55b56
-    resulting_combined_head: recorded by Git; do not infer runtime acceptance
-    local_checkout: codex/markdown-native-trigger-recovery; combined dependency merge prepared
-    status: PARTIAL
-    missing: current combined CI/native gates; original native failure 42063448882 retained; workflow triggers repaired
+    head: 5e7476bac93202b995a45da8ba0f445b6e2a82ee
+    app_tree: 83f59e9c55fd7ba75d3fae90cddcb5c321b8f5d4
+    ci: 42234927370
+    native_ci: 42234927356
+    phone_cases: 1 passed on API34 in 9.466 seconds
+    phone_artifact: 13512565800
+    local_gradle_packaging: INTERRUPTED
+    integration_merge: bf2f1ae1049aeca6c9098b2251bf8b07c9c7082b
+  pdf:
+    pr: 91
+    head: 152eef2aedcb5338c71c554b5cd3386933294a60
+    ci: 42235731892
+    native_ci: 42235731779
+    native_cases: 3 passed on each of API28 and API34
+    integration_merge: 956839c36c8ea8f55a17f715e035fb25ed3cf018
+  archive:
+    pr: 92
+    head: c0d287a9d651c84869b8f8329974649987d840bb
+    ci: 42235729824
+    native_ci: 42235729964
+    native_cases: 1 passed on each of API28 and API34
+    integration_merge: ac668e5441a7a061aa4d1194cdfd52b24aebe251
+  document:
+    pr: 93
+    head: e8e61b6e676f02b060517a6c59145d6f14295359
+    ci: 42235731852
+    native_ci: 42235732119
+    native_cases: 1 passed on each of API28 and API34
+    integration_merge: 76eff0c34822885fd18e945e39f04b818a83b4bf
 release:
   tag: v0.2.0-beta.1
   source: 02605684b2b0bab41f2546f69b859c542a375ac6
@@ -88,9 +111,9 @@ execution:
   automation: permanently deleted by owner; manual continuation only
   benchmark: owner deferred; preserve permissions; no su probes
 next:
-  - TASK-102 current Markdown selector repair and combined dependency acceptance; GIF TASK-101 slice accepted
-  - TASK-103 reconcile local vs published PDF/Document/Archive candidates
-  - TASK-104 complete remaining N42 requirements and stable acceptance
+  - TASK-103 verify the existing Image fit-mode candidate and current integration dependencies
+  - TASK-104 complete the remaining N42 capability groups and stable acceptance
+  - TASK-107 retain SQLite initialization diagnostics and verify remaining release gates
 critical_files:
   - docs/roadmap/FEATURE_UPGRADE_PLAN.md
   - docs/roadmap/FEATURE_UPGRADE_PROGRESS.md
