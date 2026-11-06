@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="markdown_preview_loading">Loading preview…</string>
+    <string name="markdown_preview_failed">Failed to load Markdown document</string>
+    <string name="markdown_preview_truncated">Preview limited to the first 5,000 lines or 1 MiB. The full document may contain more content.</string>
+</resources>

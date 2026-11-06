@@ -16,7 +16,7 @@ The published0.2.0-beta.1 tag/source/assets remain frozen. Prepare a new app ver
 
 ## Execution order and current gaps
 
-1. Prioritize the reported GIF defect: Image Viewer currently uses BitmapFactory and displays only the first frame. Require actual frame-colour advancement, Stop/Replay, lifecycle/current-page ownership, corrupt/size/error handling, static-gesture regression and original-byte integrity before advertising GIF animation.
+1. The GIF playback repair passed eight native tests each on API 28 and API 34, plus eight tests on the physical API 34 phone. PR #101 merged into feature integration at `33152a5`. Broader GIF provider, accessibility and resource checks remain open under IMG2/IMG6. See [GIF evidence](../testing/GIF_PLAYBACK_CANDIDATE.md).
 2. Finish the prepared Markdown source/retry/disclosure increment after its accepted Editor dependency; retain interrupted combined validation rather than claiming it passed.
 3. Validate existing PDF, Document, Archive and Image-mode candidates, then complete the remaining requested capabilities and acceptance journeys for all eight plugins. Keep successful Editor/Image/Audio/Video slices; do not restart them without a demonstrated gap.
 4. Finish operation recovery, provider and measured resource gates before the final stable artifact. Maintain a release-blocker list tied to exact source/evidence rather than test-count or PR-count completion.

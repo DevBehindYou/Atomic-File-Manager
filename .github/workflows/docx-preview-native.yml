@@ -1,0 +1,82 @@
+name: DOCX preview native acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/docx-preview-native.yml'
+      - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/PreviewSurfaceDeviceTest.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/FileOpeningPane.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/FilePreviewDialog.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/PreviewType.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/DocxPreviewContent.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/preview/DocxPreviewHelper.kt'
+      - 'app/src/main/res/values/docx_strings.xml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docx-preview-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docx-preview:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 34]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Configure bounded build memory
+        shell: bash
+        run: |
+          chmod +x gradlew
+          mkdir -p ~/.gradle
+          printf '%s\n' 'org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m' 'kotlin.daemon.jvmargs=-Xmx2g' >> ~/.gradle/gradle.properties
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run owned-file DOCX routing and Find journey
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: >-
+            ./gradlew --no-daemon --max-workers=1 :app:connectedDebugAndroidTest
+            '-Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.PreviewSurfaceDeviceTest#docxRoutesToDocumentReaderAndFindNavigatesItsText'
+      - name: Capture artifact identities
+        if: always()
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p build/docx-preview-native
+          git rev-parse HEAD > build/docx-preview-native/source.txt
+          git rev-parse HEAD:app > build/docx-preview-native/app-tree.txt
+          printf '%s\n' "$PR_HEAD" > build/docx-preview-native/event-head.txt
+          find app/build/outputs/apk -name '*.apk' -type f -exec sha256sum '{}' \; > build/docx-preview-native/apk-sha256.txt
+      - name: Retain native reports and exact APKs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docx-preview-native-api${{ matrix.api }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/docx-preview-native
+            app/build/outputs/androidTest-results
+            app/build/reports/androidTests
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
