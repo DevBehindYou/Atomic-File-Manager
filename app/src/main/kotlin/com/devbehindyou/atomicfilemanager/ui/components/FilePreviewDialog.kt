@@ -83,6 +83,7 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.ArchivePasswords
 import com.devbehindyou.atomicfilemanager.domain.usecase.ChecksumVerdict
 import com.devbehindyou.atomicfilemanager.domain.usecase.FileChecksums
 import com.devbehindyou.atomicfilemanager.domain.usecase.PASSWORD_PROTECTED
+import com.devbehindyou.atomicfilemanager.domain.usecase.RAR5_UNSUPPORTED
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextContent
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextFileEditor
 import com.devbehindyou.atomicfilemanager.domain.usecase.WRONG_PASSWORD
@@ -690,6 +691,8 @@ internal fun archiveError(error: FileError): String =
             "This archive is password-protected. Enter its password to see what's inside."
         error is FileError.UnsupportedFormat && error.mimeType == WRONG_PASSWORD ->
             "That password didn't open the archive. Try again."
+        error is FileError.UnsupportedFormat && error.mimeType == RAR5_UNSUPPORTED ->
+            "This is a RAR5 archive. Atomic opens RAR 4 and older; use Open with for this one."
         error is FileError.SuspiciousArchive -> "This archive was not opened: ${error.reason}."
         else -> "The archive couldn't be read. It may be damaged or in a format this app can't open."
     }
