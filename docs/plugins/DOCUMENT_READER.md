@@ -43,3 +43,7 @@ Seven new actual-helper/parser/Compose consumers specify modified/size/helper re
 ## Scoped acceptance, 6 November 2026
 
 DOCX session ownership passed host checks. FILE routing and Find passed on each API 28 and 34 emulator. PR #93 merged into feature integration as `76eff0c`. Native revision and helper replacement and full Document acceptance remain open. [Validation record](../testing/DOCUMENT_SOURCE_SESSION_CANDIDATE.md)
+
+## 7 November C036 slice — precise fallbacks
+
+DOC-B02 and DOC-B03 (Claude Code C036, host-verified only). A `.docx` that is really a legacy `.doc`, a password-protected Office file, a non-package or an over-limit document now says which of these it is, without the misleading "may be damaged" wording and without a Retry that cannot succeed. RTF always routes to file details with Open with instead of showing raw control words when a provider reports `text/rtf`. There are 39 focused host tests and the RTF control fails on base. The [fidelity matrix and evidence](../testing/DOCUMENT_FIDELITY_PRECISION_C036.md) records each input type. Version stays v0.2; no DOC group credit is claimed.
