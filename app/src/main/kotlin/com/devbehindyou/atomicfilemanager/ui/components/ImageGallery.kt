@@ -192,6 +192,7 @@ private fun ZoomableStillImageSurface(
 ) {
     var view by rememberSaveable(stateSaver = ImageViewModes.Saver) { mutableStateOf(ImageViewState()) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
+
     fun currentTransform(): ImageTransform = ImageViewModes.transform(view, imageSize, viewport.toSize())
 
     val transform = currentTransform()
