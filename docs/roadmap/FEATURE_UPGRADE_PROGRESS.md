@@ -4,6 +4,8 @@
 
 Updated 26 October 2026, retaining the actual dates for each phone check below. Scope: [FEATURE_UPGRADE_PLAN](FEATURE_UPGRADE_PLAN.md), U01–U13. This ledger is separate from the older modernization roadmap's 78% implementation figure.
 
+**6 November checkpoint.** The GIF repair in [PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101) passed the API 28 and 34 native matrix and eight physical API 34 cases, then merged into feature integration as `33152a5`. This completes a bounded U09 repair. The rest of U09 remains open, and the fixed feature count stays **2/13 host verified (15%), 1/13 accepted (8%)**. See the [GIF validation record](../testing/GIF_PLAYBACK_CANDIDATE.md).
+
 ## Fixed progress calculation
 
 Report two figures using 13 equally weighted milestones. Host-verified delivery = milestones whose complete planned implementation and applicable host checks passed / 13. Accepted delivery = milestones with their required device/provider evidence, resolved review concerns and merged PR / 13. Partial slices do not count as a complete milestone. Round percentages to the nearest whole percent. These are coarse milestone indicators, not effort or release-readiness estimates.

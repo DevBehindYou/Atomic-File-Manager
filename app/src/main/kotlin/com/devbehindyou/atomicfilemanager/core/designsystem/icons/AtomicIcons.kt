@@ -63,6 +63,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SyncAlt
 import androidx.compose.material.icons.outlined.TableChart
@@ -105,6 +106,7 @@ object AtomicIcons {
     val SelectSameType: ImageVector = Icons.Outlined.FilterAlt
     val Refresh: ImageVector = Icons.Outlined.Refresh
     val Replay: ImageVector = Icons.Outlined.Replay
+    val Stop: ImageVector = Icons.Outlined.Stop
     val Restore: ImageVector = Icons.Outlined.Restore
     val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
     val Redo: ImageVector = Icons.AutoMirrored.Outlined.Redo
