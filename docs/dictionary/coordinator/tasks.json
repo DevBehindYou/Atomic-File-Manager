@@ -50,7 +50,7 @@
       "title": "Close remaining preview IO and cancellation gaps",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "acceptance_pending",
       "dependencies": [
         "C001"
       ],
@@ -68,10 +68,18 @@
       "expected_outcome": "Preview IO has explicit ownership, bounded work and tested cancellation.",
       "validation": "Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c002-preview-io-cancellation",
+      "pr": "#108 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 5793d04 on base 89140e3: ktlintCheck, detekt and 25 focused host tests pass (Exif 5, revision 3, MetadataText 7, ApkFacts 2, ImageLoadRecovery 3, FileOpeningRecovery 5; 0 failed/skipped) in 1m 54s.",
+        "Failing controls on unchanged logic: EXIF cancellation cleanup removed 1/5 fail; old produceState keys 3/3 fail.",
+        "Record: docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md; IMAGE_VIEWER.md section."
+      ],
+      "remaining": [
+        "Hosted CI (full unit suite, Lint, APK) on #108 head.",
+        "Codex review, integration of #106/#107, clean current-target trial.",
+        "MediaPreviewHelper blocking retriever: no defect reproduced; CompareSheet/DeleteSheet unkeyed produceState recorded for later."
+      ],
       "last_updated": "2026-11-07"
     },
     {

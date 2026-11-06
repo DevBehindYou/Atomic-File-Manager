@@ -26,3 +26,11 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - File scope: `docs/dictionary/coordinator/{C001_RECONCILIATION.md,tasks.json,ROADMAP_50.md,COORDINATION_LOG.md}` and a dated pointer in `docs/ai-handover/PENDING.md`. No application source.
 - Observed integration `89140e3` (app tree `3cb2d6f`), unchanged from the snapshot. #106 open with Coordinator validation passed and CI in progress. #103 is 11 commits behind integration, so its recorded green runs predate the #100/#104 merges. #105 is current. #63 remains deferred. Legacy #44–#60 patch-equivalence counts are recorded for Codex only.
 - Result: [C001 reconciliation](C001_RECONCILIATION.md). Next: Codex review. After #106 is integrated, Claude claims C002 (`area-media`, `area-opening`) on `codex/claude-c002-preview-io-cancellation`. C006 waits for #103 and C016 waits for #105.
+
+## 2026-11-06T21:25Z UTC — Owner directs parallel continuation; Claude publishes C002 slice 1
+
+- The owner instructed in chat: continue tasks automatically and run hosted Actions in parallel by creating PRs, with regular count reports. Claude now opens implementation PRs against `codex/feature-upgrade-base` while #106/#107 are still in review. Local Gradle stays serialized. Merge gates are unchanged: current-head checks, Codex review, integrated dependencies and a clean trial.
+- C002 slice 1: [PR #108](https://github.com/DevBehindYou/Atomic-File-Manager/pull/108), branch `codex/claude-c002-preview-io-cancellation`, head `5793d04` on `89140e3`. Leases: `area-image`, `area-media`, `area-opening`, `task-C002`. `host-gradle` was held for local runs and is released. Files: `ExifMetadataReader.kt`, `ApkInfoReader.kt`, `ImageMetadataSection.kt`, `FilePreviewDialog.kt` (`ApkSummary` only), two new tests, `IMAGE_VIEWER.md` append, `docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md`.
+- Evidence: 25 focused host tests and ktlint/detekt pass. Failing controls were reproduced for each defect. Hosted CI is pending.
+- Overlap note: #103 (Codex) also appends to `IMAGE_VIEWER.md`; expect an append-only conflict. No overlap with #103's Kotlin files.
+- Next: C011 native audio-focus interruption journey (`area-media`), while #108 CI runs.

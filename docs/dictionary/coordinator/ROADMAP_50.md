@@ -28,7 +28,7 @@ Branch: codex/claude-c001-reconcile-delta. PR: #107 (into codex/claude-coordinat
 
 ### C002 — Close remaining preview IO and cancellation gaps
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · acceptance_pending · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: U06, U09.
 
@@ -42,7 +42,7 @@ Source areas: `data/preview`, `domain/usecase`, `ui/components/preview`.
 
 **Validation.** Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
