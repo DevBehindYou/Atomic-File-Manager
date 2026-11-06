@@ -1,0 +1,74 @@
+# Next Agent
+
+24 October checkpoint: **15% host verified (2/13), 8% accepted (1/13)**. Feature integration includes MIME #79 (`49dd78c`), Image recovery #80 (`82e7e94`) and plugin context/v0.2 #81 (`377a378`, final6a8fff4/CI40108734849); each has its scoped host/native/review/clean-trial evidence. All eight plugin records and version detail pages are maintained under docs/plugins. Video preparation recovery has genuine RED (two expected missing-Retry assertions, one cleanup control), then33 affected host/static/APKs/Lint pass in11m26s and four current API34 app surfaces pass in23.58s; source3b0ede6, app treeaa40f2ab57da681e0e9e3135bb30ff8e26092948, installed debugE4568676... . See VIDEO_PREPARATION_RECOVERY_VALIDATION for exact hashes/limits; Video #82 finalde85c88 passes CI40115420936 and guarded integration338f37d; decoded playback and wider U09 acceptance remain open. Opening recovery now has five unchanged-source consumers passing, then49 affected cases/static checks passing in5m29s on test-onlyb756dc3/app treebd06b3517d387df409684b4a6eb5675611dae394; no production fix, durable or physical-provider pass is claimed. See OPENING_HANDLER_RECOVERY_VALIDATION; #83 final034ff077 passes both required jobs in CI40116902705 and guarded feature merge6d1dc90. Remote preparation progress/cancel has seven frozen old-API consumers: unchanged source reproduces five targeted assertion failures and two passing Close controls, with one separately retained suppressed Looper diagnostic. The reviewed remote progress/Cancel fix now passes91 affected host cases/static/APKs/debugLint in9m15s and five API34 native helper/app-surface cases in24.558s (sourceb7e27ab, app treed2ce6e94416346e885d12ad1c774547f1abded85, debug74B302E6...). PR #84 is published with matching app tree; full CI/guarded integration remains pending; next metadata freshness consumers are prepared separately in opening-source-revision-tests, unrun with no confirmed bug yet; never publish root-derived deferred benchmark work as part of them. U04 revocation/mount/recreation and the wider U05/U06/U09–U13 gates remain open. Advanced eight-plugin audit/research and main/release are separate. Preserve artwork, data/preferences, permissions and ignored tools/signing backups. Keep benchmarks owner-deferred and never recreate the deleted recurring automation.
+
+## Latest direction — 22 October 2026
+
+Read [FEATURE_UPGRADE_PROGRESS](../roadmap/FEATURE_UPGRADE_PROGRESS.md) first. 22 October evening checkpoint: fixed progress remains **8% host verified / 8% accepted (1/13)**. Feature integration includes Storage/Analysis #69 (`32a506e`), Browse lifecycle #70 (`d55292d`), startup first-draw repair #72 (`952ba19`) and centered Analysis action #73 (`dbb43f0`), alongside earlier accepted slices. The black startup wait is reproduced by actual API27/34 pre-draw failures, then repaired with 31 selected host cases/static/APK/Lint passing. The final combined app passes all four API34 native cases in 25.425s; its idle Analysis screenshot confirms cleanup button and viewport centers both at 540px. Home, access and test-handler removal are verified without clearing user data. Tab-session #71 has 42 focused host cases and its native close/reopen/recreation pass; its synchronized final app tree `9ec9b8dc8acda01fe5e37fb9e72eaf95876b1c64` matches the phone-tested artifact, and final head `67adad8` passes CI `39804269314`, review-thread inspection and a clean guarded trial; integration merge is `e60d8e7`. Create-parent snapshot PR #74 now passes its expected old-source failure and all 30 corrected focused host cases/static/APK/debug Lint, with independent source review; final-head CI `39808085463` and a clean guarded trial now pass, with feature-integration merge `c76f86a`. It targets only the accepted folder argument, with no real file mutation; current phone evidence remains the preceding app tree. Delete/trash admission #75 now passes 45 focused host cases/static/APK/Lint plus final-head CI `39844826697`, review and clean trial, merged into feature integration as `2bea39c`. Secondary accepted-work drain #76 passes 59 host cases/static/APKs/Lint and final-head CI `39849992336`, with guarded feature-integration merge `2822f8b`; primary child-store registry #77 passes 66 focused host cases/static/APKs/Lint, four current API34 native cases and final-head CI `39961940985`, with guarded feature-integration merge `ad5f701`; secondary Preview/STARTED/hidden-route visibility is now the isolated source slice under validation; primary retained-store pruning, broader mutation ownership, providers/process death, durable scanning, performance and main/release acceptance remain open. Benchmark #63 has historical green source CI; its synchronized `585e9f2` passes final-head CI `39842121263` and resumed host packaging, with device measurement explicitly deferred by the owner and no accepted baseline; never treat system-only frame rows or packaging as performance evidence. Advanced eight-plugin modernization remains a separate deferred intake after existing gates. **Device benchmark deferred by owner on 23 October: preserve current phone permissions; do not rerun root probes or measured scenarios until explicitly resumed. Continue independent host work.** **Manual continuation only: the recurring automation was permanently deleted; never recreate a schedule without a new explicit request.** Read the ledger, live PRs and exact validation records before continuing; preserve artwork, files, settings, permissions, ignored tools and signing backups.
+
+Read [FEATURE_UPGRADE_PLAN](../roadmap/FEATURE_UPGRADE_PLAN.md) and [bundled plugin validation](../testing/BUILT_IN_PLUGINS_VALIDATION.md) first. Planning is complete; execution remains staged. Preserve the new Settings inventory and the user's decision that all plugins stay built into Atomic and update with the app. Do not implement GitHub/Drive installers, a remote executable catalogue or fake install/remove controls. Benchmark correctness (U02), opening defaults (U06) and browse visibility (U04) are active; measured listing/index work still needs its baseline. The authorized API34 phone was connected on 21 October; recheck the connection before further device work. Do not apply the previous full-suite/device results to newer working-tree changes.
+
+Do not restart from scratch. The active modernization branch is `codex/architecture-audit`, based on `7782660`. Preserve uncommitted work and worktrees under ignored `build/audit-worktrees`. Read [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md) and the source-linked audit before the historical handover. Feature completion did not establish file-integrity acceptance.
+
+## Historical continuation checkpoint (20 October 2026)
+
+1. Inspect `git status`, `git log`, `git worktree list`, and the latest `build/audit-tools/*.log` plus matching `.exit` markers. Interrupted logs are not passes.
+2. Source `4792db8` passes 917 app host cases, 28 custom Lint cases, ktlint/detekt, debug Android Lint and packaging. All 13 selected API34 surface cases pass, including Files storage/view/options, native fixtures and Tasks popup navigation. Debug/release Lint, R8 release and benchmark test-APK packaging passed in `menu-refinement-complete-validation.log`, exit 0, in 14m36s. Serialize Gradle on this 8 GB Windows host. JDK21 is at `C:\Program Files\Java\jdk-21`; SHA-verified Gradle is `build/audit-tools/gradle-9.3.1/bin/gradle.bat`. Use a local 3 GiB Gradle heap; do not repeat the 1.5 GiB R8 full-heap collection loop. Never run clean: ignored build directories contain tools, worktrees and the user's signing backup.
+3. Read [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and the [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Generated fixtures, physical Grid/List and Internal/SD switching, Tasks dismissal, long-press → More → Rename (cancel), and video thumbnails/playback frame are verified; do not repeat them without a new reason. The current 13-case selected log is clean; the preceding Files run retains a nonfatal InsetsSourceControl/SurfaceControl diagnostic. An immediate pre-refresh Home capture briefly showed access off, but app-ops stayed allowed and settled storage displayed correctly; startup loading-state polish remains. The user requested surface testing only; broader mutation/provider/performance tests remain separate. About 78% of weighted implementation scope is present; this is not release readiness. Seventeen draft PRs exist; see [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md). Check exact head revisions and review requirements before any merge.
+4. Keep high-risk filesystem changes for human review; never substitute host tests for device/provider/process-kill acceptance.
+
+The Kotlin-loading and shared-storage-access candidates are now committed and integrated; do not reapply them. Their preserved worktrees remain useful for focused reviews. Startup review is draft #60, based on #59. Comparison, preview and Files/menu/icon changes still need focused publication after validation. Preserve the user's untracked `docs/design/icon-variations/` artwork; stage only explicitly owned files. Existing per-pane clipboards remain independent.
+
+Use `codex/<topic>` branches. Do not fabricate tool provenance or session trailers. The older agent-specific instructions below are historical and superseded for this session.
+
+## Load first
+
+1. `STATE.yaml`
+2. `HANDOVER.md`
+3. `CURRENT_STATE.md`
+4. `PENDING.md`
+
+Read the other files only when one of these points to them. Before touching a feature, read the plan section it implements in `docs/roadmap/ALL_IN_ONE_PLAN.md`, plus `docs/AI_DEVELOPMENT_GUIDE.md` (the 13 rules).
+
+## Verify the repo position
+
+```bash
+git fetch origin main
+git status --short
+git rev-parse --short origin/main   # compare with STATE.yaml repo.commit
+git log --oneline <recorded-commit>..origin/main
+```
+
+If `main` has moved on, read that delta first and update these files with it, rather than re-auditing everything.
+
+## First objective
+
+**With a device or emulator:** TASK-001, then TASK-002, then TASK-003 to TASK-005 (`PENDING.md` P0).
+
+**Without one** (cloud agent, no Android SDK): pick a P2 task from `PENDING.md`. Two have no device dependency:
+
+- TASK-013: a large-data JVM test.
+- TASK-012: split `MainActivity`.
+
+Do not claim any P0 task is done without device evidence.
+
+## How to work
+
+1. Branch `codex/<topic>` off the appropriate reviewed base. One PR per substantial task.
+2. Before pushing, run ktlint and detekt on the changed files and check **their own** exit codes (see FA-002). Run the pure-Kotlin tests where you can.
+3. Open the PR with actual validation evidence and limitations. Do not invent attribution or session links.
+4. Merge (squash) only when every check on the head SHA is green and the PR is mergeable. Before merging, dry-run the merge onto current `main`.
+5. Update the plan row the change touches, and update this folder (`STATE.yaml`, `CHANGES.md`, `PENDING.md`).
+
+## Do not repeat
+
+- FA-001: test fixtures sized for a particular buffer.
+- FA-002: filtering a linter's output and losing its exit code.
+- FA-003: dropping the category walk before MediaStore freshness exists.
+
+## Definition of done (handover-level)
+
+- [ ] The emulator job has passed on `main`.
+- [ ] The baseline profile is committed, with before and after numbers.
+- [ ] Every hardware check in P0 has passed, or has a bug filed or fixed.
+- [ ] `STATE.yaml` has been updated with the new commit and statuses.

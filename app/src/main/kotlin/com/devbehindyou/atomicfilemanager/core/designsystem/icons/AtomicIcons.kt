@@ -7,8 +7,10 @@ import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.automirrored.outlined.TextSnippet
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.automirrored.outlined.WrapText
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AllInbox
@@ -61,6 +63,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Slideshow
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SyncAlt
 import androidx.compose.material.icons.outlined.TableChart
@@ -103,7 +106,10 @@ object AtomicIcons {
     val SelectSameType: ImageVector = Icons.Outlined.FilterAlt
     val Refresh: ImageVector = Icons.Outlined.Refresh
     val Replay: ImageVector = Icons.Outlined.Replay
+    val Stop: ImageVector = Icons.Outlined.Stop
     val Restore: ImageVector = Icons.Outlined.Restore
+    val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
+    val Redo: ImageVector = Icons.AutoMirrored.Outlined.Redo
     val OpenExternally: ImageVector = Icons.AutoMirrored.Outlined.OpenInNew
     val Preview: ImageVector = Icons.Outlined.Preview
     val WrapText: ImageVector = Icons.AutoMirrored.Outlined.WrapText

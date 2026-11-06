@@ -26,6 +26,9 @@ class ImagePreviewHelper(
 ) {
     constructor(backendSelector: (FileNodeId) -> StorageBackend) : this(backendSelector, Dispatchers.IO)
 
+    suspend fun decodeGif(id: FileNodeId): FileResult<android.graphics.drawable.Drawable> =
+        GifPreviewDecoder(backendSelector, io).decode(id)
+
     suspend fun decodeImage(
         id: FileNodeId,
         maxDimension: Int = 2048,
