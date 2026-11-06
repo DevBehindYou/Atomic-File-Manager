@@ -43,3 +43,7 @@ The additional path set is bounded by the existing 100,000-entry ceiling and ind
 See [the candidate validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md). Scoped formatting/diff checks pass; no Gradle, native, CI or integration test has run for this candidate. ARC-T01–T04, ARC1–ARC5 and version v0.2 remain as previously tracked; no complete capability-group credit is earned.
 
 - **26 October 2026, v0.2 candidate:** retain test-first inspection identity/lifetime contracts and the small source correction separately from accepted extraction safeguards. Preserve all wider format, browse/actions, mutation and physical acceptance tasks.
+
+## Scoped acceptance, 6 November 2026
+
+Duplicate-path rejection and inspection cancellation passed host checks. The FILE inspection case passed on each API 28 and 34 emulator. PR #92 merged into feature integration as `ac668e5`. ARC1–ARC5 and wider archive workflows remain open. [Validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md)

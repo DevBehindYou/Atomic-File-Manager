@@ -41,3 +41,7 @@ No new renderer, CommonMark/GFM support, asset/link handling, WebView, network r
 - **26 October 2026, v0.2 candidate:** preserve the frozen seven-consumer baseline and independently scoped source correction; scoped formatter passes. Host/static/APK/Lint, native, CI and integration are pending. No fixed-ledger credit is earned.
 
 - **29 October candidate checkpoint:** frozen9c67f84 reproduces five missing behaviors while both cancellation controls pass. Candidatee217005 passes16 focused host cases; corrected native fixture/static/APKs/debug Lint pass at4c8fc5f in9m38s after retaining the Context/Application compilation failure. Native runtime remains unrun. Accepted Editor dependency b995e23 is now merged as3933cd5; combined-source checks are pending. MD1–MD5 and v0.2/N42 credit remain unchanged. See MARKDOWN_OWNERSHIP_CANDIDATE.md in docs/testing for evidence and scope.
+
+## Scoped acceptance, 6 November 2026
+
+Retry, source revision and Raw disclosure passed host, emulator and physical phone checks. PR #89 merged into feature integration as `bf2f1ae`. Cross-revision restoration and full MD1–MD5 acceptance remain open. [Validation record](../testing/MARKDOWN_OWNERSHIP_CANDIDATE.md)

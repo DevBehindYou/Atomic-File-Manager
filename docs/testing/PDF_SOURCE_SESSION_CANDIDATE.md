@@ -38,3 +38,9 @@ The unit and APK job stopped at `:app:testDebugUnitTest` after 1,298 tests with 
 The ignored worktree directory `.local-evidence/pdf-ci-42065418816/` retains the original job output and downloaded test reports. The retained `unit-apk.failed.log` SHA-256 is `2f888373d854b695911263a1e7bc3bf57aae81417b099fe92facc99600654563`.
 
 The candidate merged accepted integration `33152a5bc92e38bc34a2e72a962e61405da55b56` (GIF PR #101) cleanly as `7f3f212b952b10f19d36942eff5a93ac4f6030ae`. The combined app tree is `67a80712a80538dc2f63bae3ac55aa4999bc9fa2`. The earlier hosted results apply to the previous app tree. The combined candidate awaits its own unit/APK, static and native results, then review and merge acceptance. N42 credit remains 0/42 host and 0/42 accepted.
+
+## Accepted integration, 6 November 2026
+
+PR #91 at `152eef2aedcb5338c71c554b5cd3386933294a60`, app tree `67a80712a80538dc2f63bae3ac55aa4999bc9fa2`, passed static checks and APK packaging. The report records 1,313 app tests, including five PDF session tests, and 28 Lint rule tests, with zero failures and zero skipped. All three PDF cases passed on each of the API 28 and API 34 emulators. They cover revision and helper replacement, page rendering, and cleanup of the private copy. [PR #91](https://github.com/DevBehindYou/Atomic-File-Manager/pull/91) · [Host run 42235731892](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42235731892) · [Native run 42235731779](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42235731779)
+
+Review, current checks and a clean merge trial preceded integration merge `956839c36c8ea8f55a17f715e035fb25ed3cf018`. The passing host run supersedes the failed attempt for this acceptance decision. The earlier SQLite linkage failure and its open initialization question remain recorded above. Broader PDF format, provider, capability and resource checks are open. [Capability matrix](../plugins/modernization/PLUGIN_FEATURE_MATRIX.md)

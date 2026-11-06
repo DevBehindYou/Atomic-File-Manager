@@ -43,3 +43,7 @@ Actual-helper host consumers cover modified/size revisions, helper replacement, 
 The [PDF engine evaluation](modernization/PDF_ENGINE_EVALUATION.md) records current AndroidXPDF beta01, its basic-reading API28 backport versus conditional advanced features, the separate API35 and API31–34/S-extension13 platform adapters, maintained MuPDF/native and PDFBox-Android/JVM alternatives, actual HTTP HEAD artifact lengths, POM license/dependency evidence and unmeasured costs. It recommends preserving the bounded raster fallback and finishing actual ownership/failure consumers before adding platform capabilities. API34 alone does not establish advanced text/password availability; the connected API34 phone reports S-extension11 in the read-only26October check, below that advanced extension13 gate.
 
 This is research, not an engine selection, tested PDF feature or license/security clearance. No app/dependency/build/device changes or advanced PDF credit follow. Same-ID revision/helper ownership and generic password/open-error mapping are source observations awaiting reproducible consumers, rather than newly confirmed runtime bugs. PDF-T01/T03/T04 and all PDF1–PDF5 requirements remain open; version remainsv0.2.
+
+## Scoped acceptance, 6 November 2026
+
+Source revision and helper replacement passed host checks and three native cases on each API 28 and 34 emulator. PR #91 merged into feature integration as `956839c`. Engine, provider and full PDF1–PDF5 acceptance remain open. [Validation record](../testing/PDF_SOURCE_SESSION_CANDIDATE.md)

@@ -1,14 +1,15 @@
 # AI handover index
 
-Protocol: **AI-HANDOVER/V2**. Refreshed **4 November 2026**. Documentation handover; no stable-release completion claim.
+Protocol **AI-HANDOVER/V2**. Live acceptance pointers refreshed **6 November 2026**. GIF, Markdown, PDF, Archive and DOCX slices are in feature integration. [Current plugin ledger](../plugins/modernization/PLUGIN_PROGRESS.md#6-november-accepted-slices)
+
+Use the current `next` list in STATE.yaml to resume. The 4 November detailed worktree and continuation records retain the earlier checkpoints for reference.
 
 Read in order:
 
 1. [STATE.yaml](STATE.yaml): compact snapshot and source identities.
 2. [HANDOVER.md](HANDOVER.md): orientation.
-3. [CURRENT_STATE.md](CURRENT_STATE.md): branches, PRs, worktrees.
-4. [PENDING.md](PENDING.md): prioritized exit gates.
-5. [NEXT_AGENT.md](NEXT_AGENT.md): continuation procedure.
+3. [Current feature ledger](../roadmap/FEATURE_UPGRADE_PROGRESS.md) and [plugin ledger](../plugins/modernization/PLUGIN_PROGRESS.md) for completed slices and exit gates.
+4. [CURRENT_STATE.md](CURRENT_STATE.md), [PENDING.md](PENDING.md) and [NEXT_AGENT.md](NEXT_AGENT.md) for the 4 November worktree and continuation snapshot.
 
 Read on demand: [TESTING](TESTING.md), [ISSUES](ISSUES.md), [PROJECT_CONTEXT](PROJECT_CONTEXT.md), [DECISIONS](DECISIONS.md), [CHANGES](CHANGES.md).
 
