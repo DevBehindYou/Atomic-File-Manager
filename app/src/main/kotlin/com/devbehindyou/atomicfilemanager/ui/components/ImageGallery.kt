@@ -339,7 +339,6 @@ private fun ImageViewControls(
     }
 }
 
-
 @Composable
 internal fun ImageLoadError(
     error: FileError,

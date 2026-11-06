@@ -74,7 +74,7 @@ class ImageViewModesComposeTest {
     }
 
     @Test
-    fun actualPreviewPixelsCanShrinkAnUpscaledSmallBitmapWithoutChangingTheSource() {
+    fun actualPreviewPixelsShrinkASmallBitmapAndFitRestoresItsSize() {
         show(100, 100)
         assertPixel(0.2f, 0.4f, Color.RED)
         compose.onNodeWithTag("image_mode_pixels").performScrollTo().performClick().assertIsOn()
