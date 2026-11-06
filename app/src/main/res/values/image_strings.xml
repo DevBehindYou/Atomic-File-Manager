@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="image_load_storage_unavailable">The image storage is unavailable. Reconnect it and try again.</string>
+    <string name="image_load_access_denied">Atomic cannot read this image. Check its storage access before trying again.</string>
+    <string name="image_load_missing">This image could not be found. Refresh the folder or check that its storage is connected.</string>
+    <string name="image_load_unsupported">This image may be damaged or in a format this phone cannot decode.</string>
+    <string name="image_load_too_large">This image exceeds the preview limits. Open it in another app.</string>
+    <string name="image_load_memory">There is not enough memory to preview this image. Close other viewers and try again.</string>
+    <string name="image_load_failed">The image could not be loaded. Try again or open it in another app.</string>
+</resources>

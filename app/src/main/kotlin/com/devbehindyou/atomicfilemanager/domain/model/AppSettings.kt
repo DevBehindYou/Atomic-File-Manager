@@ -2,6 +2,9 @@ package com.devbehindyou.atomicfilemanager.domain.model
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Presentation of files and folders in the browser. */
+enum class FileViewMode { LIST, GRID }
+
 /** Where "Hide from Gallery" puts files, relative to the root of the storage the file is on. */
 const val DEFAULT_HIDDEN_FOLDER = "Atomic File Manager/Hidden"
 
@@ -24,12 +27,14 @@ fun normalizeHiddenFolder(raw: String): String? {
  * hiding a file uses that method straight away.
  */
 data class AppSettings(
+    val fileOpening: FileOpeningPreferences = FileOpeningPreferences(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** WALLPAPER COLOURS: swaps only the accent, with guard rails (ATOMIC_UI_PLAN.md §4.5). */
     val dynamicColor: Boolean = false,
     val defaultHideMode: HideMode? = null,
     val requireAuthForHidden: Boolean = false,
     val showHiddenFiles: Boolean = true,
+    val fileViewMode: FileViewMode = FileViewMode.LIST,
     val hiddenFolder: String = DEFAULT_HIDDEN_FOLDER,
     /** Delete moves to the Trash where the storage allows it; off means deletes are permanent. */
     val useTrash: Boolean = true,

@@ -1,0 +1,60 @@
+# File-opening preferences and safe app handoff
+
+Implementation slice for U06, based on `12f007d`. Validation record updated 22 October 2026, retaining the actual 21 October phone date. Scoped host checks and a real native read-only handoff pass; the full device acceptance matrix remains open.
+
+## Behavior
+
+- Every existing `FilePreviewPane`/`FilePreviewDialog` caller now shares an app-specific open policy. The default remains the existing built-in viewer/file-details behavior.
+- Settings → File opening supports ask, prefer built-in and prefer external policy, plus per-family, explicit extension and exact MIME rules. Extension rules override MIME, family and global rules in that order.
+- Settings can add, change and reset rules, or confirm a reset of all opening preferences without resetting unrelated settings.
+- The per-file chooser lists actual exported/enabled Android `ACTION_VIEW` components, with once/always consent. App-specific saved rules record a real component and label, never infer an app from an opaque system chooser result.
+- Generic “Prefer external app” remains a policy that invokes Android's chooser. It does not claim to save whichever application the user picks there.
+- A missing/incompatible saved component returns to visible choices and the built-in/file-details fallback. Failed launch/preparation does not save the selected app as a default.
+- Gallery opening passes the currently displayed image into choices/export/rule saving. Legacy callbacks tied to the originally opened file retain their original visibility guard, and share callbacks are not reused for another image. Per-file asynchronous handoff is cancelled when the preview source changes.
+- The existing external exporter still supplies content URIs and temporary read access. Remote export remains capped at 64 MiB; media preview staging remains capped at 512 MiB. No writable editing or automatic remote write-back is advertised.
+- Installed-app discovery is performed on IO. Activity launch remains on Main after export. Visibility is scoped to content-URI view handlers; no all-packages permission is added.
+- Versioned rule persistence tolerates corrupt, unsupported and oversized stored data. Rules are bounded to 128 and add controls disclose the limit. Existing settings and user files are preserved.
+
+## Source boundaries
+
+Domain `FileOpening.kt` owns identity-independent policy, normalization and precedence. The existing settings repository stores a versioned JSON field through `FileOpeningPreferencesCodec`. `ExternalFileApps` owns Android handler discovery and launch intents. `FileOpeningPane` coordinates actual opening; `FileOpeningSettingsSheet` manages preferences. MainActivity and startup access logic are untouched.
+
+No new dependency, downloaded module, minimum-SDK change, native code or user-file mutation is introduced.
+
+## Regression coverage
+
+- `FileOpeningTest`: precedence, directory handling, known-MIME authority, key validation and rule reset.
+- `FileOpeningPreferencesTest` on API27/34: persisted real component, corrupt/oversized/versioned data, malformed-row isolation and reset preservation.
+- `ExternalFileAppsTest` on API27/34: handler filtering, actual component launch, read-only URI/ClipData grants and generic chooser identity.
+- `FileOpeningSettingsComposeTest`: real rule change/reset and reset-all confirmation using native graphics.
+- `PreviewExternalActionTest`: the real external-action button stays available for a newly displayed gallery image, passes its identity, and preserves original-file callback restrictions.
+- Existing Settings, PreviewType, ExternalPreviewHelper and startup preferences regressions.
+- ktlint, detekt, debug/instrumentation compilation and Android Lint.
+
+## Recorded validation — 21 October 2026
+
+- The serial combined host run at integration commit `2767f46` passed 42 file-opening tests, ktlint, detekt, debug Android Lint, debug APK and Android-test APK packaging, and the R8-minified benchmark target/benchmark harness packaging. The app source tree `6c80f40d1ab0693311133e7a7df99f8c674bcf44` exactly matches PR #64 head `2e9230b`. Log: `build/audit-tools/opening-benchmark-final-validation.log`, exit 0, `BUILD SUCCESSFUL in 18m 50s`.
+- Debug Lint reported **0 errors, 154 warnings and 1 hint**. Passing the task does not mean those warnings were resolved.
+- `ExternalFileAppsTest` separately passed six cases across API 27 and 34 with real registered component intent filters, including an incompatible-MIME exclusion. Log: `build/audit-tools/external-app-component-fixture-validation.log`, exit 0, `BUILD SUCCESSFUL in 1m 21s`.
+- [PR #64 CI run 39612223345](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/39612223345) passed static analysis and unit-test/APK packaging at `2e9230b`. Its manual instrumented-test job was skipped; CI success is not device acceptance.
+- An earlier phone check exercised the file-opening Settings surface on the debug APK with SHA-256 prefix `e84518`. That result applies only to that artifact and surface. The intermediate debug APK `3F2A01163C9716F8D27CAB0361227A824FA97F547A91F96087A8F87CA945D364` is not the native-handoff phone artifact recorded below.
+
+Missing-handler recovery, representative external editors/readers, provider grant loss, and large/slow remote handoff still require device acceptance. The completed host checks and narrow native handoff below do not complete U06.
+
+## Native URI-handoff acceptance — 21 October, recorded 22 October 2026
+
+`ExternalFileHandoffDeviceTest` adds a real exported `ACTION_VIEW`/`content`/`image/png` Activity in the Android-test APK only. The test checks that production handler discovery offers that component for PNG and excludes it for PDF, then opens a generated app-cache PNG through `ExternalPreviewHelper`, the production FileProvider and `ExternalFileApps`. The receiving Activity reports its actual component/package/UID, intent MIME/data/ClipData, platform URI read/write permission results and at most 512 bytes read through ContentResolver. Assertions require a different UID from the app, exact generated bytes, a read grant and no write/persistable/prefix grants.
+
+The receiver deliberately uses standalone platform-only Java: the test APK's separate process cannot rely on Kotlin/coroutine runtime classes from the instrumented target APK. The generated PNG, broadcast registration and its package-specific URI grant are cleaned up by the test. No production manifest, permissions, dependencies or opening preferences change. Installing the test APK temporarily adds its PNG handler to Android's choices; only `com.devbehindyou.atomicfilemanager.test` was uninstalled after all four selected app instrumentation cases finished. Other apps remained installed and enabled.
+
+The native test source at `f03f94f` was included in combined integration `66d7451`, alongside orthogonal browse/UI/index changes. That combined candidate passed 44 selected host cases with no failures/errors/skips, ktlint/detekt, debug and AndroidTest APK packaging, and Android Lint (`browse-layout-sort-validation.log`, exit 0, 11m 46s). This is combined validation, not a claim that every isolated current PR head was rebuilt by this documentation change.
+
+The API34 phone's `realPngHandlerReceivesExactContentAndOnlyTemporaryReadAccess` case passed: production resolution selected the actual test-APK component in another UID, its ContentResolver received the exact generated PNG bytes, temporary read access succeeded and write/persistable/prefix grants were absent. Its case log reports `OK (1 test)` under `build/audit-tools/device-preview-tools/browse-layout-acceptance/`. The debug APK SHA-256 was `7AB8B77A5564787F23180AB3CE4E437FA2BC74F87752849EE12728294970B350`; the AndroidTest APK was `7B1FD4C1D30F905E9A89BDDE154632E6612A2B3B4334CC9D1CCAD23E3A442B6E`.
+
+All four selected phone cases passed before the wrapper's final reporting hit PowerShell's reserved `$HOME` variable. Its original exit 1 is retained. The helper was corrected, and separate read-only finalization exited 0, verifying Home, existing all-files access still allowed and the test-only handler removed. The unchanged cases were not rerun to hide the wrapper failure. This controlled PNG handoff does not establish handler-uninstall recovery, provider grant-loss behavior or the broader native-handler matrix.
+
+## Remaining U06 work
+
+Bounded content sniffing for ambiguous/mislabelled file metadata is not added by this slice. Routing uses existing metadata plus explicit rules. Handler choices in Settings use a representative MIME for each broad family and are revalidated for the actual file when opened; not every handler supports every format in a family. App icons and a richer temporary-download progress display remain presentation follow-ups. No OS-wide defaults are changed.
+
+Official APIs checked: [package visibility](https://developer.android.com/training/package-visibility/declaring), [content-URI sharing](https://developer.android.com/training/secure-file-sharing/share-file).

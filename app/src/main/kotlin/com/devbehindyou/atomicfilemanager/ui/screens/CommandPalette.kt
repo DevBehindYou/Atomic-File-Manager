@@ -14,7 +14,9 @@ import androidx.compose.ui.text.input.ImeAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 
 /** Everything the palette can do (ALL_IN_ONE_PLAN.md 4.4). [keywords] are other words people type. */
@@ -106,13 +108,39 @@ fun CommandPaletteSheet(
         if (matches.isEmpty()) {
             AtomicText("No command matches “$query”.", AtomicTextRole.BodySecondary)
         }
-        matches.forEach { command ->
-            AtomicSettingsRow(
-                title = command.title,
-                value = command.group,
-                onClick = { onRun(command) },
-                modifier = Modifier.testTag("palette_${command.name.lowercase()}"),
-            )
-        }
+        AtomicCommandGrid(
+            matches.map { command ->
+                AtomicMenuAction(
+                    label = command.title,
+                    icon = command.icon,
+                    description = command.group,
+                    onClick = { onRun(command) },
+                    testTag = "palette_${command.name.lowercase()}",
+                )
+            },
+        )
     }
 }
+
+private val PaletteCommand.icon
+    get() =
+        when (this) {
+            PaletteCommand.SEARCH -> AtomicIcons.Search
+            PaletteCommand.FILES -> AtomicIcons.Files
+            PaletteCommand.DOWNLOADS -> AtomicIcons.Download
+            PaletteCommand.IMAGES -> AtomicIcons.Image
+            PaletteCommand.VIDEOS -> AtomicIcons.Video
+            PaletteCommand.AUDIO -> AtomicIcons.Audio
+            PaletteCommand.DOCUMENTS -> AtomicIcons.Document
+            PaletteCommand.ARCHIVES -> AtomicIcons.Archive
+            PaletteCommand.APKS, PaletteCommand.APPS -> AtomicIcons.Apk
+            PaletteCommand.STORAGE -> AtomicIcons.Storage
+            PaletteCommand.ANALYSIS -> AtomicIcons.Cleanup
+            PaletteCommand.TRASH -> AtomicIcons.Trash
+            PaletteCommand.OPERATIONS -> AtomicIcons.Tasks
+            PaletteCommand.PRIVATE -> AtomicIcons.Lock
+            PaletteCommand.WIFI_SHARE -> AtomicIcons.Network
+            PaletteCommand.SETTINGS -> AtomicIcons.Settings
+            PaletteCommand.THEME -> AtomicIcons.Theme
+            PaletteCommand.ABOUT -> AtomicIcons.Info
+        }

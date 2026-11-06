@@ -5,6 +5,8 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkProtocol
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkServerConfig
+import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveOperationsHelper
+import com.devbehindyou.atomicfilemanager.domain.usecase.FileOperationsEngine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory
@@ -14,12 +16,14 @@ import org.apache.sshd.sftp.server.SftpSubsystemFactory
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
+import java.util.zip.ZipFile
 
 /** Real SFTP against an in-process Apache MINA SSHD server rooted in a temporary folder. */
 class SftpBackendTest {
@@ -63,6 +67,46 @@ class SftpBackendTest {
     }
 
     private fun id(path: String) = FileNodeId.sftp("srv", path)
+
+    @Test
+    fun `root metadata ends ancestry and children retain the root parent`() =
+        runBlocking {
+            File(root, "docs").mkdirs()
+            val rootNode = (backend.getNode(id("/")) as FileResult.Success).value
+            val child = (backend.getNode(id("/docs")) as FileResult.Success).value
+            assertTrue(rootNode.isDirectory)
+            assertNull(rootNode.parentId)
+            assertEquals(rootNode.id, child.parentId)
+        }
+
+    @Test
+    fun `compression into an unrelated SFTP directory traverses the root safely`() =
+        runBlocking {
+            File(root, "source").mkdirs()
+            File(root, "source/a.txt").writeText("alpha")
+            File(root, "destination").mkdirs()
+            val result =
+                ArchiveOperationsHelper.compressItems(
+                    sources = listOf(id("/source")),
+                    destParentId = id("/destination"),
+                    zipName = "backup.zip",
+                    compressionLevel = null,
+                    destBackend = backend,
+                    backendSelector = { backend },
+                    onBytesCopied = {},
+                    emitProgress = {},
+                )
+            assertEquals(FileOperationsEngine.ItemResult.Success, result)
+            ZipFile(File(root, "destination/backup.zip")).use { zip ->
+                assertEquals(setOf("source/", "source/a.txt"), zip.entries().toList().map { it.name }.toSet())
+                assertEquals(
+                    "alpha",
+                    zip.getInputStream(zip.getEntry("source/a.txt")).bufferedReader().use { it.readText() },
+                )
+            }
+            assertEquals("alpha", File(root, "source/a.txt").readText())
+            assertEquals(listOf("backup.zip"), File(root, "destination").list()!!.toList())
+        }
 
     @Test
     fun `lists, uploads, downloads, renames and deletes`() =

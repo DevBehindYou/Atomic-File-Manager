@@ -1,6 +1,7 @@
 package com.devbehindyou.atomicfilemanager.domain.repository
 
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.SearchFilter
 import com.devbehindyou.atomicfilemanager.domain.model.SearchHit
 import com.devbehindyou.atomicfilemanager.domain.model.SearchIndexState
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,17 @@ interface SearchIndex {
         query: String,
         limit: Int,
     ): List<SearchHit>
+
+    /**
+     * Filtered search. The compatibility fallback filters the old implementation's capped
+     * results and can omit later matches. Implementations with paging, including Room, override
+     * this to apply [filter] before counting toward [limit].
+     */
+    suspend fun search(
+        query: String,
+        limit: Int,
+        filter: SearchFilter,
+    ): List<SearchHit> = search(query, limit).filter(filter::matches)
 
     /** Starts a build in the background when the index is empty or older than its freshness window. */
     fun refreshIfStale(roots: List<FileNodeId>)

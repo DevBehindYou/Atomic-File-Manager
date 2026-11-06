@@ -163,6 +163,7 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "androidxBenchmark" }
 
 [plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 # No `kotlin-compose` plugin alias here: org.jetbrains.kotlin.plugin.compose is applied
 # via a bare id() inside build-logic/convention's atomic.android.application.gradle.kts,

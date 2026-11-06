@@ -58,53 +58,55 @@ class NetworkCredentialsStore(
     fun saveServer(
         config: NetworkServerConfig,
         password: String?,
-    ): Boolean {
-        val servers = getAllServers().filter { it.id != config.id }.toMutableList()
-        servers.add(config)
+    ): Boolean =
+        synchronized(writerLock) {
+            val servers = getAllServers().filter { it.id != config.id }.toMutableList()
+            servers.add(config)
 
-        val jsonArray = JSONArray()
-        for (server in servers) {
-            val obj =
-                JSONObject().apply {
-                    put("id", server.id)
-                    put("name", server.name)
-                    put("protocol", server.protocol.name)
-                    put("host", server.host)
-                    put("port", server.port)
-                    put("username", server.username)
-                    put("remotePath", server.remotePath)
-                    put("anonymous", server.anonymous)
-                }
-            jsonArray.put(obj)
+            val jsonArray = JSONArray()
+            for (server in servers) {
+                val obj =
+                    JSONObject().apply {
+                        put("id", server.id)
+                        put("name", server.name)
+                        put("protocol", server.protocol.name)
+                        put("host", server.host)
+                        put("port", server.port)
+                        put("username", server.username)
+                        put("remotePath", server.remotePath)
+                        put("anonymous", server.anonymous)
+                    }
+                jsonArray.put(obj)
+            }
+
+            prefs.edit().putString(KEY_SERVERS, jsonArray.toString()).apply()
+
+            password == null || savePassword(config.id, password)
         }
 
-        prefs.edit().putString(KEY_SERVERS, jsonArray.toString()).apply()
-
-        return password == null || savePassword(config.id, password)
-    }
-
-    fun deleteServer(id: String) {
-        val servers = getAllServers().filter { it.id != id }
-        val jsonArray = JSONArray()
-        for (server in servers) {
-            val obj =
-                JSONObject().apply {
-                    put("id", server.id)
-                    put("name", server.name)
-                    put("protocol", server.protocol.name)
-                    put("host", server.host)
-                    put("port", server.port)
-                    put("username", server.username)
-                    put("remotePath", server.remotePath)
-                    put("anonymous", server.anonymous)
-                }
-            jsonArray.put(obj)
+    fun deleteServer(id: String) =
+        synchronized(writerLock) {
+            val servers = getAllServers().filter { it.id != id }
+            val jsonArray = JSONArray()
+            for (server in servers) {
+                val obj =
+                    JSONObject().apply {
+                        put("id", server.id)
+                        put("name", server.name)
+                        put("protocol", server.protocol.name)
+                        put("host", server.host)
+                        put("port", server.port)
+                        put("username", server.username)
+                        put("remotePath", server.remotePath)
+                        put("anonymous", server.anonymous)
+                    }
+                jsonArray.put(obj)
+            }
+            prefs.edit()
+                .putString(KEY_SERVERS, jsonArray.toString())
+                .remove(KEY_PASS_PREFIX + id)
+                .apply()
         }
-        prefs.edit()
-            .putString(KEY_SERVERS, jsonArray.toString())
-            .remove(KEY_PASS_PREFIX + id)
-            .apply()
-    }
 
     /**
      * Encrypts and stores [pass]. Returns false, and stores nothing, if it can't be encrypted;
@@ -136,6 +138,7 @@ class NetworkCredentialsStore(
     }
 
     companion object {
+        private val writerLock = Any()
         private const val PREFS_NAME = "atomic_network_credentials"
         private const val KEY_SERVERS = "saved_servers"
         private const val KEY_PASS_PREFIX = "server_pass_"

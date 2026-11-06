@@ -1,13 +1,14 @@
 protocol: AI-HANDOVER/V2
-updated: 2026-10-08
-project: atomic-file-manager   # repo DevBehindYou/Refract-Full-File-Manager, launcher name "Refract"
-objective: all-in-one-plan-complete; device verification and remaining §16 optimization
+updated: 2026-10-20
+project: atomic-file-manager   # repo DevBehindYou/Atomic-File-Manager
+objective: evidence-based architecture modernization; safety fixes and integrated validation
 
 repo:
-  branch: main
-  commit: "e2b1509"
-  dirty: false
-  open_prs: []
+  branch: codex/architecture-audit
+  commit: "4792db8" # source checkpoint; 917 host and 13 selected device cases pass
+  baseline: "7782660"
+  dirty: true # preserved user icon artwork; source checkpoint excludes the docs-only follow-up
+  open_prs: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
 
 stack:
   - kotlin-2.2.10
@@ -18,19 +19,23 @@ stack:
   - manual DI (AppContainer), hilt declared but unused
 
 status:
-  build: VERIFIED          # CI static analysis + unit + R8 release on main
-  unit_tests: VERIFIED     # ~535 JVM/Robolectric tests
-  device_tests: UNKNOWN    # manual emulator job not run since Phases 1-4
-  runtime: UNKNOWN         # no phone run since 2026-09-15
+  build: PASS             # 4792db8 complete static/test/Lint/debug/release/benchmark packaging run, exit 0
+  unit_tests: PASS        # 917 app + 28 custom-rule cases; zero failures/errors/skips
+  device_tests: PARTIAL   # all 13 selected surface cases pass; broader hardware/recovery acceptance remains
+  runtime: PARTIAL        # current 13-case log clean; prior InsetsSourceControl diagnostic retained
   release_signing: BROKEN  # debug-signed (ISS-001)
   plan_phases_0_4: IMPLEMENTED
   plan_16_optimization: PARTIAL
 
 progress:
-  code: "~99%"
-  remaining: device verification, owner actions, optional §16 items
+  implemented_weight: "47/60 (~78%) of modernization roadmap; 26/26 first batch"
+  source: docs/roadmap/IMPLEMENTATION_PROGRESS.md
+  remaining: Startup access/volume loading-state polish, retained historical Android resource diagnostic, M12 hygiene, broader device/performance acceptance, current-head CI and human/owner gates
 
 done:
+  - "M01 source-linked audit, architecture, decisions, roadmap and performance methodology"
+  - "Startup and comparison preference IO, plugin-loading cleanup and storage-access adapter integrated"
+  - "Thumbnails/viewers, live Tasks, Files controls, adaptive menus and typed icons implemented; 917 host and 13 selected phone cases pass"
   - plan phases 0-4 (PRs #1-#37)
   - "§16: H1 H2 H3 H7 H8 H10, StrictMode, JankStats, monkey job (#38 #39)"
   - "§16 partial: H4 H5 H6 H9 (#39 #40 #41)"
@@ -41,8 +46,8 @@ pending:
   P2: [TASK-010..TASK-016]
 
 constraints:
-  - one PR per task on claude/<topic>; auto-merge only when CI green and no conflict
-  - no model identifiers in commits or PRs; session trailers on commits
+  - focused PRs on codex/<topic>; high-risk filesystem changes require human review
+  - no fabricated attribution, session trailers or validation evidence
   - never skip or disable tests; never rewrite shared history
   - no secrets in repo
   - plain-language UI (plan §7.4); every mutation through FileOperationsEngine + journal
@@ -56,8 +61,10 @@ critical_files:
   - .github/workflows/ci.yml
 
 next:
-  - TASK-001 run emulator job
-  - TASK-002 generate baseline profile
-  - TASK-003..005 hardware checks
+  - inspect preserved worktree changes and build/audit-tools log plus exit markers
+  - read docs/testing/MENU_REFINEMENT_VALIDATION.md and latest menu-refinement-complete logs; interrupted runs are not passes
+  - retain passing native fixture and physical popup/row-action evidence; broaden hardware tests only within authorization
+  - review focused draft PRs at their exact heads; run benchmark/profile measurements only within authorized hardware scope
+  - TASK-001..005 device, baseline profile and hardware checks when environment exists
 
-confidence: HIGH (code/CI), LOW (device behaviour)
+confidence: 4792db8 host/static/package and selected phone gates pass; broader device, recovery and performance acceptance open

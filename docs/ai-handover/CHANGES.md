@@ -1,6 +1,16 @@
 # Changes
 
+## Current validation — 20 October 2026
+
+Current source `4792db8` includes Files storage shortcuts, persisted List/Grid views, content-sized top options, responsive icon-card action menus and distinct theme-aware icons/colours for 15 file families. All 917 app JVM/Robolectric cases, 28 custom Lint-rule cases, ktlint/detekt and debug/instrumentation packaging pass. All 13 selected API34 phone cases pass; manual popup sizing, Commands/Select grids and coloured folder icons are verified. The installed debug APK matches the recorded build hash, and the settled app is back on Home. The current selected log contains no StrictMode or fatal errors; a prior InsetsSourceControl warning remains historical evidence. Debug/release Android Lint, R8 release and benchmark test-APK packaging passed in the complete Gradle run (exit 0). See [menu/icon validation](../testing/MENU_REFINEMENT_VALIDATION.md), [Files validation](../testing/FILES_WORKSPACE_VALIDATION.md) and [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md). Broader provider, hardware, recovery, performance and owner-signing acceptance remains open.
+
 Grouped by plan area. Git and the PRs have the line-level detail; this file keeps the why and the result. A status of IMPLEMENTED means merged with CI green (unit tests, Robolectric, Lint and the R8 build); it does **not** mean tested on a device.
+
+## Modernization checkpoint — 20 October 2026
+
+The safety/architecture changes remain integrated locally with seventeen draft PRs and no merges. The previous complete host checkpoint `5705606` passed 712 app tests and 28 custom Lint-rule tests; startup's manual API34 retest recorded zero StrictMode disk warnings. Subsequent changes add comparison preference IO, Kotlin-plugin loading cleanup, shared-storage access, URI thumbnails and private bounded folder miniatures, removal of per-row More boxes, pane-owned contextual actions, secure read-only DOCX, bounded owned PDF/media sessions, all eight image EXIF orientations and editor draft retention across recreation. The current validation above supersedes that host/device checkpoint. Earlier release/Lint evidence remains checkpoint-specific; current packaging results are recorded above. See [IMPLEMENTATION_PROGRESS](../roadmap/IMPLEMENTATION_PROGRESS.md), [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md) and [REVIEW_BRANCHES](../roadmap/REVIEW_BRANCHES.md); no remote CI or device speedup is claimed.
+
+## Historical merged feature work
 
 | ID | Plan | What | PRs | Status |
 |---|---|---|---|---|

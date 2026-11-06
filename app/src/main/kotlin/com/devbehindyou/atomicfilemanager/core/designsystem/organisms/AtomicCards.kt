@@ -12,10 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -30,6 +37,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicEle
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.modifiers.hardShadow
 
 /**
@@ -59,9 +67,19 @@ fun AtomicStorageCard(
                 .padding(AtomicSpacing.s16),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10),
     ) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
-            AtomicText(name, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f))
-            AtomicText(usage, AtomicTextRole.MonoMeta)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        ) {
+            AtomicText(name, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f), maxLines = 1)
+            AtomicText(
+                usage,
+                AtomicTextRole.MonoMeta,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                textAlign = TextAlign.End,
+            )
         }
         AtomicMeter(fraction = fraction, contentDescription = meterDescription)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -187,13 +205,25 @@ fun AtomicActionStrip(
     modifier: Modifier = Modifier,
 ) {
     val colors = Atomic.colors
+    var overflowOpen by rememberSaveable { mutableStateOf(false) }
+    val visibleActions =
+        if (actions.size <= 5) {
+            actions
+        } else {
+            actions.take(4) +
+                AtomicStripAction(
+                    stringResource(R.string.selection_more_actions),
+                    AtomicIcons.MoreHorizontal,
+                    { overflowOpen = true },
+                )
+        }
     Column(modifier.fillMaxWidth().background(colors.background)) {
         AtomicDivider(strong = true)
         Row(
             Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s8, vertical = AtomicSpacing.s6),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            actions.forEach { action ->
+            visibleActions.forEach { action ->
                 val tint = if (action.destructive) colors.error else colors.content
                 Column(
                     Modifier
@@ -209,6 +239,24 @@ fun AtomicActionStrip(
                 }
             }
         }
+    }
+    if (overflowOpen && actions.size > 5) {
+        AtomicMenuSheet(
+            stringResource(R.string.selection_more_actions),
+            onDismiss = { overflowOpen = false },
+            actions =
+                actions.drop(4).map { action ->
+                    AtomicMenuAction(
+                        action.label,
+                        action.icon,
+                        onClick = {
+                            overflowOpen = false
+                            action.onClick()
+                        },
+                        destructive = action.destructive,
+                    )
+                },
+        )
     }
 }
 

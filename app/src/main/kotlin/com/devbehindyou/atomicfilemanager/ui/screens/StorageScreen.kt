@@ -17,16 +17,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
@@ -41,7 +43,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmpt
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicStatTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicToggleCard
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
@@ -50,21 +51,21 @@ import com.devbehindyou.atomicfilemanager.data.backend.network.DiscoveredServer
 import com.devbehindyou.atomicfilemanager.data.backend.network.NetworkCredentialsStore
 import com.devbehindyou.atomicfilemanager.data.backend.network.NsdServerDiscovery
 import com.devbehindyou.atomicfilemanager.data.backend.network.ServerDiscovery
-import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
+import com.devbehindyou.atomicfilemanager.data.volume.storageCapacity
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkProtocol
 import com.devbehindyou.atomicfilemanager.domain.model.NetworkServerConfig
-import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
 /**
- * Storage (ATOMIC_UI_PLAN.md §7.4, canvas "Storage"): free space on the main volume, a card with
- * a meter per volume, storage analysis, app cache, and network servers.
+ * Storage uses the supplied volume snapshot only: combined capacity, volume cards, tools and servers.
+ * Recursive file and cleanup analysis belongs to the explicit actions in Analysis.
  */
 @Composable
 fun StorageScreen(
@@ -83,19 +84,33 @@ fun StorageScreen(
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as? AtomicApp
-    val credentialsStore = remember { app?.container?.networkCredentialsStore ?: NetworkCredentialsStore(context) }
-    var savedServers by remember { mutableStateOf(credentialsStore.getAllServers()) }
+    val saveServerError = stringResource(R.string.storage_server_save_error)
+    val removeServerError = stringResource(R.string.storage_server_remove_error)
+    val passwordUnavailable = stringResource(R.string.storage_server_password_unavailable)
+    val credentials =
+        remember(app, context) {
+            StoragePreferenceAccess(mutex = StoragePreferenceLocks.savedServers) {
+                app?.container?.networkCredentialsStore ?: NetworkCredentialsStore(context.applicationContext)
+            }
+        }
+    val scope = rememberCoroutineScope()
+    var savedServers by remember(credentials) { mutableStateOf<List<NetworkServerConfig>?>(null) }
+    var serversLoadingFailed by remember(credentials) { mutableStateOf(false) }
+    var serversBusy by remember(credentials) { mutableStateOf(false) }
+    var serversLoadRound by remember(credentials) { mutableIntStateOf(0) }
     var showAddServerDialog by rememberSaveable { mutableStateOf(false) }
     var serverToDelete by remember { mutableStateOf<NetworkServerConfig?>(null) }
 
-    fun refreshServers() {
-        savedServers = credentialsStore.getAllServers()
+    LaunchedEffect(credentials, serversLoadRound) {
+        serversLoadingFailed = false
+        try {
+            savedServers = credentials.access { it.getAllServers() }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            serversLoadingFailed = true
+        }
     }
-
-    val cacheSize by produceState(initialValue = 0L) {
-        value = withContext(Dispatchers.IO) { StorageVolumes.getAppCacheSize(context) }
-    }
-    val primary = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED } ?: volumes.firstOrNull()
 
     Column(
         modifier =
@@ -107,15 +122,9 @@ fun StorageScreen(
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
+            AtomicSectionLabel("Storage usage")
+            StorageCapacitySummary(remember(volumes) { storageCapacity(volumes) })
             AtomicSectionLabel("Volumes", trailingText = "${volumes.size} volumes")
-            if (primary != null) {
-                AtomicStatTile(
-                    value = FileUtils.formatBytes(primary.freeBytes),
-                    caption = "Free on ${primary.label} of ${FileUtils.formatBytes(primary.totalBytes)}",
-                    featured = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
             volumes.forEach { volume -> StorageVolumeCard(volume, onBrowse = { onBrowseVolume(volume) }) }
         }
 
@@ -126,7 +135,7 @@ fun StorageScreen(
                 AtomicTextRole.BodySecondary,
             )
             AtomicButton(
-                "Analyze storage",
+                "Open Analysis",
                 onClick = {
                     val primaryRoot =
                         volumes.firstOrNull()?.rootNodeId ?: FileNodeId.file(
@@ -137,7 +146,6 @@ fun StorageScreen(
                 leadingIcon = AtomicIcons.Cleanup,
                 modifier = Modifier.fillMaxWidth().testTag("open_storage_intelligence_button"),
             )
-            AtomicText("App cache · ${FileUtils.formatBytes(cacheSize)}", AtomicTextRole.MonoMeta)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
@@ -177,14 +185,31 @@ fun StorageScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
             AtomicSectionLabel("Network")
-            if (savedServers.isEmpty()) {
+            val servers = savedServers
+            if (servers == null) {
+                AtomicText(
+                    stringResource(
+                        if (serversLoadingFailed) {
+                            R.string.storage_servers_load_error
+                        } else {
+                            R.string.storage_servers_loading
+                        },
+                    ),
+                    AtomicTextRole.BodySecondary,
+                )
+                if (serversLoadingFailed) {
+                    AtomicButton(stringResource(R.string.action_retry), onClick = {
+                        serversLoadRound++
+                    }, variant = AtomicButtonVariant.Text)
+                }
+            } else if (servers.isEmpty()) {
                 AtomicEmptyState(
                     message = "No servers yet.",
                     detail = "Connect to FTP, FTPS or WebDAV to browse and move files on another machine.",
                 )
             } else {
                 Column {
-                    savedServers.forEach { server ->
+                    servers.forEach { server ->
                         AtomicFileRow(
                             name = server.name,
                             meta = "${server.protocol.name} · ${serverAddress(server)}",
@@ -196,6 +221,7 @@ fun StorageScreen(
                                     "Remove ${server.name}",
                                     onClick = { serverToDelete = server },
                                     variant = AtomicIconButtonVariant.Destructive,
+                                    enabled = !serversBusy,
                                 )
                             },
                         )
@@ -207,6 +233,7 @@ fun StorageScreen(
                 onClick = { showAddServerDialog = true },
                 variant = AtomicButtonVariant.Ghost,
                 leadingIcon = AtomicIcons.Add,
+                enabled = servers != null && !serversBusy,
                 modifier = Modifier.fillMaxWidth().testTag("add_network_server_button"),
             )
             AtomicText(
@@ -218,20 +245,39 @@ fun StorageScreen(
         ShizukuLabsSection(onBrowseFolder = onBrowseFolder)
 
         AtomicText(
-            "Android keeps some system partitions private. Free and total space cover shared storage only.",
+            "Capacity covers mounted filesystems. Open Analysis for file types and cleanup when needed.",
             AtomicTextRole.BodySecondary,
         )
     }
 
     if (showAddServerDialog) {
         AddNetworkServerDialog(
-            onDismiss = { showAddServerDialog = false },
+            saving = serversBusy,
+            ready = savedServers != null,
+            onDismiss = { if (!serversBusy) showAddServerDialog = false },
             onSave = { config, password ->
-                if (!credentialsStore.saveServer(config, password)) {
-                    onNotify("Server saved without its password: it couldn't be encrypted on this phone.")
+                if (!serversBusy && savedServers != null) {
+                    serversBusy = true
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                        try {
+                            val (passwordSaved, updated) =
+                                credentials.update { store ->
+                                    store.saveServer(config, password) to store.getAllServers()
+                                }
+                            savedServers = updated
+                            showAddServerDialog = false
+                            if (!passwordSaved) {
+                                onNotify(passwordUnavailable)
+                            }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            onNotify(saveServerError)
+                        } finally {
+                            serversBusy = false
+                        }
+                    }
                 }
-                refreshServers()
-                showAddServerDialog = false
             },
         )
     }
@@ -244,11 +290,27 @@ fun StorageScreen(
             confirmLabel = "Remove",
             destructive = true,
             onConfirm = {
-                credentialsStore.deleteServer(server.id)
-                refreshServers()
-                serverToDelete = null
+                if (!serversBusy) {
+                    serversBusy = true
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                        try {
+                            savedServers =
+                                credentials.update { store ->
+                                    store.deleteServer(server.id)
+                                    store.getAllServers()
+                                }
+                            serverToDelete = null
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            onNotify(removeServerError)
+                        } finally {
+                            serversBusy = false
+                        }
+                    }
+                }
             },
-            onDismiss = { serverToDelete = null },
+            onDismiss = { if (!serversBusy) serverToDelete = null },
         )
     }
 }
@@ -294,6 +356,8 @@ private fun StorageVolumeCard(
 private fun AddNetworkServerDialog(
     onDismiss: () -> Unit,
     onSave: (NetworkServerConfig, String?) -> Unit,
+    saving: Boolean = false,
+    ready: Boolean = true,
 ) {
     var selectedProtocol by rememberSaveable { mutableStateOf(NetworkProtocol.FTP) }
     var name by rememberSaveable { mutableStateOf("") }
@@ -410,7 +474,7 @@ private fun AddNetworkServerDialog(
             )
         }
         AtomicButton(
-            "Save server",
+            if (saving) stringResource(R.string.action_saving) else "Save server",
             onClick = {
                 val port = portText.toIntOrNull() ?: selectedProtocol.defaultPort
                 val effectiveName = name.ifBlank { "${selectedProtocol.name} - $host" }
@@ -427,13 +491,14 @@ private fun AddNetworkServerDialog(
                     )
                 onSave(config, if (anonymous) null else password)
             },
-            enabled = host.isNotBlank() && portError == null,
+            enabled = ready && !saving && host.isNotBlank() && portError == null,
             modifier = Modifier.fillMaxWidth(),
         )
         AtomicButton(
             "Cancel",
             onClick = onDismiss,
             variant = AtomicButtonVariant.Ghost,
+            enabled = !saving,
             modifier = Modifier.fillMaxWidth(),
         )
     }

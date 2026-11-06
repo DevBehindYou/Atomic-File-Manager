@@ -1,0 +1,18 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: CN=Atomic File Manager, O=DevBehindYou
+V2 Signer: certificate SHA-256 digest: 976b82a67f452019371416a4151ce36d3aad1d56fdd833242f7ed072d05198b7
+V2 Signer: certificate SHA-1 digest: 94b9886fee45df3faeab447d9d09fedadc05ee63
+V2 Signer: certificate MD5 digest: 4e2f6207c19617fa3c91af33e53f2afd
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 4096
+V2 Signer: public key SHA-256 digest: 27ced02cecbddd32ca7bf19b3264a8655ff1f5684fe766895950f7cd1e8b9d1d
+V2 Signer: public key SHA-1 digest: 9ae2baa2e8d503f33ba7dcb1999f7ea1079b8409
+V2 Signer: public key MD5 digest: b7d483ba546e1080cccc8537d85694a4

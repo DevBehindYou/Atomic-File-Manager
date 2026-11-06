@@ -279,6 +279,10 @@ Each item names the existing code it replaces. "New" means nothing equivalent ex
 | `AtomicPeekFrame` | Quick Peek card: 2 dp ink border, 6 dp hard shadow, mono caption bar "IMG_2041.jpg · 3 / 15" (name as stored) | `QuickPeekOverlay` frame |
 | `AtomicCommandPanel` | Phase 4.4 command palette in the same sheet language | New (later) |
 
+Storage card headers keep the volume name and capacity details beside each other in a single
+row. Both fields share the available width and use one-line ellipsis when constrained; capacity
+details align to the trailing edge. Full strings remain available to accessibility services.
+
 ---
 
 ## 6. Information architecture and navigation
@@ -566,7 +570,7 @@ Design system extracted · Architecture · Components created/refactored · Scre
 | 1 | Dynamic colour (Material You) | Keep, as a wallpaper-colour option | Signal Blue is the default accent. A **WALLPAPER COLOURS** setting (API 31+, off by default) swaps **only the accent** for the Material You colour; ink, paper and every other token stay Atomic. Guard rails in section 4.5 |
 | 2 | Dark theme | Ship both light and dark | Atomic Light and Atomic Dark (section 4.1); theme setting SYSTEM / LIGHT / DARK |
 | 3 | Product name | **Atomic File Manager**, including the package name | Done in code on 4 October 2026: app label "Atomic File Manager", `applicationId`/namespace/Kotlin package `com.devbehindyou.atomicfilemanager`. See section 18.1 |
-| 4 | Launcher icon | Owner will supply a new icon | Keep `Refract-Icon.png` artwork until the new icon arrives, then replace `refract_launcher_art` and the adaptive icon layers |
+| 4 | Launcher icon | Owner selected 07 Stacked light on 19 October 2026 | Supplied PNG wired into adaptive layers; paper background matched and previous Refract artwork retired. See [launcher icon integration](../design/LAUNCHER_ICON.md) |
 | 5 | Accent | Signal Blue `#3A2FF0` | Default accent; see decision 1 for the wallpaper option |
 | 6 | "Browse" tab label | Left to the plan | **FILES** |
 | 7 | Mascot | No mascot | No Atomi anywhere; empty and first-run states use the atom mark or icons only |

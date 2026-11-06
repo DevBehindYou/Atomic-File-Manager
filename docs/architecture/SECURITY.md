@@ -1,5 +1,7 @@
 # Security
 
+> **Verification scope, 17 October 2026:** the controls below are requirements, not a completed security checklist. The [project audit](PROJECT_AUDIT.md) records concrete gaps, including archive publication, journal ordering, upload races, protocol hardening and broad FileProvider roots. CI currently has no dependency-vulnerability job; a green lint/build alone does not certify these requirements.
+
 A file manager is a privileged position. It reads everything the user has, writes anywhere it
 can, and hands files to other apps. Each of those is an attack surface.
 

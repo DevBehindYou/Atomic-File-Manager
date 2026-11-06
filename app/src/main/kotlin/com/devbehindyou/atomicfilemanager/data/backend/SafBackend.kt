@@ -52,6 +52,11 @@ class SafBackend
 
         override fun canHandle(id: FileNodeId): Boolean = id.prefix == FileNodeId.Prefix.SAF
 
+        override suspend fun isSameOrDescendant(
+            ancestor: FileNodeId,
+            candidate: FileNodeId,
+        ): FileResult<Boolean> = SafAncestry(resolver).isSameOrDescendant(ancestor, candidate)
+
         override suspend fun getNode(id: FileNodeId): FileResult<FileNode> {
             val ref = id.toSafRef()
             val cursor =

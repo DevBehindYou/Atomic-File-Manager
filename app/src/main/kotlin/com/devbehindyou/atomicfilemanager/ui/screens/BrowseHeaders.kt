@@ -13,6 +13,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicDivider
@@ -23,11 +26,9 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextFiel
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicChoiceCard
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicTitleRow
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuSheet
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
@@ -56,55 +57,31 @@ internal fun BrowseTopBar(
     bubbles: List<TransferBubble>,
     isDualPane: Boolean,
     dualPaneMode: DualPaneMode,
-    showSortMenu: Boolean,
-    onShowSortMenu: (Boolean) -> Unit,
     showAddToBubbleMenu: Boolean,
     onShowAddToBubbleMenu: (Boolean) -> Unit,
     actions: BrowseTopBarActions,
+    tasksButton: @Composable () -> Unit = {},
+    optionsButton: @Composable () -> Unit = {},
+    storageSelector: @Composable () -> Unit = {},
 ) {
     when {
         isSelectionMode -> SelectionHeader(uiState, bubbles, onShowAddToBubbleMenu, actions)
         uiState.isSearching -> SearchHeader(uiState, actions)
-        else -> FolderHeader(uiState, isDualPane, dualPaneMode, onShowSortMenu, actions)
-    }
-
-    if (showSortMenu) {
-        AtomicSheet(label = "Sort by", onDismiss = { onShowSortMenu(false) }) {
-            SortOption.entries.forEach { option ->
-                AtomicChoiceCard(
-                    title = option.label,
-                    selected = uiState.sortOption == option,
-                    onSelect = {
-                        actions.onSetSortOption(option)
-                        onShowSortMenu(false)
-                    },
-                )
-            }
-            AtomicSettingsRow(
-                title = "Hidden files",
-                value = "Hidden, obscured and private files",
-                onClick = {
-                    onShowSortMenu(false)
-                    actions.onShowHiddenScreen()
-                },
-            )
-        }
+        else -> FolderHeader(uiState, isDualPane, dualPaneMode, actions, tasksButton, optionsButton, storageSelector)
     }
 
     if (showAddToBubbleMenu) {
-        AtomicSheet(label = "Add to bubble", onDismiss = { onShowAddToBubbleMenu(false) }) {
-            Column {
-                bubbles.forEach { bubble ->
-                    AtomicSettingsRow(
-                        title = bubble.displayName,
-                        onClick = {
-                            actions.onAddToBubble(bubble.id)
-                            onShowAddToBubbleMenu(false)
-                        },
-                    )
-                }
-            }
-        }
+        AtomicMenuSheet(
+            label = "Add to bubble",
+            onDismiss = { onShowAddToBubbleMenu(false) },
+            actions =
+                bubbles.map { bubble ->
+                    AtomicMenuAction(bubble.displayName, AtomicIcons.Bubble, {
+                        actions.onAddToBubble(bubble.id)
+                        onShowAddToBubbleMenu(false)
+                    })
+                },
+        )
     }
 }
 
@@ -118,22 +95,28 @@ internal fun SelectionHeader(
 ) {
     var showSelectMenu by remember { mutableStateOf(false) }
     if (showSelectMenu) {
-        AtomicSheet(label = "Select", onDismiss = { showSelectMenu = false }) {
-            AtomicText("Tip: long-press a second file to select everything between.", AtomicTextRole.BodySecondary)
-            listOf(
-                "Select all" to actions.onSelectAll,
-                "Invert selection" to actions.onInvertSelection,
-                "Select same type" to actions.onSelectSameType,
-            ).forEach { (label, action) ->
-                AtomicSettingsRow(
-                    title = label,
-                    onClick = {
+        AtomicMenuSheet(
+            label = "Select",
+            onDismiss = { showSelectMenu = false },
+            intro = {
+                AtomicText("Tip: long-press a second file to select everything between.", AtomicTextRole.BodySecondary)
+            },
+            actions =
+                listOf(
+                    AtomicMenuAction("Select all", AtomicIcons.SelectAll, {
                         showSelectMenu = false
-                        action()
-                    },
-                )
-            }
-        }
+                        actions.onSelectAll()
+                    }),
+                    AtomicMenuAction("Invert selection", AtomicIcons.InvertSelection, {
+                        showSelectMenu = false
+                        actions.onInvertSelection()
+                    }),
+                    AtomicMenuAction("Select same type", AtomicIcons.SelectSameType, {
+                        showSelectMenu = false
+                        actions.onSelectSameType()
+                    }),
+                ),
+        )
     }
     val selectedBytes =
         remember(uiState.rawItems, uiState.selectedIds) {
@@ -207,16 +190,18 @@ internal fun SearchHeader(
 }
 
 /**
- * Pushed header with the volume as eyebrow, then the folder name as stored (`NameLarge`, never
- * uppercased) with an item counter, then the mono breadcrumb (ATOMIC_UI_PLAN.md §7.2).
+ * Pushed header with the volume as eyebrow, followed by a full-width name and a separate
+ * right-aligned count/order row. List and grid share this header.
  */
 @Composable
 internal fun FolderHeader(
     uiState: BrowseUiState,
     isDualPane: Boolean,
     dualPaneMode: DualPaneMode,
-    onShowSortMenu: (Boolean) -> Unit,
     actions: BrowseTopBarActions,
+    tasksButton: @Composable () -> Unit = {},
+    optionsButton: @Composable () -> Unit = {},
+    storageSelector: @Composable () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth()) {
         AtomicPushedHeader(
@@ -229,12 +214,7 @@ internal fun FolderHeader(
                     onClick = { actions.onToggleSearch(true) },
                     modifier = Modifier.testTag("search_icon_button"),
                 )
-                AtomicIconButton(
-                    AtomicIcons.Sort,
-                    "Sort by",
-                    onClick = { onShowSortMenu(true) },
-                    modifier = Modifier.testTag("sort_button"),
-                )
+                tasksButton()
                 if (isDualPane) {
                     AtomicIconButton(
                         if (dualPaneMode == DualPaneMode.DUAL_BROWSE) AtomicIcons.Preview else AtomicIcons.DualPane,
@@ -246,19 +226,45 @@ internal fun FolderHeader(
                         onClick = actions.onToggleDualPaneMode,
                     )
                 }
-                AtomicIconButton(
-                    AtomicIcons.NewFolder,
-                    "New folder",
-                    onClick = actions.onShowNewFolderDialog,
-                    modifier = Modifier.testTag("new_folder_button"),
-                )
+                optionsButton()
             },
         )
-        AtomicTitleRow(
+        storageSelector()
+        BrowseFolderTitle(
             title = uiState.currentFolderName.ifEmpty { "Files" },
-            counter = "${uiState.filteredItems.size} items · ${uiState.sortOption.label}",
-            titleRole = AtomicTextRole.NameLarge,
+            itemCount = uiState.filteredItems.size,
+            sort = uiState.sortOption,
             modifier = Modifier.padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
         )
+    }
+}
+
+@Composable
+internal fun BrowseFolderTitle(
+    title: String,
+    itemCount: Int,
+    sort: SortOption,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+        AtomicText(
+            title,
+            AtomicTextRole.Name,
+            modifier = Modifier.fillMaxWidth().semantics { heading() }.testTag("browse_folder_title"),
+            maxLines = 1,
+        )
+        Row(
+            Modifier.fillMaxWidth().testTag("browse_folder_metadata"),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            // AtomicText preserves this full description for screen readers and benchmark selectors.
+            AtomicText(
+                "$itemCount items · ${sort.label}",
+                AtomicTextRole.MonoLabel,
+                modifier = Modifier.testTag("browse_folder_summary"),
+                textAlign = TextAlign.End,
+            )
+        }
+        AtomicDivider(strong = true)
     }
 }

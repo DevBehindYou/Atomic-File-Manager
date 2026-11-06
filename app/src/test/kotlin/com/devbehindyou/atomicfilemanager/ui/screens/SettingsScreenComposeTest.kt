@@ -1,7 +1,10 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -16,10 +19,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /** The Atomic Settings screen still writes every setting it shows. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w411dp-h891dp")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SettingsScreenComposeTest {
     @get:Rule
     val compose = createComposeRule()
@@ -48,6 +53,39 @@ class SettingsScreenComposeTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun allEightBuiltInPluginsShowTheirVersionAndReturnWithoutChangingPreferences() {
+        show()
+        val initial = repository.settings.value
+        compose.onNodeWithContentDescription("In-app plugins").performScrollTo().performClick()
+        val plugins =
+            listOf(
+                "Image viewer",
+                "Video player",
+                "Audio player",
+                "PDF reader",
+                "Document reader",
+                "Code and text editor",
+                "Markdown viewer",
+                "Archive manager",
+            )
+        plugins.forEachIndexed { index, plugin ->
+            compose.onNodeWithContentDescription(plugin).performScrollTo().performClick()
+            compose.onNodeWithText("Version v0.2").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription("Current limitations").assertExists()
+            if (index < plugins.lastIndex) {
+                compose.onNodeWithContentDescription("Back to plugins").performClick()
+                compose.onNodeWithText("Version v0.2").assertDoesNotExist()
+            }
+        }
+        compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithTag("settings_screen").assertExists()
+        compose.onNodeWithContentDescription("Back to plugins").assertDoesNotExist()
+        assertEquals(initial, repository.settings.value)
+        assertEquals(0, cacheClears)
+        assertEquals(emptyList<String>(), messages)
     }
 
     @Test

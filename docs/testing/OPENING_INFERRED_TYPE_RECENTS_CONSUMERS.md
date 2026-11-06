@@ -1,0 +1,19 @@
+# Inferred type and authoritative Recent metadata — proposed consumers
+
+Prepared25 October2026 on accepted feature integration PR85 (`4d7157f`). This is a new test-only proposal; no existing consumer or production source is modified. Parent owns independent review, scoped formatting, freeze, compilation, genuine old-UI baseline and later candidate acceptance. Expected filter `*OpeningInferredTypeRecentsComposeTest`, expected count3, all unrun.
+
+## Boundary and actual consumers
+
+`data/database/room/Shortcuts.kt`, RoomRecentsRepository.recordOpened, stores the supplied node's MIME directly in RecentItemEntity. A session-only content-derived MIME must therefore be removed at the caller boundary before recordOpened, while the resolved presentation and external handoff still use PNG. These consumers inject RecordingRecents and assert the actual FileNode arguments from the real FilePreviewPane/BuiltIn pane. They do not run Room or establish a database migration/persistence pass.
+
+1. An opaque generic-MIME PNG under global Built-in must actually decode and expose the image content description before its Recent entries are checked against the original raw node. Existing metadata-only UI is expected to fail the image-ready condition; source candidate without the authoritative mapping would fail the subsequent raw-MIME assertion.
+2. The same opaque source under Ask, with only a PNG reader, must discover that reader and perform an actual explicit PNG handoff. Intent/ClipData/component/read-only flags and copied/resolver-readback bytes are checked, while recorded Recent metadata must remain the raw original octet-stream node. Existing UI is expected to fail reader discovery. These expectations remain unconfirmed until parent execution.
+3. A known-PNG gallery A→B control uses an actual pager swipe and decoded B/header readiness. After original A metadata changes, B's own Recent node must remain B, rather than being replaced by A's authoritative record. Known metadata keeps this control independent of unknown-type recognition; it should distinguish fixture/recording wiring from the two missing-detection cases. The current Gallery.of behavior drops siblings when an unknown opened item is absent from the filtered list, so the control deliberately uses trusted known-PNG A instead of inventing a derived gallery-feed API.
+
+## Owned fixture scope
+
+Two tiny distinct-colour generated PNGs live only in uniquely named private host-cache fixtures. UUID-qualified FTP-shaped IDs dispatch to an explicitly FILE-typed controlled backend returning real tracked file streams; this is local ownership evidence, not real FTP detection. The sandbox overrides ImagePreviewHelper with that backend, so actual decoding never consults real account/storage state. Streams must close after bounded composition disposal; every private source remains byte-identical. A unique export sentinel and prior export snapshot are preserved, and cleanup deletes only captured owned files, with at most one explicit handoff per case. Settings and the original AtomicApp container are restored; no user preferences, root, ADB, network or shared-storage files are involved. ImagePreviewHelper decodes directly from owned streams and creates no staged image cache file.
+
+The scoped OwnedExportFileProviderShadow serves actual copied bytes while substituting host URI mapping/grants; flags here are not proof of actual Android provider roots, cross-UID access or revoked grants. Real device and broader gallery/editor/provider matrices remain separate.
+
+No formatter, Gradle, APK, device, GREEN, CI or merge result was produced by this author. No full U06, plugin upgrade or milestone credit follows; versions remainv0.2 and fixed progress remains15% host verified/8% accepted.

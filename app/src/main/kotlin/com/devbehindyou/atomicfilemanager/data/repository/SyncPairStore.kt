@@ -15,15 +15,16 @@ class SyncPairStore(context: Context) {
         rightRaw: String,
     ): SyncPair? = SyncPairs.find(all(), leftRaw, rightRaw)
 
-    fun save(pair: SyncPair) = write(SyncPairs.add(all(), pair))
+    fun save(pair: SyncPair) = synchronized(writerLock) { write(SyncPairs.add(all(), pair)) }
 
-    fun remove(pair: SyncPair) = write(SyncPairs.remove(all(), pair))
+    fun remove(pair: SyncPair) = synchronized(writerLock) { write(SyncPairs.remove(all(), pair)) }
 
     private fun write(pairs: List<SyncPair>) {
         prefs.edit().putString(KEY, SyncPairs.encode(pairs)).apply()
     }
 
     private companion object {
+        val writerLock = Any()
         const val KEY = "pairs"
     }
 }

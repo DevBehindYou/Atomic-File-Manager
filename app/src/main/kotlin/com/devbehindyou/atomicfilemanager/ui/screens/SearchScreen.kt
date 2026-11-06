@@ -52,8 +52,10 @@ import com.devbehindyou.atomicfilemanager.domain.model.toNode
 import com.devbehindyou.atomicfilemanager.domain.repository.SearchIndex
 import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewDialog
+import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -88,9 +90,16 @@ fun SearchScreen(
     LaunchedEffect(roots) { index.refreshIfStale(roots) }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // Re-runs when the text, the chip or the index changes; the short pause skips keystrokes in between.
-    LaunchedEffect(query, state.indexedCount, state.builtAt) {
+    LaunchedEffect(query, filter, state.indexedCount, state.builtAt) {
         delay(TYPING_PAUSE_MS)
-        hits = runCatching { index.search(query, QUERY_LIMIT) }.getOrDefault(emptyList())
+        hits =
+            try {
+                index.search(query, QUERY_LIMIT, filter)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyList()
+            }
     }
     val shown = remember(hits, filter) { hits.filter(filter::matches).take(SHOWN_LIMIT) }
 
@@ -144,6 +153,7 @@ fun SearchScreen(
                     name = hit.name,
                     meta = SearchText.meta(hit),
                     icon = iconFor(hit.toNode()),
+                    leading = { FileThumbnail(hit.toNode()) },
                     onClick = {
                         if (hit.isDirectory) {
                             onOpenFolder(hit.id)

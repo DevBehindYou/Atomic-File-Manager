@@ -8,21 +8,17 @@ import com.devbehindyou.atomicfilemanager.domain.repository.BackendType
 import com.devbehindyou.atomicfilemanager.domain.repository.InputStreamProvider
 import com.devbehindyou.atomicfilemanager.domain.repository.OutputTarget
 import com.devbehindyou.atomicfilemanager.domain.repository.StorageBackend
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import org.w3c.dom.Element
-import org.xml.sax.InputSource
 import java.io.InputStream
-import java.io.OutputStream
-import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
-import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * High-performance WebDAV storage backend conforming to [StorageBackend].
@@ -30,6 +26,7 @@ import javax.xml.parsers.DocumentBuilderFactory
  */
 class WebDavBackend(
     private val credentialsStore: NetworkCredentialsStore,
+    private val connectionFactory: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
 ) : StorageBackend {
     override val type: BackendType = BackendType.WEBDAV
 
@@ -70,7 +67,7 @@ class WebDavBackend(
                 ":${server.port}"
             }
         val cleanPath = if (path.startsWith("/")) path else "/$path"
-        return URL("$protocol://$cleanHost$portPart$cleanPath")
+        return URL("$protocol://$cleanHost$portPart${WebDavPaths.encode(cleanPath)}")
     }
 
     private fun openConnection(
@@ -78,8 +75,9 @@ class WebDavBackend(
         serverId: String,
         method: String,
     ): HttpURLConnection {
-        val conn = url.openConnection() as HttpURLConnection
+        val conn = connectionFactory(url)
         conn.requestMethod = method
+        conn.instanceFollowRedirects = false
         conn.connectTimeout = 10_000
         conn.readTimeout = 20_000
 
@@ -110,74 +108,52 @@ class WebDavBackend(
                 )
             }
 
-            try {
-                val url = buildUrl(parsed.serverId, parsed.path)
-                val conn = openConnection(url, parsed.serverId, "PROPFIND")
-                conn.setRequestProperty("Depth", "0")
-                conn.connect()
-
-                val responseCode = conn.responseCode
-                if (responseCode == 404) {
-                    return@withContext FileResult.Failure(FileError.FileNotFound(parsed.path))
-                } else if (responseCode == 401 || responseCode == 403) {
-                    return@withContext FileResult.Failure(FileError.AccessDenied("WebDAV unauthorized"))
+            when (val result = queryProperties(parsed, "0")) {
+                is FileResult.Failure -> result
+                is FileResult.Success -> {
+                    val node = result.value.firstOrNull { WebDavPaths.sameResource(parseId(it.id).path, parsed.path) }
+                    node?.let { FileResult.Success(it) } ?: FileResult.Failure(FileError.FileNotFound(parsed.path))
                 }
-
-                val xml = conn.inputStream.bufferedReader().readText()
-                val parsedNodes = parseMultiStatusXml(xml, parsed.serverId)
-                val node =
-                    parsedNodes.firstOrNull()
-                        ?: NetworkNodeHelper.createNode(
-                            id = id,
-                            parentId = makeNodeId(parsed.serverId, getParentPath(parsed.path)),
-                            name = getFileName(parsed.path),
-                            isDirectory = false,
-                        )
-                FileResult.Success(node)
-            } catch (e: Exception) {
-                FileResult.Failure(mapException(e))
             }
         }
 
     override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
         flow {
             val parsed = parseId(id)
-            val server = credentialsStore.getServerById(parsed.serverId)
-            if (server == null) {
-                emit(FileResult.Failure(FileError.StorageUnavailable("WebDAV Server")))
-                return@flow
-            }
-
-            try {
-                val url = buildUrl(parsed.serverId, parsed.path)
-                val conn = openConnection(url, parsed.serverId, "PROPFIND")
-                conn.setRequestProperty("Depth", "1")
-                conn.connect()
-
-                val responseCode = conn.responseCode
-                if (responseCode == 401 || responseCode == 403) {
-                    emit(FileResult.Failure(FileError.AccessDenied("WebDAV unauthorized")))
-                    return@flow
-                }
-                if (responseCode !in 200..299) {
-                    emit(FileResult.Failure(FileError.StorageUnavailable("WebDAV response: $responseCode")))
-                    return@flow
-                }
-
-                val xml = conn.inputStream.bufferedReader().readText()
-                val nodes = parseMultiStatusXml(xml, parsed.serverId)
-
-                val normCurrent = parsed.path.trimEnd('/')
-                val children =
-                    nodes.filter { node ->
-                        val nodePath = parseId(node.id).path.trimEnd('/')
-                        nodePath != normCurrent && nodePath.isNotEmpty()
-                    }
-                emit(FileResult.Success(children))
-            } catch (e: Exception) {
-                emit(FileResult.Failure(mapException(e)))
-            }
+            val result = queryProperties(parsed, "1")
+            emit(
+                when (result) {
+                    is FileResult.Failure -> result
+                    is FileResult.Success ->
+                        FileResult.Success(
+                            result.value.filterNot { WebDavPaths.sameResource(parseId(it.id).path, parsed.path) },
+                        )
+                },
+            )
         }.flowOn(Dispatchers.IO)
+
+    private fun queryProperties(
+        parsed: ParsedWebDavId,
+        depth: String,
+    ): FileResult<List<FileNode>> {
+        var connection: HttpURLConnection? = null
+        return try {
+            val conn = openConnection(buildUrl(parsed.serverId, parsed.path), parsed.serverId, "PROPFIND")
+            connection = conn
+            conn.setRequestProperty("Depth", depth)
+            when (val code = conn.responseCode) {
+                404 -> FileResult.Failure(FileError.FileNotFound(parsed.path))
+                401, 403 -> FileResult.Failure(FileError.AccessDenied("WebDAV unauthorized"))
+                in 200..299 -> FileResult.Success(conn.inputStream.use { parseMultiStatusXml(it, parsed.serverId) })
+                else -> FileResult.Failure(FileError.StorageUnavailable("WebDAV response: $code"))
+            }
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            FileResult.Failure(mapException(error))
+        } finally {
+            connection?.disconnect()
+        }
+    }
 
     override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> =
         withContext(Dispatchers.IO) {
@@ -221,6 +197,7 @@ class WebDavBackend(
                     },
                 )
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
             }
         }
@@ -234,74 +211,50 @@ class WebDavBackend(
             val parsed = parseId(parent)
             val targetPath = if (parsed.path.endsWith("/")) "${parsed.path}$name" else "${parsed.path}/$name"
             val targetNodeId = makeNodeId(parsed.serverId, targetPath)
-
+            var pendingConnection: HttpURLConnection? = null
             try {
                 val url = buildUrl(parsed.serverId, targetPath)
                 val conn = openConnection(url, parsed.serverId, "PUT")
+                pendingConnection = conn
+                // Production callers stage new content; explicit replacement first moves the old file aside.
+                conn.setRequestProperty("If-None-Match", "*")
                 conn.doOutput = true
                 conn.setChunkedStreamingMode(64 * 1024)
                 if (mime != null) conn.setRequestProperty("Content-Type", mime)
                 conn.connect()
 
-                val outStream = conn.outputStream
-                var discarded = false
-
                 val target =
-                    object : OutputTarget {
-                        override fun stream(): OutputStream = outStream
-
-                        override fun setLastModified(epochMillis: Long) {
-                            // WebDAV PUT sets server-side mtime; client override is not universally supported
-                        }
-
-                        override fun discard() {
-                            discarded = true
-                            try {
-                                outStream.close()
-                                conn.disconnect()
-                                val delUrl = buildUrl(parsed.serverId, targetPath)
-                                val delConn = openConnection(delUrl, parsed.serverId, "DELETE")
-                                delConn.connect()
-                                delConn.responseCode
-                                delConn.disconnect()
-                            } catch (_: Exception) {
-                            }
-                        }
-
-                        override fun sync() {
-                            outStream.flush()
-                        }
-
-                        override suspend fun toNode(): FileResult<FileNode> {
-                            if (discarded) return FileResult.Failure(FileError.OperationCancelled)
-                            try {
-                                outStream.flush()
-                                outStream.close()
-                                val code = conn.responseCode
-                                conn.disconnect()
-                                if (code !in 200..299 && code != 201 && code != 204) {
-                                    return FileResult.Failure(FileError.AccessDenied("PUT rejected ($code)"))
-                                }
-                            } catch (e: Exception) {
-                                return FileResult.Failure(mapException(e))
-                            }
-
-                            return FileResult.Success(
-                                NetworkNodeHelper.createNode(
-                                    id = targetNodeId,
-                                    parentId = parent,
-                                    name = name,
-                                    size = 0L,
-                                    modifiedAt = System.currentTimeMillis(),
-                                    isDirectory = false,
-                                    mimeType = mime,
-                                ),
+                    WebDavOutputTarget(
+                        connection = conn,
+                        name = name,
+                        node = { size ->
+                            NetworkNodeHelper.createNode(
+                                id = targetNodeId,
+                                parentId = parent,
+                                name = name,
+                                size = size,
+                                modifiedAt = System.currentTimeMillis(),
+                                isDirectory = false,
+                                mimeType = mime,
                             )
-                        }
-                    }
+                        },
+                        deleteCreated = { tag ->
+                            val cleanup = openConnection(url, parsed.serverId, "DELETE")
+                            try {
+                                cleanup.setRequestProperty("If-Match", tag)
+                                cleanup.responseCode
+                            } finally {
+                                cleanup.disconnect()
+                            }
+                        },
+                    )
+                pendingConnection = null // OutputTarget now owns the connection.
                 FileResult.Success(target)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
+            } finally {
+                pendingConnection?.disconnect()
             }
         }
 
@@ -336,6 +289,7 @@ class WebDavBackend(
                     FileResult.Failure(FileError.AccessDenied("MKCOL failed ($code)"))
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
             }
         }
@@ -356,6 +310,7 @@ class WebDavBackend(
                     FileResult.Failure(FileError.AccessDenied("DELETE failed ($code)"))
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
             }
         }
@@ -375,6 +330,7 @@ class WebDavBackend(
                 val destUrl = buildUrl(parsed.serverId, newPath)
                 val conn = openConnection(url, parsed.serverId, "MOVE")
                 conn.setRequestProperty("Destination", destUrl.toString())
+                conn.setRequestProperty("Overwrite", "F")
                 conn.connect()
                 val code = conn.responseCode
                 conn.disconnect()
@@ -388,10 +344,13 @@ class WebDavBackend(
                             isDirectory = false,
                         ),
                     )
+                } else if (code == 412) {
+                    FileResult.Failure(FileError.FileAlreadyExists(getFileName(newPath)))
                 } else {
                     FileResult.Failure(FileError.AccessDenied("MOVE failed ($code)"))
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
             }
         }
@@ -403,6 +362,9 @@ class WebDavBackend(
         withContext(Dispatchers.IO) {
             val parsed = parseId(id)
             val parsedParent = parseId(newParent)
+            if (parsed.serverId != parsedParent.serverId) {
+                return@withContext FileResult.Failure(FileError.InvalidDestination(newParent.raw))
+            }
             val fileName = getFileName(parsed.path)
             val newPath =
                 if (parsedParent.path.endsWith(
@@ -420,6 +382,7 @@ class WebDavBackend(
                 val destUrl = buildUrl(parsed.serverId, newPath)
                 val conn = openConnection(url, parsed.serverId, "MOVE")
                 conn.setRequestProperty("Destination", destUrl.toString())
+                conn.setRequestProperty("Overwrite", "F")
                 conn.connect()
                 val code = conn.responseCode
                 conn.disconnect()
@@ -433,10 +396,13 @@ class WebDavBackend(
                             isDirectory = false,
                         ),
                     )
+                } else if (code == 412) {
+                    FileResult.Failure(FileError.FileAlreadyExists(getFileName(newPath)))
                 } else {
                     FileResult.Failure(FileError.AccessDenied("MOVE failed ($code)"))
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 FileResult.Failure(mapException(e))
             }
         }
@@ -464,66 +430,29 @@ class WebDavBackend(
     override suspend fun freeSpace(id: FileNodeId): Long = 0L
 
     private fun parseMultiStatusXml(
-        xml: String,
+        input: InputStream,
         serverId: String,
     ): List<FileNode> {
-        val nodes = mutableListOf<FileNode>()
-        try {
-            val factory = DocumentBuilderFactory.newInstance()
-            factory.isNamespaceAware = true
-            val builder = factory.newDocumentBuilder()
-            val doc = builder.parse(InputSource(StringReader(xml)))
-            val responses = doc.getElementsByTagNameNS("*", "response")
-
-            val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
-
-            for (i in 0 until responses.length) {
-                val resp = responses.item(i) as? Element
-                val hrefList = resp?.getElementsByTagNameNS("*", "href")
-                if (resp == null || hrefList == null || hrefList.length == 0) continue
-                val rawHref = hrefList.item(0).textContent.trim()
-                val hrefPath = URL(if (rawHref.startsWith("http")) rawHref else "http://dummy$rawHref").path
-
-                val isDir = resp.getElementsByTagNameNS("*", "collection").length > 0
-                val lengthElements = resp.getElementsByTagNameNS("*", "getcontentlength")
-                val size =
-                    if (lengthElements.length > 0) {
-                        lengthElements.item(0).textContent.toLongOrNull() ?: 0L
-                    } else {
-                        0L
-                    }
-
-                val dateElements = resp.getElementsByTagNameNS("*", "getlastmodified")
-                val modified =
-                    if (dateElements.length > 0) {
-                        runCatching { dateFormat.parse(dateElements.item(0).textContent)?.time }.getOrNull()
-                            ?: System.currentTimeMillis()
-                    } else {
-                        System.currentTimeMillis()
-                    }
-
-                val typeElements = resp.getElementsByTagNameNS("*", "getcontenttype")
-                val mime = if (typeElements.length > 0) typeElements.item(0).textContent.trim() else null
-
-                val cleanPath = hrefPath.trimEnd('/')
-                val name = getFileName(cleanPath)
-                if (name.isNotEmpty()) {
-                    nodes.add(
-                        NetworkNodeHelper.createNode(
-                            id = makeNodeId(serverId, hrefPath),
-                            parentId = makeNodeId(serverId, getParentPath(cleanPath)),
-                            name = name,
-                            size = size,
-                            modifiedAt = modified,
-                            isDirectory = isDir,
-                            mimeType = mime,
-                        ),
-                    )
-                }
-            }
-        } catch (_: Exception) {
+        val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
+        return WebDavXml.parse(input).map { response ->
+            val hrefPath =
+                URL(
+                    if (response.href.startsWith("http")) response.href else "http://dummy${response.href}",
+                ).path
+            val cleanPath = hrefPath.trimEnd('/')
+            NetworkNodeHelper.createNode(
+                id = makeNodeId(serverId, hrefPath),
+                parentId = makeNodeId(serverId, getParentPath(cleanPath)),
+                name = getFileName(cleanPath),
+                size = response.properties["getcontentlength"]?.toLongOrNull() ?: 0L,
+                modifiedAt =
+                    response.properties["getlastmodified"]?.let {
+                        runCatching { dateFormat.parse(it)?.time }.getOrNull()
+                    } ?: 0L,
+                isDirectory = response.directory,
+                mimeType = response.properties["getcontenttype"],
+            )
         }
-        return nodes
     }
 
     private fun getParentPath(path: String): String {

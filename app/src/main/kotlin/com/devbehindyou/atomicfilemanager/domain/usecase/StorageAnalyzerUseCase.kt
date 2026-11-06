@@ -48,6 +48,11 @@ class StorageAnalyzerUseCase
             maxAgeMillis: Long = RECENT_MILLIS,
         ): LastAnalysis? = lastRuns[rootId]?.takeIf { clock() - it.scannedAt in 0..maxAgeMillis }
 
+        /** Cleanup changed the scanned files; do not offer stale cached suggestions on return. */
+        fun invalidate(rootId: FileNodeId) {
+            lastRuns.remove(rootId)
+        }
+
         fun analyze(
             rootId: FileNodeId,
             largeFileThresholdBytes: Long = 50 * 1024 * 1024L,

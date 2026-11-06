@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pdf_open_error">This PDF could not be opened. It may be damaged or password protected.</string>
+    <string name="pdf_too_large">This PDF exceeds the 128 MB preview limit. Open it with another app.</string>
+    <string name="pdf_page_error">This page could not be drawn. Try again.</string>
+    <string name="pdf_retry">Try again</string>
+    <string name="pdf_previous">Previous page</string>
+    <string name="pdf_next">Next page</string>
+    <string name="pdf_page_label">Page %1$d / %2$d</string>
+    <string name="pdf_page_description">PDF page %1$d. Pinch or double tap to zoom.</string>
+    <string name="pdf_go_to_page">Page number</string>
+    <string name="pdf_go">Go</string>
+</resources>

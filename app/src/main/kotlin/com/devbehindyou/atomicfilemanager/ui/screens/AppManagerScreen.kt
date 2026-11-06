@@ -38,8 +38,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
@@ -52,6 +50,8 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFactSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.data.apps.AppManagerRules
 import com.devbehindyou.atomicfilemanager.data.apps.AppSort
@@ -151,75 +151,84 @@ fun AppManagerScreen(
             if (app.isSplit) {
                 AtomicText(AppText.SPLIT_NOTE, AtomicTextRole.BodySecondary)
             }
-            AtomicButton(
-                "Open",
-                onClick = {
-                    context.startSafely(
-                        context.packageManager.getLaunchIntentForPackage(app.packageName),
-                        onNotify,
+            AtomicCommandGrid(
+                buildList {
+                    add(
+                        AtomicMenuAction("Open", AtomicIcons.OpenExternally, {
+                            context.startSafely(
+                                context.packageManager.getLaunchIntentForPackage(app.packageName),
+                                onNotify,
+                            )
+                        }),
                     )
-                },
-                variant = AtomicButtonVariant.Primary,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AtomicButton(
-                if (busy) "Saving…" else "Save APK to Download",
-                onClick = {
-                    busy = true
-                    scope.launch {
-                        val saved = reader.export(app)
-                        busy = false
-                        onNotify(saved.fold({ AppText.saved(it) }, { "Couldn't save the APK. Check storage access." }))
-                    }
-                },
-                enabled = !busy,
-                variant = AtomicButtonVariant.Ghost,
-                modifier = Modifier.fillMaxWidth().testTag("app_export"),
-            )
-            AtomicButton(
-                "Share APK",
-                onClick = {
-                    busy = true
-                    scope.launch {
-                        reader.export(app).fold(
-                            { file -> context.shareApk(file, onNotify) },
-                            { onNotify("Couldn't prepare the APK to share.") },
-                        )
-                        busy = false
-                    }
-                },
-                enabled = !busy,
-                variant = AtomicButtonVariant.Ghost,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AtomicButton(
-                "App info",
-                onClick = {
-                    context.startSafely(
-                        Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.fromParts("package", app.packageName, null),
+                    add(
+                        AtomicMenuAction(
+                            if (busy) "Saving…" else "Save APK to Download",
+                            AtomicIcons.Download,
+                            onClick = {
+                                busy = true
+                                scope.launch {
+                                    val saved = reader.export(app)
+                                    busy = false
+                                    onNotify(
+                                        saved.fold(
+                                            { AppText.saved(it) },
+                                            { "Couldn't save the APK. Check storage access." },
+                                        ),
+                                    )
+                                }
+                            },
+                            enabled = !busy,
+                            testTag = "app_export",
                         ),
-                        onNotify,
                     )
-                },
-                variant = AtomicButtonVariant.Ghost,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (!app.isSystem) {
-                AtomicButton(
-                    "Uninstall",
-                    onClick = {
-                        chosen = null
-                        context.startSafely(
-                            Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.packageName, null)),
-                            onNotify,
+                    add(
+                        AtomicMenuAction(
+                            "Share APK",
+                            AtomicIcons.Share,
+                            onClick = {
+                                busy = true
+                                scope.launch {
+                                    reader.export(app).fold(
+                                        { file -> context.shareApk(file, onNotify) },
+                                        { onNotify("Couldn't prepare the APK to share.") },
+                                    )
+                                    busy = false
+                                }
+                            },
+                            enabled = !busy,
+                        ),
+                    )
+                    add(
+                        AtomicMenuAction("App info", AtomicIcons.Info, {
+                            context.startSafely(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", app.packageName, null),
+                                ),
+                                onNotify,
+                            )
+                        }),
+                    )
+                    if (!app.isSystem) {
+                        add(
+                            AtomicMenuAction(
+                                "Uninstall",
+                                AtomicIcons.Trash,
+                                onClick = {
+                                    chosen = null
+                                    context.startSafely(
+                                        Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.packageName, null)),
+                                        onNotify,
+                                    )
+                                },
+                                destructive = true,
+                                testTag = "app_uninstall",
+                            ),
                         )
-                    },
-                    variant = AtomicButtonVariant.Destructive,
-                    modifier = Modifier.fillMaxWidth().testTag("app_uninstall"),
-                )
-            }
+                    }
+                },
+            )
         }
     }
 }

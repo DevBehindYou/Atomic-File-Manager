@@ -16,8 +16,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,25 +35,34 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.devbehindyou.atomicfilemanager.AtomicApp
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStripAction
+import com.devbehindyou.atomicfilemanager.data.preview.thumbnailKind
 import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.HideMode
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
+import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.components.BatchRenameSheet
 import com.devbehindyou.atomicfilemanager.ui.components.CompareSheet
+import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.interaction.bubble.TransferBubbleRail
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.DragFloatingPreview
 import com.devbehindyou.atomicfilemanager.ui.interaction.drag.FileDragController
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.QuickPeekController
 import com.devbehindyou.atomicfilemanager.ui.interaction.peek.QuickPeekOverlay
 import com.devbehindyou.atomicfilemanager.ui.security.AuthGate
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class DualPaneMode {
     DUAL_BROWSE,
@@ -81,29 +92,32 @@ fun BrowseScreen(
     onOpenInNewTab: ((FileNode) -> Unit)? = null,
     /** Compares two folders (ALL_IN_ONE_PLAN.md 4.1); null hides the actions. */
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
+    storage: BrowseStorageAccess = BrowseStorageAccess(),
     viewModel: BrowseViewModel =
         run {
             val app = LocalContext.current.applicationContext as AtomicApp
             val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
-            remember(owner, tabKey, initialFolderId.raw) {
-                ViewModelProvider(
-                    owner,
-                    BrowseViewModel.provideFactory(
-                        initialFolderId = initialFolderId,
-                        getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
-                        getNodeUseCase = app.container.getNodeUseCase,
-                        createDirectoryUseCase = app.container.createDirectoryUseCase,
-                        renameFileUseCase = app.container.renameFileUseCase,
-                        deleteFileUseCase = app.container.deleteFileUseCase,
-                        operationQueue = app.container.operationQueue,
-                        transferBubbleRepository = app.container.transferBubbleRepository,
-                        folderSorts = app.container.folderSortMemory,
-                    ),
-                )["browse:$tabKey${initialFolderId.raw}", BrowseViewModel::class.java]
-            }
+            // Read the registry each composition: A-to-B-to-A can retire A between two frames.
+            PrimaryBrowseStoreRegistry.obtain(owner).model(
+                tabKey,
+                initialFolderId,
+                BrowseViewModel.provideFactory(
+                    initialFolderId = initialFolderId,
+                    getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
+                    getNodeUseCase = app.container.getNodeUseCase,
+                    createDirectoryUseCase = app.container.createDirectoryUseCase,
+                    renameFileUseCase = app.container.renameFileUseCase,
+                    deleteFileUseCase = app.container.deleteFileUseCase,
+                    operationQueue = app.container.operationQueue,
+                    transferBubbleRepository = app.container.transferBubbleRepository,
+                    folderSorts = app.container.folderSortMemory,
+                    startVisible = false,
+                ),
+            )
         },
 ) {
     val app = LocalContext.current.applicationContext as AtomicApp
+    val volumes = storage.volumes
     val uiState by viewModel.uiState.collectAsState()
     val settings by app.container.settingsRepository.settings.collectAsState()
 
@@ -115,9 +129,9 @@ fun BrowseScreen(
     var confirmMultiDelete by remember { mutableStateOf(false) }
     var batchRename by remember { mutableStateOf<List<FileNode>?>(null) }
     var comparePair by remember { mutableStateOf<Pair<FileNode, FileNode>?>(null) }
-    var showSortMenu by remember { mutableStateOf(false) }
 
-    val isSelectionMode = uiState.selectedIds.isNotEmpty()
+    var useSecondary by rememberSaveable(tabKey, initialFolderId.raw) { mutableStateOf(false) }
+    var previewFromSecondary by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val isDualPane = configuration.screenWidthDp >= 720
     var dualPaneMode by remember { mutableStateOf(DualPaneMode.DUAL_BROWSE) }
@@ -125,8 +139,8 @@ fun BrowseScreen(
     val quickPeekController = remember { QuickPeekController() }
 
     val secondaryViewModel =
-        remember(initialFolderId.raw) {
-            BrowseViewModel(
+        rememberSecondaryBrowseViewModel(isDualPane, tabKey, initialFolderId) {
+            BrowseViewModel.provideFactory(
                 initialFolderId = initialFolderId,
                 getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
                 getNodeUseCase = app.container.getNodeUseCase,
@@ -136,9 +150,26 @@ fun BrowseScreen(
                 operationQueue = app.container.operationQueue,
                 transferBubbleRepository = app.container.transferBubbleRepository,
                 folderSorts = app.container.folderSortMemory,
+                startVisible = false,
             )
+        } ?: viewModel
+    val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
+    val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
+    val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
+    val currentStorage = currentStorageVolume(volumes, actionState.currentFolderId, actionState.breadcrumbs)
+    val displayFolderName =
+        if (currentStorage?.rootNodeId == actionState.currentFolderId) {
+            currentStorage.label
+        } else {
+            actionState.currentFolderName
         }
-    val secondaryUiState by secondaryViewModel.uiState.collectAsState()
+    val isSelectionMode = actionState.selectedIds.isNotEmpty()
+    LaunchedEffect(isDualPane) {
+        if (!isDualPane) {
+            useSecondary = false
+            previewFromSecondary = false
+        }
+    }
 
     val bubbles by viewModel.bubbles.collectAsState()
     var bubbleForDetails by remember { mutableStateOf<TransferBubble?>(null) }
@@ -148,12 +179,18 @@ fun BrowseScreen(
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val favouriteIds by produceState<Set<FileNodeId>?>(null, app.container) {
+        withContext(Dispatchers.IO) { app.container.favouritesRepository }.observe().collect { favourites ->
+            value = favourites.mapTo(HashSet()) { it.id }
+        }
+    }
     val focusRequester = remember { FocusRequester() }
 
     fun hideNode(
         node: FileNode,
         mode: HideMode,
     ) {
+        val owner = actionViewModel
         coroutineScope.launch {
             val repository = app.container.hiddenFilesRepository
             val result =
@@ -170,7 +207,7 @@ fun BrowseScreen(
                     "Couldn't hide ${node.name}: ${error.message ?: "unknown error"}"
                 }
             onNotify(message)
-            viewModel.refresh()
+            owner.refresh()
             nodeToHide = null
         }
     }
@@ -182,17 +219,24 @@ fun BrowseScreen(
         if (node != null && mode != null) hideNode(node, mode)
     }
 
-    LaunchedEffect(settings.showHiddenFiles) {
+    LaunchedEffect(viewModel, secondaryViewModel, settings.showHiddenFiles) {
         viewModel.setShowHiddenFiles(settings.showHiddenFiles)
-        secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
+        if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
-    LaunchedEffect(viewModel, openRequest) {
-        viewModel.onOpenRequest(openRequest)
+    PrimaryBrowseVisibility(viewModel, openRequest, contentVisible = !showHiddenScreen)
+    if (isDualPane) {
+        SecondaryBrowseVisibility(
+            secondaryViewModel,
+            listingVisible = !showHiddenScreen && dualPaneMode == DualPaneMode.DUAL_BROWSE,
+        )
     }
 
-    LaunchedEffect(uiState.currentFolderName) {
-        if (uiState.currentFolderName.isNotBlank()) onLocationChange(uiState.currentFolderName)
+    val primaryStorage = currentStorageVolume(volumes, uiState.currentFolderId, uiState.breadcrumbs)
+    val primaryFolderName =
+        if (primaryStorage?.rootNodeId == uiState.currentFolderId) primaryStorage.label else uiState.currentFolderName
+    LaunchedEffect(primaryFolderName) {
+        if (primaryFolderName.isNotBlank()) onLocationChange(primaryFolderName)
     }
 
     LaunchedEffect(Unit) {
@@ -206,9 +250,9 @@ fun BrowseScreen(
                 viewModel.refresh()
             }
             quickPeekController.isPeeking -> quickPeekController.dismiss()
-            isSelectionMode -> viewModel.clearSelection()
-            uiState.isSearching -> viewModel.toggleSearch(false)
-            !viewModel.navigateBack() -> onNavigateBack()
+            isSelectionMode -> actionViewModel.clearSelection()
+            actionState.isSearching -> actionViewModel.toggleSearch(false)
+            !actionViewModel.navigateBack() -> onNavigateBack()
         }
     }
 
@@ -241,12 +285,16 @@ fun BrowseScreen(
                 .onKeyEvent { event ->
                     handleBrowseKeyEvent(
                         event = event,
-                        viewModel = viewModel,
+                        viewModel = actionViewModel,
                         isSelectionMode = isSelectionMode,
-                        uiState = uiState,
+                        uiState = actionState,
                         onOpenFile = onOpenFile,
                         onRequestRename = { nodeToRename = it },
-                        onRequestPreview = { nodeForPreview = it },
+                        onRequestPreview = {
+                            nodeForPreview = it
+                            previewFromSecondary = useSecondary
+                            if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                        },
                         onRequestMultiDelete = { confirmMultiDelete = true },
                     )
                 },
@@ -254,30 +302,30 @@ fun BrowseScreen(
         Column(Modifier.fillMaxSize().background(Atomic.colors.background)) {
             tabStrip()
             BrowseTopBar(
-                uiState = uiState,
+                uiState = actionState.copy(currentFolderName = displayFolderName),
                 isSelectionMode = isSelectionMode,
                 bubbles = bubbles,
                 isDualPane = isDualPane,
                 dualPaneMode = dualPaneMode,
-                showSortMenu = showSortMenu,
-                onShowSortMenu = { showSortMenu = it },
                 showAddToBubbleMenu = showAddToBubbleMenu,
                 onShowAddToBubbleMenu = { showAddToBubbleMenu = it },
                 actions =
                     BrowseTopBarActions(
-                        onClearSelection = { viewModel.clearSelection() },
-                        onSelectAll = { viewModel.selectAll() },
-                        onAddToBubble = { bubbleId -> viewModel.addSelectionToBubble(bubbleId) },
-                        onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
-                        onToggleSearch = { viewModel.toggleSearch(it) },
+                        onClearSelection = { actionViewModel.clearSelection() },
+                        onSelectAll = { actionViewModel.selectAll() },
+                        onAddToBubble = { bubbleId -> actionViewModel.addSelectionToBubble(bubbleId) },
+                        onSearchQueryChanged = { actionViewModel.onSearchQueryChanged(it) },
+                        onToggleSearch = { actionViewModel.toggleSearch(it) },
                         onNavigateBack = {
-                            if (!viewModel.navigateBack()) {
+                            if (!actionViewModel.navigateBack()) {
                                 onNavigateBack()
                             }
                         },
-                        onSetSortOption = { viewModel.setSortOption(it) },
+                        onSetSortOption = { actionViewModel.setSortOption(it) },
                         onShowHiddenScreen = { showHiddenScreen = true },
                         onToggleDualPaneMode = {
+                            useSecondary = false
+                            secondaryViewModel.clearSelection()
                             dualPaneMode =
                                 if (dualPaneMode == DualPaneMode.DUAL_BROWSE) {
                                     DualPaneMode.PREVIEW
@@ -286,20 +334,53 @@ fun BrowseScreen(
                                 }
                         },
                         onShowNewFolderDialog = { showNewFolderDialog = true },
-                        onInvertSelection = { viewModel.invertSelection() },
-                        onSelectSameType = { viewModel.selectSameType() },
+                        onInvertSelection = { actionViewModel.invertSelection() },
+                        onSelectSameType = { actionViewModel.selectSameType() },
                     ),
+                tasksButton = {
+                    TasksButton(app.container.operationQueue, app.container.wifiShare.transfers, onOpenOperations)
+                },
+                optionsButton = {
+                    BrowseOptionsButton(
+                        viewMode = settings.fileViewMode,
+                        onViewModeChange = { mode ->
+                            app.container.settingsRepository.update { it.copy(fileViewMode = mode) }
+                        },
+                        sortOption = actionState.sortOption,
+                        onSortChange = actionViewModel::setSortOption,
+                        filter = actionState.fileFilter,
+                        onFilterChange = actionViewModel::setFileFilter,
+                        showHidden = settings.showHiddenFiles,
+                        onShowHiddenChange = { show ->
+                            app.container.settingsRepository.update { it.copy(showHiddenFiles = show) }
+                        },
+                        onNewFolder = { showNewFolderDialog = true },
+                        onShowHiddenFilesScreen = { showHiddenScreen = true },
+                    )
+                },
+                storageSelector = {
+                    BrowseStorageShortcuts(volumes, currentStorage, actionState.currentFolderId) { volume ->
+                        when {
+                            !volume.isMounted -> onNotify("This storage isn't mounted.")
+                            volume.rootNodeId != null ->
+                                actionViewModel.navigateToStorage(volume.rootNodeId, volume.label)
+                            !storage.hasAccess -> storage.requestAccess()
+                            else -> onNotify("This storage is unavailable. Reconnect it and try again.")
+                        }
+                    }
+                },
             )
             OperationBanner(uiState.activeOperation, onOpen = onOpenOperations)
             val pullState = rememberPullToRefreshState()
             PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.refresh() },
+                isRefreshing = actionState.isRefreshing,
+                onRefresh = { actionViewModel.refresh() },
                 state = pullState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) {
                 if (isDualPane) {
                     DualPaneBrowseContent(
+                        viewMode = settings.fileViewMode,
                         uiState = uiState,
                         secondaryUiState = secondaryUiState,
                         dualPaneMode = dualPaneMode,
@@ -308,16 +389,28 @@ fun BrowseScreen(
                         dragController = dragController,
                         quickPeekController = quickPeekController,
                         nodeForPreview = nodeForPreview,
+                        previewGallery =
+                            if (previewFromSecondary) secondaryUiState.filteredItems else uiState.filteredItems,
                         actions =
                             DualPaneItemActions(
+                                onPrimaryActivated = {
+                                    useSecondary = false
+                                    secondaryViewModel.clearSelection()
+                                },
+                                onSecondaryActivated = {
+                                    useSecondary = true
+                                    viewModel.clearSelection()
+                                },
                                 onOpenFile = onOpenFile,
                                 onPreviewNode = { node ->
+                                    previewFromSecondary = false
                                     nodeForPreview = node
                                     if (dualPaneMode != DualPaneMode.PREVIEW) {
                                         dualPaneMode = DualPaneMode.PREVIEW
                                     }
                                 },
                                 onSecondaryPreviewNode = { node ->
+                                    previewFromSecondary = true
                                     nodeForPreview = node
                                     dualPaneMode = DualPaneMode.PREVIEW
                                 },
@@ -331,8 +424,8 @@ fun BrowseScreen(
                     )
                 } else {
                     FileListContent(
+                        viewMode = settings.fileViewMode,
                         uiState = uiState,
-                        isSelectionMode = isSelectionMode,
                         viewModel = viewModel,
                         dragController = dragController,
                         quickPeekController = quickPeekController,
@@ -347,31 +440,102 @@ fun BrowseScreen(
                 }
             }
             BrowseBottomBar(
-                uiState = uiState,
+                uiState = actionState,
                 isSelectionMode = isSelectionMode,
-                onCopySelected = { viewModel.copySelected() },
-                onCutSelected = { viewModel.cutSelected() },
-                onCompressSelected = { viewModel.compressSelected() },
+                onCopySelected = { actionViewModel.copySelected() },
+                onCutSelected = { actionViewModel.cutSelected() },
+                onCompressSelected = { actionViewModel.compressSelected() },
+                singleFileActions =
+                    actionState.rawItems.singleOrNull { it.id in actionState.selectedIds }?.let { selected ->
+                        buildList {
+                            add(
+                                AtomicStripAction(stringResource(R.string.selection_rename), AtomicIcons.Rename, {
+                                    nodeToRename = selected
+                                    actionViewModel.clearSelection()
+                                }),
+                            )
+                            add(
+                                AtomicStripAction(stringResource(R.string.selection_hide), AtomicIcons.Hide, {
+                                    nodeToHide = selected
+                                    actionViewModel.clearSelection()
+                                }),
+                            )
+                            if (thumbnailKind(selected) != null) {
+                                add(
+                                    AtomicStripAction(stringResource(R.string.selection_preview), AtomicIcons.Preview, {
+                                        nodeForPreview = selected
+                                        previewFromSecondary = useSecondary
+                                        if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                                        actionViewModel.clearSelection()
+                                    }),
+                                )
+                            }
+                            if (ArchiveFormats.kindOf(selected.name) != null) {
+                                add(
+                                    AtomicStripAction(stringResource(R.string.selection_extract), AtomicIcons.Extract, {
+                                        actionViewModel.extractArchive(selected)
+                                        actionViewModel.clearSelection()
+                                    }),
+                                )
+                            }
+                            val ids = favouriteIds
+                            if (ids != null) {
+                                val isFavourite = selected.id in ids
+                                val failureMessage = stringResource(R.string.selection_favourite_error)
+                                add(
+                                    AtomicStripAction(
+                                        stringResource(
+                                            if (isFavourite) {
+                                                R.string.selection_favourite_remove
+                                            } else {
+                                                R.string.selection_favourite_add
+                                            },
+                                        ),
+                                        AtomicIcons.Favourite,
+                                        {
+                                            coroutineScope.launch {
+                                                try {
+                                                    withContext(Dispatchers.IO) {
+                                                        val repository = app.container.favouritesRepository
+                                                        if (isFavourite) {
+                                                            repository.remove(selected.id)
+                                                        } else {
+                                                            repository.add(selected)
+                                                        }
+                                                    }
+                                                    actionViewModel.clearSelection()
+                                                } catch (cancelled: CancellationException) {
+                                                    throw cancelled
+                                                } catch (_: Exception) {
+                                                    onNotify(failureMessage)
+                                                }
+                                            }
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                    } ?: emptyList(),
                 onDeleteSelected = { confirmMultiDelete = true },
                 onRenameSelected = { nodes -> batchRename = nodes },
                 onOpenInNewTab =
                     onOpenInNewTab?.let { open ->
                         { folder: FileNode ->
                             open(folder)
-                            viewModel.clearSelection()
+                            actionViewModel.clearSelection()
                         }
                     },
                 onShowDetails = { node ->
                     nodeForDetails = node
-                    viewModel.clearSelection()
+                    actionViewModel.clearSelection()
                 },
-                onClearClipboard = { viewModel.clearClipboard() },
-                onPaste = { viewModel.paste(CollisionPolicy.ASK) },
+                onClearClipboard = { actionViewModel.clearClipboard() },
+                onPaste = { actionViewModel.paste(CollisionPolicy.ASK) },
                 onCompare = { a, b -> comparePair = a to b },
                 onCompareFolders =
                     onCompareFolders?.let { compare ->
                         { left: FileNodeId, right: FileNodeId ->
-                            viewModel.clearSelection()
+                            actionViewModel.clearSelection()
                             compare(left, right)
                         }
                     },
@@ -382,10 +546,10 @@ fun BrowseScreen(
         batchRename?.let { nodes ->
             BatchRenameSheet(
                 nodes = nodes,
-                folderNames = uiState.rawItems.map { it.name },
+                folderNames = actionState.rawItems.map { it.name },
                 onChanged = {
-                    viewModel.clearSelection()
-                    viewModel.refresh()
+                    actionViewModel.clearSelection()
+                    actionViewModel.refresh()
                 },
                 onDismiss = { batchRename = null },
             )
@@ -414,10 +578,10 @@ fun BrowseScreen(
         )
 
         BrowseDialogs(
-            viewModel = viewModel,
-            secondaryViewModel = secondaryViewModel,
+            viewModel = actionViewModel,
+            secondaryViewModel = if (useSecondary) viewModel else secondaryViewModel,
             isDualPane = isDualPane,
-            uiState = uiState,
+            uiState = actionState,
             bubbles = bubbles,
             dragController = dragController,
             state =

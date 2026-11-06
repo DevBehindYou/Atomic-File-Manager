@@ -1,20 +1,26 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.graphics.Bitmap
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -22,17 +28,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import com.devbehindyou.atomicfilemanager.AppContainer
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 
-private const val MAX_ZOOM = 6f
 private const val DOUBLE_TAP_ZOOM = 2.5f
 
 /**
@@ -73,33 +92,77 @@ internal fun ZoomableImage(
     container: AppContainer,
     onZoomChange: (Boolean) -> Unit = {},
 ) {
-    val decoded by produceState<Pair<Boolean, Bitmap?>>(false to null, node.id) {
-        value = true to (container.imagePreviewHelper.decodeImage(node.id) as? FileResult.Success)?.value
+    val helper = container.imagePreviewHelper
+    // A source revision owns its loading state and transforms before its first frame is drawn.
+    // Restarting only produceState's producer would leave the previous bitmap in its remembered State.
+    key(node.id, node.modifiedAt, node.size, helper) {
+        var attempt by remember { mutableIntStateOf(0) }
+        key(attempt) {
+            ZoomableImageAttempt(node, helper, onZoomChange, onRetry = { attempt++ })
+        }
     }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+}
 
-    val (loaded, bitmap) = decoded
-    if (!loaded || bitmap == null) {
-        ViewerState(
-            loading = !loaded,
-            error = "The image may be damaged or in a format this phone can't decode.".takeIf { loaded },
-        )
-        return
+@Composable
+private fun ZoomableImageAttempt(
+    node: FileNode,
+    helper: ImagePreviewHelper,
+    onZoomChange: (Boolean) -> Unit,
+    onRetry: () -> Unit,
+) {
+    val decoded by produceState<FileResult<Bitmap>?>(null) {
+        value = helper.decodeImage(node.id)
     }
+    var transform by remember { mutableStateOf(ImageTransform()) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+    LaunchedEffect(Unit) { onZoomChange(false) }
 
-    fun zoomTo(value: Float) {
-        scale = value.coerceIn(1f, MAX_ZOOM)
-        if (scale == 1f) offset = Offset.Zero
-        onZoomChange(scale > 1f)
+    val bitmap =
+        when (val result = decoded) {
+            null -> {
+                ViewerState(loading = true, error = null)
+                return
+            }
+            is FileResult.Failure -> {
+                ImageLoadError(result.error, onRetry)
+                return
+            }
+            is FileResult.Success -> result.value
+        }
+
+    val imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
+
+    fun transformTo(
+        value: Float,
+        focus: Offset,
+        pan: Offset = Offset.Zero,
+    ) {
+        transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
+        onZoomChange(transform.scale > 1f)
     }
 
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
+                .clipToBounds()
+                .onSizeChanged { size ->
+                    viewport = size
+                    transform =
+                        transform.copy(
+                            offset =
+                                ImageTransformGeometry.clamp(
+                                    transform.offset,
+                                    transform.scale,
+                                    imageSize,
+                                    size.toSize(),
+                                ),
+                        )
+                }
                 .pointerInput(node.id) {
-                    detectTapGestures(onDoubleTap = { zoomTo(if (scale > 1f) 1f else DOUBLE_TAP_ZOOM) })
+                    detectTapGestures(onDoubleTap = { tap ->
+                        transformTo(if (transform.scale > 1f) 1f else DOUBLE_TAP_ZOOM, tap)
+                    })
                 }
                 .pointerInput(node.id) {
                     awaitEachGesture {
@@ -108,14 +171,12 @@ internal fun ZoomableImage(
                             val event = awaitPointerEvent()
                             val fingers = event.changes.count { it.pressed }
                             // One finger on an unzoomed image is left to the pager, so it turns the page.
-                            if (fingers > 1 || scale > 1f) {
-                                zoomTo(scale * event.calculateZoom())
-                                val pan = event.calculatePan()
-                                offset =
-                                    Offset(
-                                        Gallery.clampPan(offset.x + pan.x, scale, size.width.toFloat()),
-                                        Gallery.clampPan(offset.y + pan.y, scale, size.height.toFloat()),
-                                    )
+                            if (fingers > 1 || (fingers == 1 && transform.scale > 1f)) {
+                                transformTo(
+                                    transform.scale * event.calculateZoom(),
+                                    event.calculateCentroid(useCurrent = false),
+                                    event.calculatePan(),
+                                )
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             }
                         } while (event.changes.any { it.pressed })
@@ -126,17 +187,51 @@ internal fun ZoomableImage(
         Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = node.name,
+            contentScale = ContentScale.Fit,
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y),
+                    .graphicsLayer(
+                        scaleX = transform.scale,
+                        scaleY = transform.scale,
+                        translationX = transform.offset.x,
+                        translationY = transform.offset.y,
+                    ),
         )
     }
 }
 
+@Composable
+private fun ImageLoadError(
+    error: FileError,
+    onRetry: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(AtomicSpacing.s16),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        AtomicText(stringResource(imageErrorMessage(error)), AtomicTextRole.BodySecondary)
+        if (error.recoverable) AtomicButton(stringResource(R.string.action_retry), onClick = onRetry)
+    }
+}
+
+@StringRes
+private fun imageErrorMessage(error: FileError): Int =
+    when (error) {
+        is FileError.ProviderUnavailable, is FileError.StorageUnavailable -> R.string.image_load_storage_unavailable
+        is FileError.PermissionDenied, is FileError.AccessDenied, FileError.PlatformRestricted ->
+            R.string.image_load_access_denied
+        is FileError.FileNotFound -> R.string.image_load_missing
+        is FileError.UnsupportedFormat -> R.string.image_load_unsupported
+        is FileError.FileTooLarge -> R.string.image_load_too_large
+        FileError.OutOfMemory -> R.string.image_load_memory
+        else -> R.string.image_load_failed
+    }
+
 /** Gallery rules; pure so they are unit-tested. */
 internal object Gallery {
-    private val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif")
+    private val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif")
 
     fun isImage(node: FileNode): Boolean =
         !node.isDirectory &&

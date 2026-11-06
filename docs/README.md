@@ -1,5 +1,7 @@
 # Atomic File Manager — Android File Manager
 
+> **Current implementation evidence (17 October 2026):** [Current architecture](architecture/CURRENT_ARCHITECTURE.md), [project audit](architecture/PROJECT_AUDIT.md), [target design](architecture/TARGET_ARCHITECTURE.md), [optimization roadmap](roadmap/OPTIMIZATION_ROADMAP.md), [implementation progress](roadmap/IMPLEMENTATION_PROGRESS.md), [performance baseline](testing/PERFORMANCE_BASELINE.md), and [decisions](architecture/ARCHITECTURE_DECISIONS.md). These distinguish implemented behavior and current validation from the original specifications below.
+
 > **Current status (8 October 2026):** read [the AI handover](ai-handover/INDEX.md) before continuing. It separates what CI verified from what still needs a device, and gives the next steps. Product specifications below are not release certification.
 
 > **Read this file first.** It is the master context document for any AI coding agent or

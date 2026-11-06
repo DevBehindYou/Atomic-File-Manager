@@ -15,7 +15,7 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Phase 3 AC2: "Instrumented listing succeeds on API 27, 29, 30, 33, 36 — with the correct
+ * Phase 3 AC2: "Instrumented listing succeeds on API 28, 29, 30, 33, 36 — with the correct
  * backend chosen automatically on each." Cannot be run in the sandbox this project was
  * built in (no device/emulator access at all — see `PHASE_1_NOTES.md` §0) — structurally
  * complete, not evidence it passes anywhere.

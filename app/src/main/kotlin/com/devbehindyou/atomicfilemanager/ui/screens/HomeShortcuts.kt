@@ -32,6 +32,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.RecentItem
 import com.devbehindyou.atomicfilemanager.domain.model.RecentSource
 import com.devbehindyou.atomicfilemanager.domain.model.mergeRecents
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewDialog
+import com.devbehindyou.atomicfilemanager.ui.components.FileThumbnail
 import com.devbehindyou.atomicfilemanager.ui.components.iconFor
 import com.devbehindyou.atomicfilemanager.ui.components.metaFor
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
@@ -93,6 +94,7 @@ fun HomeShortcuts(onOpenFolder: (FileNodeId) -> Unit) {
                         node?.let(::iconFor)
                             ?: if (favourite.isDirectory) AtomicIcons.Files else AtomicIcons.Document,
                     hidden = known && node == null,
+                    leading = node?.let { resolvedNode -> @Composable { FileThumbnail(resolvedNode) } },
                     onClick = {
                         when {
                             node == null && known -> missing = favourite
@@ -115,6 +117,7 @@ fun HomeShortcuts(onOpenFolder: (FileNodeId) -> Unit) {
                     name = item.name,
                     meta = ShortcutText.recentMeta(item),
                     icon = node?.let(::iconFor) ?: AtomicIcons.Document,
+                    leading = node?.let { resolvedNode -> @Composable { FileThumbnail(resolvedNode) } },
                     onClick = { node?.let { preview = it } },
                     onLongClick = { scope.launch { recentsRepo.remove(item.id) } },
                 )

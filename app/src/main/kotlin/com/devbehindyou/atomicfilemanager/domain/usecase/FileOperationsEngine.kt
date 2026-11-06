@@ -38,6 +38,8 @@ class FileOperationsEngine
         private val trashManager: TrashManager? = null,
         /** Random-access copies for extracting 7z archives. */
         private val archiveSpool: SeekableSpool? = null,
+        /** Monotonic time keeps throttling independent of wall-clock adjustments. */
+        private val clockMillis: () -> Long = { System.nanoTime() / 1_000_000L },
         // Last, so `FileOperationsEngine { backend }` keeps working.
         private val backendSelector: (FileNodeId) -> StorageBackend,
     ) {
@@ -83,7 +85,8 @@ class FileOperationsEngine
                     }
                 }
 
-                var lastProgressTime = System.currentTimeMillis()
+                var lastProgressTime = clockMillis()
+                var progressEmitted = false
                 var bytesSinceLastSpeedCheck = 0L
                 var currentSpeed = 0L
 
@@ -119,14 +122,17 @@ class FileOperationsEngine
                     return choice.toPolicy()
                 }
 
-                suspend fun emitProgress(currentName: String?) {
-                    val now = System.currentTimeMillis()
+                suspend fun emitProgress(
+                    currentName: String?,
+                    force: Boolean = false,
+                ) {
+                    val now = clockMillis()
                     val timeDelta = now - lastProgressTime
-                    if (timeDelta >= PROGRESS_THROTTLE_MS) {
-                        currentSpeed = if (timeDelta > 0) (bytesSinceLastSpeedCheck * 1000L) / timeDelta else 0L
-                        lastProgressTime = now
-                        bytesSinceLastSpeedCheck = 0L
-                    }
+                    if (progressEmitted && !force && timeDelta < PROGRESS_THROTTLE_MS) return
+                    currentSpeed = if (timeDelta > 0) (bytesSinceLastSpeedCheck * 1000L) / timeDelta else 0L
+                    lastProgressTime = now
+                    bytesSinceLastSpeedCheck = 0L
+                    progressEmitted = true
 
                     val eta =
                         if (currentSpeed > 0L && totalBytesEstimate > bytesDone) {
@@ -432,6 +438,7 @@ class FileOperationsEngine
                         }
                     }
 
+                    if (progressEmitted) emitProgress(null, force = true)
                     val summary =
                         OperationSummary(
                             succeeded = succeeded,
@@ -490,8 +497,18 @@ class FileOperationsEngine
             visited: MutableSet<FileNodeId> = mutableSetOf(),
         ): ItemResult {
             coroutineContext.ensureActive()
+            val isRoot = visited.isEmpty()
             if (!visited.add(sourceNode.id)) return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
             if (sourceBackend === destBackend) {
+                if (isRoot && sourceNode.isDirectory) {
+                    when (val ancestry = sourceBackend.isSameOrDescendant(sourceNode.id, destParentId)) {
+                        is FileResult.Failure -> return ItemResult.Failure(ancestry.error)
+                        is FileResult.Success ->
+                            if (ancestry.value) {
+                                return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
+                            }
+                    }
+                }
                 if (sourceNode.parentId == destParentId && collisionPolicy == CollisionPolicy.OVERWRITE) {
                     return ItemResult.Failure(FileError.InvalidDestination(sourceNode.name))
                 }

@@ -17,6 +17,11 @@
 
     <!-- Launchable apps only (smart cleanup's installed-APK check, app manager); never QUERY_ALL_PACKAGES. -->
     <queries>
+        <!-- Only handlers for viewing content URIs, used by the in-app file-opening chooser. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:mimeType="*/*" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

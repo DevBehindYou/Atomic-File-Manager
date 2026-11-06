@@ -134,8 +134,7 @@ private fun RenderedMarkdownView(
     lines: List<String>,
     modifier: Modifier = Modifier,
 ) {
-    var inCodeBlock = false
-    val codeBuffer = mutableListOf<String>()
+    val blocks = remember(lines) { markdownBlocks(lines) }
 
     LazyColumn(
         modifier =
@@ -144,20 +143,10 @@ private fun RenderedMarkdownView(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(lines) { rawLine ->
-            val line = rawLine.trimEnd()
+        items(blocks) { block ->
+            val line = block.text.trimEnd()
             when {
-                line.startsWith("```") -> {
-                    inCodeBlock = !inCodeBlock
-                    if (!inCodeBlock && codeBuffer.isNotEmpty()) {
-                        val block = codeBuffer.joinToString("\n")
-                        codeBuffer.clear()
-                        MarkdownCodeBlock(code = block)
-                    }
-                }
-                inCodeBlock -> {
-                    codeBuffer.add(line)
-                }
+                block.code -> MarkdownCodeBlock(block.text)
                 line.startsWith("# ") -> {
                     Text(
                         text = line.removePrefix("# "),

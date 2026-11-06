@@ -1,6 +1,5 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
-import android.os.Environment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +31,9 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStor
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessContent
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
+import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
 private const val LARGE_FONT_SCALE = 1.5f
@@ -64,6 +67,8 @@ fun HomeScreen(
     onOpenPrivateFiles: () -> Unit = {},
     onOpenStorageDetails: () -> Unit = {},
     privateLocked: Boolean = false,
+    storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
+    onRetryStorage: () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -74,7 +79,8 @@ fun HomeScreen(
                 .testTag("home_screen"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24),
     ) {
-        if (!hasStorageAccess) {
+        StorageReadinessContent(storageReadiness, onRetryStorage)
+        if (storageReadiness is StorageReadinessState.Ready && !hasStorageAccess) {
             Column(
                 Modifier.testTag("permission_warning_card"),
                 verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
@@ -205,22 +211,10 @@ private fun CategoryGrid(tiles: List<HomeTile>) {
 
 @Composable
 private fun QuickAccessFolders(onFolderClick: (FileNodeId) -> Unit) {
-    val context = LocalContext.current
-    val folders =
-        remember(context) {
-            val fallback = FileNodeId.file(context.filesDir.absolutePath)
-            listOf(
-                Environment.DIRECTORY_DOWNLOADS,
-                Environment.DIRECTORY_DCIM,
-                Environment.DIRECTORY_DOCUMENTS,
-                Environment.DIRECTORY_PICTURES,
-                Environment.DIRECTORY_MUSIC,
-            ).map { type ->
-                val path =
-                    runCatching { Environment.getExternalStoragePublicDirectory(type)?.absolutePath }.getOrNull()
-                type to (path?.let { FileNodeId.file(it) } ?: fallback)
-            }
-        }
+    val context = LocalContext.current.applicationContext
+    val folders by produceState(emptyList<Pair<String, FileNodeId>>(), context) {
+        value = loadHomeQuickAccessFolders(context)
+    }
     Column {
         folders.forEach { (name, id) ->
             AtomicFileRow(

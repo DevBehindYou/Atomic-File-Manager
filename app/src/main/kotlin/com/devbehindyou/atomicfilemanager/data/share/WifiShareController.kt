@@ -44,6 +44,7 @@ sealed interface WifiShareState {
  * over mobile data; with no Wi-Fi it refuses to start.
  */
 class WifiShareController(private val context: Context) {
+    val transfers = ShareTransfers()
     private val _state = MutableStateFlow<WifiShareState>(WifiShareState.Off)
     val state: StateFlow<WifiShareState> = _state.asStateFlow()
 
@@ -59,7 +60,13 @@ class WifiShareController(private val context: Context) {
         }
         val server =
             try {
-                ShareServer(folder, address, allowUpload = allowUpload, onStop = ::onServerStopped)
+                ShareServer(
+                    folder,
+                    address,
+                    allowUpload = allowUpload,
+                    onStop = ::onServerStopped,
+                    transfers = transfers,
+                )
             } catch (e: IOException) {
                 return WifiShareState.Stopped("The share couldn't start: ${e.message}").also { _state.value = it }
             }

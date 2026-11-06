@@ -32,6 +32,16 @@ class SmbPathsTest {
     }
 
     @Test
+    fun `metadata parents terminate at the share root and preserve child identities`() {
+        val share = SmbPaths.parse(FileNodeId.smb("nas", "/Photos/"))
+        assertNull(share.parentId)
+        assertNull(SmbPaths.parse(FileNodeId.smb("nas", "/")).parentId)
+        val album = share.child("Summer 2026")
+        assertEquals(share.id(), album.parentId)
+        assertEquals(album.id(), album.child("photo.jpg").parentId)
+    }
+
+    @Test
     fun `ids survive child, parent and back`() {
         val share = SmbPaths.parse(FileNodeId.smb("nas", "/Docs"))
         val file = share.child("a").child("b.txt")

@@ -18,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -76,7 +78,7 @@ private val themeChoices =
         ThemeMode.DARK to "Dark",
     )
 
-private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, ABOUT }
+private enum class SettingsSheet { HIDE_METHOD, HIDDEN_FOLDER, PLUGINS, OPENING, ABOUT }
 
 /**
  * Settings (ATOMIC_UI_PLAN.md §7.9, canvas "Settings"): sections under mono labels, toggle cards
@@ -91,6 +93,7 @@ fun SettingsScreen(
     onClearScanCache: () -> Unit,
     onNotify: (String) -> Unit,
     modifier: Modifier = Modifier,
+    storageAccessStatus: String? = null,
 ) {
     val settings by settingsRepository.settings.collectAsState()
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
@@ -155,11 +158,22 @@ fun SettingsScreen(
         }
 
         SettingsSection("Files") {
+            AtomicSettingsRow(
+                title = stringResource(R.string.file_open_settings),
+                value = stringResource(openingModeLabel(settings.fileOpening.defaultMode)),
+                onClick = { sheet = SettingsSheet.OPENING },
+            )
             AtomicToggleCard(
                 title = "Show hidden files",
                 description = "Names that start with a dot appear faded.",
                 checked = settings.showHiddenFiles,
                 onCheckedChange = { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } },
+            )
+            AtomicSettingsRow(
+                title = stringResource(R.string.plugins_title),
+                value = stringResource(R.string.plugins_settings_summary),
+                onClick = { sheet = SettingsSheet.PLUGINS },
+                modifier = Modifier.testTag("setting_plugins"),
             )
         }
 
@@ -213,7 +227,7 @@ fun SettingsScreen(
             AtomicSettingsRow(
                 title = "All files access",
                 value =
-                    if (hasStorageAccess) {
+                    storageAccessStatus ?: if (hasStorageAccess) {
                         "Granted"
                     } else {
                         "Not granted. Shared storage can't be browsed without it."
@@ -240,6 +254,8 @@ fun SettingsScreen(
     }
 
     when (sheet) {
+        SettingsSheet.OPENING -> FileOpeningSettingsSheet(settingsRepository, onDismiss = { sheet = null })
+        SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->
             AtomicSheet(label = "Default hiding method", onDismiss = { sheet = null }) {
                 hideChoices.forEach { choice ->

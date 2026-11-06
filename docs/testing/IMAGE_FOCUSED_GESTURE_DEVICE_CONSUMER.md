@@ -1,0 +1,9 @@
+# Native focused-image gesture consumer proposal
+
+Prepared 26 October 2026. New ImageFocusedGestureDeviceTest reuses the existing createAndroidComposeRule<ComponentActivity>(), captureToImage()/toPixelMap() pattern from PreviewSurfaceDeviceTest. No activity/manifest/permission added. Author runs no Gradle, ADB or device test.
+
+Four cases exercise actual ZoomableImage with real FileSystemBackend and ImagePreviewHelper FILE decoding: off-center double tap, off-center pinch, wide/tall letterbox drag limits. A generated red image has a green marker at65–75%width. Initial red-center pixel wait confirms decoding; tap/pinch tests require both focal-point retention and expanded marker pixels, so unchanged/no-op zoom cannot pass. Letterbox tests require a previously blank short-axis pixel to turn red after zoom before dragging, avoiding a false pass from unzoomed no-op pan.
+
+Each test creates only a uniquely owned app-private cache directory with source PNG and sentinel. Delegate only the helper through a local AppContainer wrapper; no global registry/settings/Recents mutation. Teardown removes the viewer composition and waits for idle before checking original/source/sentinel bytes and unchanged external-preview file existence/length/mtime snapshot; then deletes only captured files and the empty captured directory. It never recursively deletes unexpected contents. Export metadata snapshots do not assert cryptographic content integrity of every unrelated export; this test does not invoke export code.
+
+The tests are prepared/uncompiled; parent owns scoped formatting, build and explicit device execution with current-head artifacts. Native rendering/gesture correctness is distinct from Robolectric Canvas results and physical performance; retain failures and source/device/APK/test hashes. Current versionv0.2unchanged, full IMG1/multi-provider/GIF/large-image/recreation/performance acceptance remains open and earns no full group credit here.

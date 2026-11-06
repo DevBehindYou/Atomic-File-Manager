@@ -9,15 +9,15 @@ import java.io.File
 class HiddenFolderPathsTest {
     @Test
     fun `volume root of internal storage and of an SD card`() {
-        assertEquals(File("/storage/emulated/0"), volumeRootOf(File("/storage/emulated/0/Download/a.txt")))
-        assertEquals(File("/storage/F929-FA97"), volumeRootOf(File("/storage/F929-FA97/DCIM/a.jpg")))
+        assertEquals("/storage/emulated/0", volumeRootPathOf("/storage/emulated/0/Download/a.txt"))
+        assertEquals("/storage/F929-FA97", volumeRootPathOf("/storage/F929-FA97/DCIM/a.jpg"))
     }
 
     @Test
     fun `paths outside a known storage volume have no root`() {
-        assertNull(volumeRootOf(File("/data/data/app/files/a.txt")))
-        assertNull(volumeRootOf(File("/storage/emulated")))
-        assertNull(volumeRootOf(File("/storage/self/primary/a.txt")))
+        assertNull(volumeRootPathOf("/data/data/app/files/a.txt"))
+        assertNull(volumeRootPathOf("/storage/emulated"))
+        assertNull(volumeRootPathOf("/storage/self/primary/a.txt"))
     }
 
     @Test

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="docx_loading">Loading document text…</string>
+    <string name="docx_unavailable">This document could not be previewed. It may be damaged, encrypted, unsupported, or exceed the preview limits. Retry or open it in another app.</string>
+    <string name="docx_retry">Retry</string>
+    <string name="docx_text_layout_note">Read-only text preview. Paragraphs, basic emphasis and list markers are shown; table cells are read in order. Images, drawings, page layout, headers, footers and exact numbering need an Office app.</string>
+    <string name="docx_find">Find in document</string>
+    <string name="docx_previous">Previous</string>
+    <string name="docx_next">Next</string>
+    <string name="docx_match_count">%1$d of %2$d matches (first 1,000)</string>
+    <string name="docx_smaller">Smaller text</string>
+    <string name="docx_larger">Larger text</string>
+    <string name="docx_empty">No readable body text found.</string>
+</resources>

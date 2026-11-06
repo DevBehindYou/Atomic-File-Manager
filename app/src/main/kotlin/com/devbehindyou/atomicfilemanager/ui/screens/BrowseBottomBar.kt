@@ -42,6 +42,7 @@ internal fun BrowseBottomBar(
     onPaste: () -> Unit,
     onCompare: (FileNode, FileNode) -> Unit = { _, _ -> },
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
+    singleFileActions: List<AtomicStripAction> = emptyList(),
 ) {
     val clip = uiState.clipboard
     val selectedFolders =
@@ -112,7 +113,7 @@ internal fun BrowseBottomBar(
                     } else {
                         null
                     },
-                ),
+                ) + if (uiState.selectedIds.size == 1) singleFileActions else emptyList(),
         )
     } else if (clip != null) {
         Column(Modifier.fillMaxWidth().background(Atomic.colors.background)) {
