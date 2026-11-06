@@ -12,6 +12,7 @@ on:
           - comparison
           - full-trace
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - '.github/workflows/native-sqlite-diagnostic.yml'
       - 'scripts/diagnostics/native-sqlite.init.gradle'
@@ -27,7 +28,10 @@ concurrency:
 
 jobs:
   sqlite-comparison:
-    name: SQLite diagnostic (${{ inputs.mode || 'comparison' }})
+    name: SQLite diagnostic (${{ inputs.mode || (contains(github.event.pull_request.labels.*.name, 'sqlite-full-trace') && 'full-trace') || 'comparison' }})
+    if: github.event.action != 'labeled' || github.event.label.name == 'sqlite-full-trace'
+    env:
+      ATOMIC_SQLITE_DIAGNOSTIC_MODE: ${{ inputs.mode || (contains(github.event.pull_request.labels.*.name, 'sqlite-full-trace') && 'full-trace') || 'comparison' }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -40,7 +44,7 @@ jobs:
         with:
           cache-read-only: true
       - name: Use normal CI Gradle memory for the full trace
-        if: inputs.mode == 'full-trace'
+        if: env.ATOMIC_SQLITE_DIAGNOSTIC_MODE == 'full-trace'
         shell: bash
         run: |
           mkdir -p ~/.gradle
@@ -50,8 +54,6 @@ jobs:
           } >> ~/.gradle/gradle.properties
       - name: Collect diagnostic evidence
         shell: bash
-        env:
-          ATOMIC_SQLITE_DIAGNOSTIC_MODE: ${{ inputs.mode || 'comparison' }}
         run: |
           chmod +x gradlew
           bash scripts/diagnostics/native_sqlite_comparison.sh "$ATOMIC_SQLITE_DIAGNOSTIC_MODE"
