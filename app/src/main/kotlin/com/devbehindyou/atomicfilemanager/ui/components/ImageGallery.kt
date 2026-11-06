@@ -51,6 +51,7 @@ import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.normalizedFileMime
 
 private const val DOUBLE_TAP_ZOOM = 2.5f
 
@@ -81,6 +82,7 @@ internal fun ImageGallery(
             node = images[page],
             container = container,
             onZoomChange = { if (page == pager.currentPage) zoomed = it },
+            isActive = page == pager.currentPage,
         )
     }
 }
@@ -91,6 +93,7 @@ internal fun ZoomableImage(
     node: FileNode,
     container: AppContainer,
     onZoomChange: (Boolean) -> Unit = {},
+    isActive: Boolean = true,
 ) {
     val helper = container.imagePreviewHelper
     // A source revision owns its loading state and transforms before its first frame is drawn.
@@ -98,7 +101,12 @@ internal fun ZoomableImage(
     key(node.id, node.modifiedAt, node.size, helper) {
         var attempt by remember { mutableIntStateOf(0) }
         key(attempt) {
-            ZoomableImageAttempt(node, helper, onZoomChange, onRetry = { attempt++ })
+            LaunchedEffect(Unit) { onZoomChange(false) }
+            if (Gallery.isGif(node)) {
+                AnimatedGifImage(node, helper, isActive, onZoomChange, onRetry = { attempt++ })
+            } else {
+                ZoomableImageAttempt(node, helper, onZoomChange, onRetry = { attempt++ })
+            }
         }
     }
 }
@@ -113,9 +121,6 @@ private fun ZoomableImageAttempt(
     val decoded by produceState<FileResult<Bitmap>?>(null) {
         value = helper.decodeImage(node.id)
     }
-    var transform by remember { mutableStateOf(ImageTransform()) }
-    var viewport by remember { mutableStateOf(IntSize.Zero) }
-    LaunchedEffect(Unit) { onZoomChange(false) }
 
     val bitmap =
         when (val result = decoded) {
@@ -130,7 +135,20 @@ private fun ZoomableImageAttempt(
             is FileResult.Success -> result.value
         }
 
-    val imageSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
+    ZoomableImageSurface(node, Size(bitmap.width.toFloat(), bitmap.height.toFloat()), onZoomChange) { modifier ->
+        Image(bitmap.asImageBitmap(), node.name, modifier = modifier, contentScale = ContentScale.Fit)
+    }
+}
+
+@Composable
+internal fun ZoomableImageSurface(
+    node: FileNode,
+    imageSize: Size,
+    onZoomChange: (Boolean) -> Unit,
+    content: @Composable (Modifier) -> Unit,
+) {
+    var transform by remember { mutableStateOf(ImageTransform()) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
 
     fun transformTo(
         value: Float,
@@ -184,25 +202,19 @@ private fun ZoomableImageAttempt(
                 },
         contentAlignment = Alignment.Center,
     ) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = node.name,
-            contentScale = ContentScale.Fit,
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = transform.scale,
-                        scaleY = transform.scale,
-                        translationX = transform.offset.x,
-                        translationY = transform.offset.y,
-                    ),
+        content(
+            Modifier.fillMaxSize().graphicsLayer(
+                scaleX = transform.scale,
+                scaleY = transform.scale,
+                translationX = transform.offset.x,
+                translationY = transform.offset.y,
+            ),
         )
     }
 }
 
 @Composable
-private fun ImageLoadError(
+internal fun ImageLoadError(
     error: FileError,
     onRetry: () -> Unit,
 ) {
@@ -231,6 +243,10 @@ private fun imageErrorMessage(error: FileError): Int =
 
 /** Gallery rules; pure so they are unit-tested. */
 internal object Gallery {
+    fun isGif(node: FileNode): Boolean =
+        !node.isDirectory &&
+            (node.name.endsWith(".gif", ignoreCase = true) || normalizedFileMime(node.mimeType) == "image/gif")
+
     private val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif")
 
     fun isImage(node: FileNode): Boolean =
