@@ -9,3 +9,7 @@ Parent-reviewed fixed denominator **N=42** capability groups in PLUGIN_FEATURE_M
 Host credit requires complete group behavior plus applicable actual consumers/static/artifacts on named source. Accepted credit additionally requires applicable device/provider/format/security/performance/review/CI/dependency/clean-merge gates. Smaller PRs earn no whole-group credit until all group criteria pass; report increments separately. Shared foundations are prerequisites, not extra numerator. Whole plugin numerator only when all its groups and end-to-end journey pass. Core unsupported work remains open; conditional/P2 decisions must be explicit and evidence based. Future user scope changes require logged before/after denominator, never silent reweighting.
 
 Next Image transform geometry is only part of IMG1; fit/original controls/restoration/physical touch remain before full credit. No plan/research/document/version credit. Feature integration is distinct from main/release.
+
+## 30 October partial increment
+
+GIF repair [PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101) is under native compatibility validation. Source60031fa passes normal CI; API34 looping/control/lifecycle/disposal and6 static cases pass, finite capture fails; API28 native heap-buffer read aborts. A direct-buffer repair is being validated. These are partial IMG2/IMG6 results, not complete groups. Fixed credit remains **0/42 host,0/42 accepted,0/8 fully modernized**; feature-plan credit remains **15% host /8% accepted**.
