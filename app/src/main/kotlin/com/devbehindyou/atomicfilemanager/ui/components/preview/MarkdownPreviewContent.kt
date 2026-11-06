@@ -25,21 +25,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devbehindyou.atomicfilemanager.AppContainer
+import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.usecase.ReadFileContentUseCase
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextContent
 
 @Composable
@@ -48,48 +54,65 @@ fun MarkdownPreviewContent(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    var textContent by remember { mutableStateOf<TextContent?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val reader = container.readFileContentUseCase
+    // The actual reader and known revision own loading, errors and explicit retry attempts.
+    key(node.id, node.modifiedAt, node.size, reader) {
+        var attempt by remember { mutableIntStateOf(0) }
+        key(attempt) {
+            MarkdownReadAttempt(node, reader, modifier, onRetry = { attempt++ })
+        }
+    }
+}
+
+@Composable
+private fun MarkdownReadAttempt(
+    node: FileNode,
+    reader: ReadFileContentUseCase,
+    modifier: Modifier,
+    onRetry: () -> Unit,
+) {
+    var result by remember { mutableStateOf<FileResult<TextContent>?>(null) }
+    LaunchedEffect(Unit) { result = reader.readText(node.id) }
+    when (val loaded = result) {
+        null ->
+            Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                AtomicLoading(stringResource(R.string.markdown_preview_loading))
+            }
+        is FileResult.Failure ->
+            Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(stringResource(R.string.markdown_preview_failed), color = MaterialTheme.colorScheme.error)
+                    if (loaded.error.recoverable) AtomicButton(stringResource(R.string.action_retry), onClick = onRetry)
+                }
+            }
+        is FileResult.Success -> MarkdownDocumentContent(loaded.value, modifier)
+    }
+}
+
+@Composable
+private fun MarkdownDocumentContent(
+    content: TextContent,
+    modifier: Modifier,
+) {
     var isRenderedMode by remember { mutableStateOf(true) }
-
-    LaunchedEffect(node.id) {
-        isLoading = true
-        when (val res = container.readFileContentUseCase.readText(node.id)) {
-            is FileResult.Success -> {
-                textContent = res.value
-                isLoading = false
-            }
-            is FileResult.Failure -> {
-                errorMessage = "Failed to load Markdown document"
-                isLoading = false
-            }
-        }
-    }
-
-    if (isLoading) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            AtomicLoading("Loading preview…")
-        }
-        return
-    }
-
-    if (errorMessage != null) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
-        }
-        return
-    }
-
-    val content = textContent ?: return
-
     Column(modifier = modifier.fillMaxSize()) {
         MarkdownHeaderBar(
             lineCount = content.totalLinesCount,
             isRendered = isRenderedMode,
             onToggleMode = { isRenderedMode = it },
         )
-
+        if (content.isTruncated) {
+            Text(
+                text = stringResource(R.string.markdown_preview_truncated),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
         if (isRenderedMode) {
             RenderedMarkdownView(lines = content.lines, modifier = Modifier.fillMaxSize())
         } else {

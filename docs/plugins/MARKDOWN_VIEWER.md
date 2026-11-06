@@ -30,3 +30,14 @@ Historical `4792db8` [viewer audit](../testing/BUILT_IN_VIEWER_AUDIT.md) and [pr
 ## Changelog
 
 - **v0.2 — 24 October 2026:** establish independent version and maintained record. Preserve the current subset/repaired fences; MD-T01 needs reproduction and richer rendering remains future work.
+## Source ownership and bounded-preview disclosure candidate — 26 October 2026
+
+MD-T01 now has a frozen test-first proposal `9c67f84` with seven actual Markdown viewer/real bounded-reader consumers. Five specify replacement after failure, explicit recoverable Retry, same-ID revision, reader replacement and visible truncation; two control pending source-switch/Close cancellation. No execution or reproduced bug result is claimed until the parent runs that baseline.
+
+Source candidate `ec0dbf5` scopes loading, error, content, display mode and retry to node ID, known modified time/size, actual reader and explicit attempt. A recoverable failure offers Retry without a loop; a new owned attempt discards stale failure/content. A truncated read displays the existing 5,000-line/1 MiB preview limit in both rendered/raw modes. Read limits and parser behavior are unchanged. The warning describes an incomplete preview rather than the complete source line count.
+
+No new renderer, CommonMark/GFM support, asset/link handling, WebView, network request, dependency or editor integration is introduced. Source/reader changes reset the old mode/scroll context; cross-revision restoration remains open. All richer MD-T02–T04 tasks, provider/security/performance and full MD1–MD5 acceptance remain open. Version remains v0.2. See [candidate validation](../testing/MARKDOWN_OWNERSHIP_CANDIDATE.md) for exact proposed gates.
+
+- **26 October 2026, v0.2 candidate:** preserve the frozen seven-consumer baseline and independently scoped source correction; scoped formatter passes. Host/static/APK/Lint, native, CI and integration are pending. No fixed-ledger credit is earned.
+
+- **29 October candidate checkpoint:** frozen9c67f84 reproduces five missing behaviors while both cancellation controls pass. Candidatee217005 passes16 focused host cases; corrected native fixture/static/APKs/debug Lint pass at4c8fc5f in9m38s after retaining the Context/Application compilation failure. Native runtime remains unrun. Accepted Editor dependency b995e23 is now merged as3933cd5; combined-source checks are pending. MD1–MD5 and v0.2/N42 credit remain unchanged. See MARKDOWN_OWNERSHIP_CANDIDATE.md in docs/testing for evidence and scope.

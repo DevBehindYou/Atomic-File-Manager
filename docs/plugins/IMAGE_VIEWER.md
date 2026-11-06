@@ -18,7 +18,7 @@ Format recognition is not a decoder matrix. A sampled bitmap does not establish 
 | --- | --- | --- |
 | IMG-T01 | P0 / accepted into feature integration | PR #80 head3ef374a passes CI40106431841 and guarded merge82e7e94; preserve evidence and track wider touch/provider acceptance under IMG-T02 |
 | IMG-T02 | P0 / open acceptance | Corrupt/missing/denied/disconnected inputs, rapid switching and recreation/transform behavior across supported APIs/providers |
-| IMG-T03 | P0 / GIF repair under native validation | PR #101: actual animated playback, finite completion, Replay, ownership and API28 compatibility; high-resolution strategy remains separate |
+| IMG-T03 | P0 / scoped GIF repair accepted into feature integration | PR #101: actual animated playback, finite completion, Replay, ownership and API28 compatibility; high-resolution strategy remains separate |
 | IMG-T04 | P1 / deferred | Metadata/view controls and safe edit/save-copy workflows with original-integrity tests |
 
 ## Bugs and risks
@@ -55,3 +55,7 @@ IMG-B04: animated GIF files currently display one static frame through BitmapFac
 ### 30 October repair checkpoint
 
 [PR #101](https://github.com/DevBehindYou/Atomic-File-Manager/pull/101), source60031fa, passes normal CI host/static/packaging. API34 native:7/8 passed; finite fixture first-frame capture missed its brief initial frame. API28 aborts in native heap-buffer reads before completing the first case. Callback disposal crash from9c96985 is not reproduced in the passing API34 looping/lifecycle/disposal case. The direct-buffer compatibility repair and finite-fixture observation correction remain candidates until current-source native checks pass. Original failures and exact artifact identities are retained in [GIF evidence](../testing/GIF_PLAYBACK_CANDIDATE.md). No complete IMG2/IMG6 credit.
+
+### 5 November accepted GIF repair
+
+IMG-B04's static-only GIF path is repaired by PR #101, tested `fb856a6`, feature-integration merge `33152a5`. Current-head host/static CI and eight native cases on each of API28/API34 pass; compatible local packaging completes in 12m13s, and all eight physical API34 GIF/static/source-integrity cases pass in 13.586s. See [exact artifact/signing identities, evidence and boundaries](../testing/GIF_PLAYBACK_CANDIDATE.md#accepted-bounded-playback-repair---5-november-2026). This supersedes the earlier pending checkpoints for that bounded repair. Stop/Replay, input/dimension caps and source/lifecycle ownership are accepted; wider IMG2/IMG6, provider/resource/accessibility and complete Image modernization remain open. Version stays v0.2; no complete-group credit or stable v0.2.1 release is claimed.
