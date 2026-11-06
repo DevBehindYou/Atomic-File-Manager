@@ -12,7 +12,7 @@
       "title": "Reconcile the live delta and claim the first slice",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "implementing",
+      "status": "acceptance_pending",
       "dependencies": [],
       "scope": [
         "U04",
@@ -29,7 +29,7 @@
       "validation": "Record Git HEAD/app tree, clean or explained status, worktrees, active PR heads/check URLs and remaining gates. Codex reviews reconciliation. No whole-plugin credit for this audit.",
       "external_gate": null,
       "branch": "codex/claude-c001-reconcile-delta",
-      "pr": null,
+      "pr": "#107 (into codex/claude-coordinator-50)",
       "evidence": [
         "2026-11-06T20:47Z UTC: integration codex/feature-upgrade-base 89140e3f3d4a746e6a907912042911cb10c8f6a3, app tree 3cb2d6f9554cd59e412960c00489acc0db146b11; main 7782660; matches STATE.json snapshot.",
         "PR #106 head 982d97a OPEN: Coordinator validation run 42290117364 success; CI run 42290117084 in progress when observed; not integrated.",
