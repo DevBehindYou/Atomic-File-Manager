@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,16 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 
 @Composable
 fun DocxPreviewContent(
+    node: FileNode,
+    readDocument: suspend (FileNodeId) -> FileResult<DocxDocument>,
+    modifier: Modifier = Modifier,
+) {
+    // Reset stale text, query and failures before drawing a replacement source/helper session.
+    key(node.id, node.modifiedAt, node.size, readDocument) { DocxSourceSession(node, readDocument, modifier) }
+}
+
+@Composable
+private fun DocxSourceSession(
     node: FileNode,
     readDocument: suspend (FileNodeId) -> FileResult<DocxDocument>,
     modifier: Modifier = Modifier,
