@@ -3,6 +3,14 @@ name: Native SQLite diagnostic
 # Evidence collection only. Required PR CI remains unchanged in ci.yml.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: SQLite diagnostic scope
+        type: choice
+        default: comparison
+        options:
+          - comparison
+          - full-trace
   pull_request:
     paths:
       - '.github/workflows/native-sqlite-diagnostic.yml'
@@ -19,7 +27,7 @@ concurrency:
 
 jobs:
   sqlite-comparison:
-    name: Unchanged SQLite consumers — normal versus isolated forks
+    name: SQLite diagnostic (${{ inputs.mode || 'comparison' }})
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -31,11 +39,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: true
-      - name: Collect both diagnostic outcomes
+      - name: Use normal CI Gradle memory for the full trace
+        if: inputs.mode == 'full-trace'
         shell: bash
         run: |
+          mkdir -p ~/.gradle
+          {
+            echo "org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 -XX:+UseParallelGC -XX:MaxMetaspaceSize=768m"
+            echo "kotlin.daemon.jvmargs=-Xmx2g -XX:+UseParallelGC -XX:MaxMetaspaceSize=512m"
+          } >> ~/.gradle/gradle.properties
+      - name: Collect diagnostic evidence
+        shell: bash
+        env:
+          ATOMIC_SQLITE_DIAGNOSTIC_MODE: ${{ inputs.mode || 'comparison' }}
+        run: |
           chmod +x gradlew
-          bash scripts/diagnostics/native_sqlite_comparison.sh
+          bash scripts/diagnostics/native_sqlite_comparison.sh "$ATOMIC_SQLITE_DIAGNOSTIC_MODE"
       - name: Upload complete diagnostic evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4

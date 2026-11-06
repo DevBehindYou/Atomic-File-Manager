@@ -1,4 +1,5 @@
 import java.security.MessageDigest
+import java.time.Instant
 import org.gradle.api.tasks.testing.Test
 
 // Only the requested app unit-test task is touched; CLI --tests filters remain intact.
@@ -8,8 +9,8 @@ gradle.projectsEvaluated {
     if (app == null) return
     app.tasks.named('testDebugUnitTest', Test).configure { task ->
         def mode = System.getProperty('atomic.sqlite.diagnostic.mode')
-        if (!(mode in ['normal', 'isolated'])) {
-            throw new GradleException('Expected diagnostic mode normal or isolated')
+        if (!(mode in ['normal', 'isolated', 'full-trace'])) {
+            throw new GradleException('Expected diagnostic mode normal, isolated or full-trace')
         }
         def output = new File(gradle.rootProject.projectDir, 'build/native-sqlite-diagnostic/' + mode)
         output.mkdirs()
@@ -23,6 +24,25 @@ gradle.projectsEvaluated {
             forkEvery = 1
             jvmArgs '-Xlog:class+load=info,library=debug:file=' +
                 new File(output, 'jvm-%p.log').absolutePath + ':time,level,tags'
+        } else if (mode == 'full-trace') {
+            // Keep independent rolling buffers so exception volume cannot evict library load events.
+            def decorators = 'utctime,uptime,pid,tid,level,tags'
+            def libraryLog = new File(output, 'jvm-library-%p.log').absolutePath
+            def exceptionLog = new File(output, 'jvm-exceptions-%p.log').absolutePath
+            jvmArgs "-Xlog:library=debug:file=${libraryLog}:${decorators}:filecount=3,filesize=1M",
+                "-Xlog:exceptions=info:file=${exceptionLog}:${decorators}:filecount=4,filesize=8M"
+            reports.junitXml.outputPerTestCase = true
+            beforeSuite { suite ->
+                if (suite.className != null) {
+                    logger.lifecycle("SQLITE_TRACE ${Instant.now()} START ${suite.className}")
+                }
+            }
+            afterSuite { suite, result ->
+                if (suite.className != null) {
+                    logger.lifecycle("SQLITE_TRACE ${Instant.now()} END ${suite.className} " +
+                        "tests=${result.testCount} failures=${result.failedTestCount}")
+                }
+            }
         }
         doFirst {
             def provenance = new File(output, 'test-runtime.txt')

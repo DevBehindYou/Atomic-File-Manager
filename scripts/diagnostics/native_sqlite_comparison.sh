@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+case "${1:-comparison}" in
+  comparison) modes=(normal isolated) ;;
+  full-trace) modes=(full-trace) ;;
+  *) printf 'Usage: %s [comparison|full-trace]\n' "$0" >&2; exit 2 ;;
+esac
+
 # Always run from the repository, and create evidence only inside its ignored build directory.
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 evidence="$PWD/build/native-sqlite-diagnostic"
@@ -22,16 +28,22 @@ filters=(
   --tests 'com.devbehindyou.atomicfilemanager.domain.repository.TransferBubbleRepositoryTest'
 )
 failed=0
-for mode in normal isolated; do
+for mode in "${modes[@]}"; do
   destination="$evidence/$mode"
   mkdir -p "$destination"
   date -u +'%Y-%m-%dT%H:%M:%SZ' > "$destination/started-at.txt"
-  # Collect both outcomes even when normal fails. The final exit remains nonzero if either fails.
+  gradle_args=(--console=plain --info --stacktrace)
+  test_filters=()
+  if [[ "$mode" != full-trace ]]; then
+    gradle_args+=(--no-daemon --max-workers=1)
+    test_filters=("${filters[@]}")
+  fi
+  # Keep collecting the requested evidence if a comparison leg fails.
   set +e
-  ./gradlew --no-daemon --max-workers=1 --console=plain --info --stacktrace \
+  ./gradlew "${gradle_args[@]}" \
     -I scripts/diagnostics/native-sqlite.init.gradle \
     "-Datomic.sqlite.diagnostic.mode=$mode" \
-    :app:testDebugUnitTest "${filters[@]}" 2>&1 | tee "$destination/gradle.log"
+    :app:testDebugUnitTest "${test_filters[@]}" 2>&1 | tee "$destination/gradle.log"
   pipeline=("${PIPESTATUS[@]}")
   result=${pipeline[0]}
   log_result=${pipeline[1]}
@@ -41,8 +53,7 @@ for mode in normal isolated; do
   # Init script assigns fresh per-mode html/xml destinations, avoiding stale report reuse.
   date -u +'%Y-%m-%dT%H:%M:%SZ' > "$destination/completed-at.txt"
 done
-printf 'normal=%s\nisolated=%s\n' \
-  "$(cat "$evidence/normal/exit-code.txt")" \
-  "$(cat "$evidence/isolated/exit-code.txt")" > "$evidence/outcomes.txt"
+for mode in "${modes[@]}"; do
+  printf '%s=%s\n' "$mode" "$(cat "$evidence/$mode/exit-code.txt")"
+done > "$evidence/outcomes.txt"
 exit "$failed"
-
