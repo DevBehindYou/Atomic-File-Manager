@@ -165,7 +165,7 @@
       "title": "Persist analysis freshness and interrupted scan state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -183,10 +183,12 @@
       "expected_outcome": "Recoverable scan state and honestly marked cached/partial/denied results.",
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c005-analysis-freshness",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed by the coordinating session; source audit first, then schema and consumers as dependent PRs."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -396,7 +398,7 @@
       "title": "Persist revision-aware video resume and display state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C011"
@@ -413,10 +415,12 @@
       "expected_outcome": "Reliable resume without jumping into a replacement file.",
       "validation": "Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c012-video-resume",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {

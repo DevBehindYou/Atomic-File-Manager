@@ -77,3 +77,8 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C003 [#115](https://github.com/DevBehindYou/Atomic-File-Manager/pull/115), head `7336833` on `89140e3`: one process-wide owner for preview scratch copies that survive process death. The failing control fails 6/6 on base (test-only commit `912b74b`). 55 focused host tests pass, and ktlint/detekt pass. Hosted CI is pending.
 - C047 [#114](https://github.com/DevBehindYou/Atomic-File-Manager/pull/114), head `6b14c6c` (parallel sub-agent): a dependency and provenance inventory, plus SHA pins for third-party actions in `ci.yml`. The coordinator re-verified the pinned SHAs (`git ls-remote`) and the Guava advisory (the OSV record). The Guava upgrade is decision D1, a separate PR. Old #49 duplicates the wrapper checksum already on base; it is listed for Codex reconciliation and has not been closed.
 - C004 and C021 sub-agents are still running.
+
+## 2026-11-07T05:40Z UTC — Claude claims C012 (sub-agent) and C005
+
+- C012 `codex/claude-c012-video-resume`: `area-media`, limited to `VideoPreviewContent.kt`, video resume persistence in `data/repository` and their tests and docs. C011 #109 is test-only, so nothing needs stacking. It doesn't touch #105's WAV workflow and test, or `AUDIO_PLAYER.md`.
+- C005 `codex/claude-c005-analysis-freshness`, by the coordinating session: `area-index-analysis` and `area-schema`. It starts with a source audit, then splits into a schema PR and consumer PRs. The legacy Codex PRs #46 and #47, which target `main`, are checked for overlap before any edit.

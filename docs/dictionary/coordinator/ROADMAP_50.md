@@ -82,7 +82,7 @@ Branch: codex/claude-c004-thumbnail-bounds. PR: none. Evidence records: 0. Updat
 
 ### C005 — Persist analysis freshness and interrupted scan state
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U05.
 
@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c005-analysis-freshness. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ## B — Image
 
@@ -214,7 +214,7 @@ Branch: codex/claude-c011-native-focus-interruptions. PR: #109 (into codex/featu
 
 ### C012 — Persist revision-aware video resume and display state
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C011. Scope: VID3.
 
@@ -228,7 +228,7 @@ Source areas: `ui/components/preview/VideoPreviewContent.kt`, `data/repository`.
 
 **Validation.** Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c012-video-resume. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C013 — Complete accessible transport and fullscreen controls
 
