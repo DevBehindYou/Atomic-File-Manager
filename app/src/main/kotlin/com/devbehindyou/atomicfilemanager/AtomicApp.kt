@@ -38,6 +38,7 @@ import com.devbehindyou.atomicfilemanager.data.recents.RecentMediaSource
 import com.devbehindyou.atomicfilemanager.data.repository.FolderSortPreferences
 import com.devbehindyou.atomicfilemanager.data.repository.HiddenFilesRepositoryImpl
 import com.devbehindyou.atomicfilemanager.data.repository.SharedPreferencesSettingsRepository
+import com.devbehindyou.atomicfilemanager.data.repository.TextDraftStore
 import com.devbehindyou.atomicfilemanager.data.repository.TransferBubbleRepositoryImpl
 import com.devbehindyou.atomicfilemanager.data.repository.volumeRootOf
 import com.devbehindyou.atomicfilemanager.data.search.RoomSearchIndex
@@ -52,6 +53,7 @@ import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.toNode
 import com.devbehindyou.atomicfilemanager.domain.repository.BackendType
+import com.devbehindyou.atomicfilemanager.domain.repository.EditorDraftStore
 import com.devbehindyou.atomicfilemanager.domain.repository.FavouritesRepository
 import com.devbehindyou.atomicfilemanager.domain.repository.FolderSortMemory
 import com.devbehindyou.atomicfilemanager.domain.repository.HiddenFilesRepository
@@ -141,6 +143,9 @@ interface AppContainer {
 
     /** Search across all storage from an index (ALL_IN_ONE_PLAN.md 1.4). */
     val searchIndex: SearchIndex
+
+    /** Crash-recovery drafts of unsaved editor text, app-private and excluded from backup (C026). */
+    val editorDraftStore: EditorDraftStore
 }
 
 class DefaultAppContainer(private val application: Application) : AppContainer {
@@ -386,6 +391,11 @@ class DefaultAppContainer(private val application: Application) : AppContainer {
         PhoneFileIndex(getDirectoryListingUseCase) { roots ->
             searchIndex.files(roots).map { it.toNode() }.filterNot { it.isHidden }
         }
+    }
+
+    // noBackupFilesDir: app-private and never part of Auto Backup; created on the first draft write.
+    override val editorDraftStore: EditorDraftStore by lazy {
+        TextDraftStore({ File(application.noBackupFilesDir, TextDraftStore.DIRECTORY_NAME) })
     }
 }
 
