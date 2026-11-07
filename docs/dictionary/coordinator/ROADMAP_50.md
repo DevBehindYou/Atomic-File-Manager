@@ -46,7 +46,7 @@ Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
-**P1 · claimed · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U06, N42.
 
@@ -60,7 +60,7 @@ Source areas: `AtomicApp.kt`, `ui/components/BuiltInFilePreviewPane.kt`, `data/p
 
 **Validation.** Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.
 
-Branch: codex/claude-c003-preview-resource-ownership. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c003-preview-resource-ownership. PR: #115 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C004 — Bound thumbnail scheduling and cache identity
 
@@ -862,7 +862,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C047 — Audit resolved dependencies and harden build provenance
 
-**P1 · claimed · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: M12, U13.
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: codex/claude-c047-dependency-provenance. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: #114 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 

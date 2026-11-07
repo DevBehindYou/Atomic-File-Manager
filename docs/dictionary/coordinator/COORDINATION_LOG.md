@@ -71,3 +71,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C021 `codex/claude-c021-pdf-hostile-sessions`: `area-pdf`, covering the PDF session, helper, controller, tests and `PDF_VIEWER` docs. It coordinates with C003, which only redirects `PdfDocumentSession.kt`'s temp-file creation through the shared scratch owner.
 - C047 `codex/claude-c047-dependency-provenance`: `area-build-release`. It inventories first, and any upgrade is a separate one-cluster PR. It doesn't touch `gif-playback-native.yml` (#103) or `audio-wav-native.yml` (#105).
 - Local Gradle runs are serialized with a shared `flock` on the cloud host. Hosted CI remains the acceptance gate.
+
+## 2026-11-07T05:30Z UTC — C003 #115 and C047 #114 published
+
+- C003 [#115](https://github.com/DevBehindYou/Atomic-File-Manager/pull/115), head `7336833` on `89140e3`: one process-wide owner for preview scratch copies that survive process death. The failing control fails 6/6 on base (test-only commit `912b74b`). 55 focused host tests pass, and ktlint/detekt pass. Hosted CI is pending.
+- C047 [#114](https://github.com/DevBehindYou/Atomic-File-Manager/pull/114), head `6b14c6c` (parallel sub-agent): a dependency and provenance inventory, plus SHA pins for third-party actions in `ci.yml`. The coordinator re-verified the pinned SHAs (`git ls-remote`) and the Guava advisory (the OSV record). The Guava upgrade is decision D1, a separate PR. Old #49 duplicates the wrapper checksum already on base; it is listed for Codex reconciliation and has not been closed.
+- C004 and C021 sub-agents are still running.

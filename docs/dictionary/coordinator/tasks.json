@@ -89,7 +89,7 @@
       "title": "Clarify preview resource ownership without a framework migration",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -109,11 +109,18 @@
       "validation": "Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.",
       "external_gate": null,
       "branch": "codex/claude-c003-preview-resource-ownership",
-      "pr": null,
-      "evidence": [],
+      "pr": "#115 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 7336833 on base 89140e3: new data/preview/ScratchCopies owns media-preview-/atomic-pdf-/atomic-7z- copies; the three creators route through it; DefaultAppContainer.init starts recoverOnce(cacheDir) on IO. A shared lock with creation means a live copy is never swept.",
+        "Failing control: ScratchCopyRecoveryTest (real MediaPreviewHelper/PdfDocumentLoader/TempFileSpool, fresh cache seeded with 4 orphans + 8 unrelated entries) fails 6/6 on base (orphan assertion); test-only commit 912b74b.",
+        "Local Robolectric (SDK 36, Gradle serialized): 55/55 pass (ScratchCopyRecovery 6, ScratchCopies 6, MediaPreviewOwnership 12, PdfDocumentLoader 11, ArchiveFormats 9, RemoteOpenPreparationCompose 7, ExternalPreviewHelper 4); ktlintCheck and detekt pass.",
+        "Record: docs/testing/PREVIEW_SCRATCH_OWNERSHIP_C003.md; VIDEO_PLAYER.md and ARCHIVE_MANAGER.md sections."
+      ],
       "remaining": [
-        "Slice 1: one process-wide owner for preview scratch copies (media-preview-, atomic-pdf-, atomic-7z-) that removes copies orphaned by process death before this process creates its first copy; startup sweep from DefaultAppContainer.",
-        "Later slice candidate: BuiltInFilePreviewPane keeps a second ExternalPreparationRequest that production never starts (FilePreviewPane always routes external opening); make it fallback-only after Codex confirms the fallback's role."
+        "Hosted CI on #115, Codex review, clean trial; dependency C002 (#108) unmerged (no shared file).",
+        "external-preview/ startup prune needs Codex view on asynchronous external readers.",
+        "Second seam: BuiltInFilePreviewPane holds an ExternalPreparationRequest production never starts (FilePreviewPane always routes external opening); needs Codex confirmation of the test-only fallback's role.",
+        "PDF_READER.md pointer after C021 lands; no device process-death run."
       ],
       "last_updated": "2026-11-07"
     },
@@ -1502,7 +1509,7 @@
       "title": "Audit resolved dependencies and harden build provenance",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -1522,10 +1529,21 @@
       "validation": "Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.",
       "external_gate": null,
       "branch": "codex/claude-c047-dependency-provenance",
-      "pr": null,
-      "evidence": [],
+      "pr": "#114 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 6b14c6c on 89140e3 (parallel sub-agent under Claude Code): docs/testing/DEPENDENCY_PROVENANCE_C047.md records 205 resolved release-runtime modules with POM licences, advisory matching against the OSV Maven bulk export (matcher control: 20 hits on known-vulnerable versions), wrapper integrity, Actions pin table and decisions D1-D5.",
+        "Hardening: ci.yml pins gradle/actions/setup-gradle to ed408507 (v4.4.3; 3 uses) and reactivecircus/android-emulator-runner to a421e438 (v2.38.0; 2 uses). Coordinator re-verified with git ls-remote that both are the peeled commits of the current v4/v2 tags, so CI code is identical.",
+        "Runtime advisory: Guava 33.3.1-android (via Media3 1.8.0) is in GHSA-xxph-c9ww-hj94 / CVE-2026-102554, affected [4.0, 33.7.2); coordinator re-fetched the OSV record (published 2026-10-27). App has no ObjectInputStream use; recorded as D1, not upgraded in this PR.",
+        "Wrapper: distributionSha256Sum and wrapper jar SHA-256 match Gradle's versions API for 9.3.1; setup-gradle validates the wrapper jar. Local ktlintCheck/detekt pass; release tamper-guard tests 12 + 16 OK."
+      ],
       "remaining": [
-        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+        "Hosted CI on #114 and Codex review.",
+        "D1: Guava 33.7.2-android constraint (or Media3 carrying it) as the next one-cluster PR, gated on R8, APK size delta, media checks and tamper guards.",
+        "D2: build-classpath-only advisories (incl. Kotlin Gradle Plugin 2.2.10, Bouncy Castle 1.79 in AGP tooling) re-evaluated with the next Kotlin/AGP raise.",
+        "D3: owner decision on in-app third-party notices; Shizuku catalog comment says Apache 2.0 but POM/upstream is MIT.",
+        "D4: pin the remaining native workflows (gif/audio after #103/#105 merge); node20 action majors one cluster at a time.",
+        "D5: Gradle dependency verification metadata/locking/SBOM needs a decision. Old PR #49 duplicates the wrapper checksum already on base (Codex reconciliation).",
+        "Official GitHub docs/blog and api.osv.dev were unreachable from the cloud session; the pinning rationale rests on ls-remote evidence."
       ],
       "last_updated": "2026-11-07"
     },
