@@ -42,11 +42,13 @@ internal object ImageTransformGeometry {
         pan: Offset,
         image: Size,
         viewport: Size,
+        minimumScale: Float = 1f,
     ): ImageTransform {
         // Pointer replacement can leave no pointer pressed in both event samples.
         // calculateCentroid then returns Unspecified; wait for a stable sample.
         if (centroid == Offset.Unspecified || !centroid.x.isFinite() || !centroid.y.isFinite()) return current
-        val scale = targetScale.coerceIn(1f, 6f)
+        val minimum = minimumScale.takeIf { it.isFinite() && it > 0f && it <= 1f } ?: 1f
+        val scale = targetScale.coerceIn(minimum, 6f)
         if (scale == 1f) return ImageTransform()
         val focus = centroid - Offset(viewport.width / 2f, viewport.height / 2f)
         val ratio = scale / current.scale
