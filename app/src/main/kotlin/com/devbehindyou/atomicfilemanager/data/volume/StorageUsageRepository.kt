@@ -32,6 +32,8 @@ data class StorageUsageUpdate(
     val cached: Boolean = false,
     val changedDuringScan: Boolean = false,
     val previousObserved: StorageUsageSnapshot? = null,
+    /** Restored on entry: the last walk for this storage stopped before publishing a result. */
+    val interrupted: Boolean = false,
 )
 
 data class StorageUsageLimits(
@@ -66,11 +68,36 @@ class StorageUsageRepository(
     private val revision = AtomicLong()
 
     @Volatile private var cache: Cache? = null
-    private var observed: Cache? = null
+
+    @Volatile private var observed: Cache? = null
+
+    /** Input key of a walk that started but published no final result: the user left or it was cancelled. */
+    @Volatile private var interrupted: String? = null
 
     /** Mark stale without destroying the last successful evidence shown during refresh/failure. */
     fun invalidate() {
         revision.incrementAndGet()
+    }
+
+    /**
+     * What this repository already knows for exactly these [volumes], without planning or listing anything.
+     * Entry stays lightweight: the result is shown as previous and possibly stale until the user refreshes.
+     * Different storage, mounts or grants share nothing. Null when nothing is known.
+     */
+    fun lastResult(volumes: List<StorageVolumeInfo>): StorageUsageUpdate? {
+        val inputKey = inputKeyOf(volumes)
+        val good = cache?.takeIf { it.inputKey == inputKey }?.snapshot
+        val seen = observed?.takeIf { it.inputKey == inputKey }?.snapshot
+        val stopped = interrupted == inputKey
+        if (good == null && seen == null && !stopped) return null
+        // Always IDLE: a restored entry offers the same explicit action as a fresh one.
+        return StorageUsageUpdate(
+            phase = StorageUsagePhase.IDLE,
+            current = null,
+            lastGood = good,
+            previousObserved = seen,
+            interrupted = stopped,
+        )
     }
 
     fun scan(
@@ -80,10 +107,7 @@ class StorageUsageRepository(
         flow {
             writer.withLock {
                 if (refresh) invalidate()
-                val inputKey =
-                    volumes.map {
-                        "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}"
-                    }.sorted().joinToString("\n")
+                val inputKey = inputKeyOf(volumes)
                 if (cache?.let { it.inputKey != inputKey } == true) invalidate()
                 val previous = cache?.takeIf { it.inputKey == inputKey }
                 val priorObserved = observed?.takeIf { it.inputKey == inputKey }
@@ -124,6 +148,7 @@ class StorageUsageRepository(
                         ),
                     )
                 } else {
+                    interrupted = inputKey
                     walk(plan, hit?.snapshot, requestedRevision) { update ->
                         currentCoroutineContext().ensureActive()
                         if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
@@ -138,6 +163,7 @@ class StorageUsageRepository(
                                     inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
                                 )
                         }
+                        if (update.phase != StorageUsagePhase.SCANNING) interrupted = null
                         emit(update.copy(previousObserved = observedHit?.snapshot))
                     }
                 }
@@ -257,3 +283,8 @@ class StorageUsageRepository(
 
     private class ScanLimitReached : RuntimeException()
 }
+
+private fun inputKeyOf(volumes: List<StorageVolumeInfo>): String =
+    volumes.map {
+        "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}"
+    }.sorted().joinToString("\n")
