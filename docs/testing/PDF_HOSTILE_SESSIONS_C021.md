@@ -13,7 +13,8 @@ Claude Code task **C021** (PDF1/PDF5; PDF-T01 increment). Base: feature integrat
 | Run | Source | Result |
 | --- | --- | --- |
 | Host `PdfHostileSessionTest` on unchanged loader (only the marker constant added) | `7be3dde` | 6 run, **1 failed**: `a password protected document is reported distinctly from a corrupt one` — expected `UnsupportedFormat(password-protected PDF)` but was `IoFailure(PDF preview unavailable)`. The other 5 pass on base. |
-| Native `PdfHostileSessionDeviceTest`, API 28/34, test-only commit, workflow dispatch [run 42338904387](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42338904387) | `7be3dde` | Expected to fail `passwordProtectedDocumentIsReportedDistinctlyFromCorruption` and `sourceLossKeepsTheOpenCopyThenPasswordAndRecoveryAreReported`. The outcome is recorded in the PR once the run finishes. |
+| Native, test-only commit, workflow dispatch [run 42338904387](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42338904387) | `7be3dde` | API 28 and API 34 each: 11 run, **2 failed**, and only the two expected cases failed: `passwordProtectedDocumentIsReportedDistinctlyFromCorruption` (expected `UnsupportedFormat(password-protected PDF)` but was `IoFailure(PDF preview unavailable)`) and `sourceLossKeepsTheOpenCopyThenPasswordAndRecoveryAreReported`. `repeatedDisposalReleasesEveryNativeDocument` passed on both. |
+| Native, fix head, PR [run 42339191724](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42339191724) | `38f037d` | API 28: 11/11 passed. API 34: 11 run, 1 failed: `repeatedDisposalReleasesEveryNativeDocument`, "Descriptor growth 12 across 12 reader lifetimes". Investigated below. |
 
 ## Coverage added
 
@@ -39,9 +40,23 @@ Native (`app/src/androidTest/.../PdfHostileSessionDeviceTest.kt`, fixtures in `H
 | RC4-40 standard-security PDF (user password set) with an unencrypted twin | The twin renders blue. The encrypted file gives `UnsupportedFormat(PDF_PASSWORD_PROTECTED)`. Garbage gives a different error. |
 | Compose reader on 1000 pages: jump to 1000, Next disabled, Previous, jump to 500, 20 rapid Next | The label tracks the displayed page (520/1000). **Exactly one `pdf_page` node** is on screen. The staged descriptor is held. |
 | Compose source loss and replacement | Source deleted while open: Next still renders from the copy. A new revision shows the generic error, with copy and descriptors released. Encrypted bytes plus Retry show the password text with no Retry. A valid replacement plus a new revision shows 1/1. |
-| Repeated disposal, 12 reader lifetimes | Each lifetime holds one staged copy, and after each one 0 copies and 0 staged descriptors remain. Total process descriptor growth stays below the cycle count. |
+| Repeated disposal, 12 reader lifetimes | Each lifetime holds one staged copy and its descriptor. After each one, 0 copies remain and no descriptor targets any test-owned file. |
 
 The fixtures are generated in each test's private cache directory and only owned files are deleted. The encrypted fixture was checked locally against independent readers: poppler `pdfinfo` rejects the empty password and opens the file with the user and owner passwords, and `pypdf` decrypts the content stream to the original operators.
+
+## API 34 descriptor growth: platform frame fences, not a PDF leak
+
+The first disposal test bounded the *total* process descriptor count (growth < cycles). At `38f037d` it failed on API 34 with +12 over 12 lifetimes. The same test passed on API 34 at `7be3dde`, where the disposal path was identical. The commit `56ddf9d` added a temporary diagnostic test. It diffed `/proc/self/fd` readlink targets (with inode numbers normalized) after one warm-up lifetime, and reported through its failure message because artifact downloads are blocked from this host. [Run 42339979995](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42339979995) (jobs 128305292059 API 28, 128305292347 API 34) gave:
+
+| Phase | API 28 | API 34 |
+| --- | --- | --- |
+| 12 PDF reader lifetimes | 62→62, diff {} | 114→130; the whole diff is `anon_inode:sync_file` +16. Per cycle: 126, 127, 129, 128, 127, then 130 ×7 |
+| 12 plain `Image` (non-PDF) lifetimes | 62→62, diff {} | 130→130, diff {}; fluctuates 129–130 |
+| 24 further PDF lifetimes | 62→62, diff {} | 130→130, diff {}; fluctuates 127–130 |
+| 3× GC + finalization | diff {} | diff {} |
+| Descriptors on any test-owned file (source or staged copy) | none | none |
+
+Conclusion: **(b), not ours.** The growth is a pool of HWUI/graphics `sync_file` fence descriptors. It fills to a plateau within about six lifetimes, varies frame to frame and then stops growing. The PDF path opens no `sync_file`. On both API levels no descriptor to the source or staged copy survives a lifetime. Whether the earlier pass and fail cross the cycle bound depends only on where the pool started. The diagnostic was removed in the next commit. The disposal test now asserts by target instead: after each of 12 lifetimes the staged-copy descriptor was held (≥ 1) while open and **no descriptor at all remains on any test-owned file**. `@After` asserts the same for every test. This is stricter for our descriptors and does not tolerate platform descriptors as a blanket allowance.
 
 ## Validation (local, serialized Gradle lease)
 
@@ -60,7 +75,7 @@ The fixtures are generated in each test's private cache directory and only owned
 
 ## Remaining
 
-- Native outcome on the PR head (API 28/34), and the control run result above.
+- Native outcome on the current PR head (API 28/34) after the targeted disposal assertion.
 - No password entry or unlock (PDF-T03/T04 engine decision). Text, search and forms are still not supported.
 - Physical-provider disconnects (SAF/USB/network) and memory pressure on real devices are not exercised. Device benchmarking remains owner-deferred.
 - The PDF1–PDF5 groups are not complete. This is a scoped slice.

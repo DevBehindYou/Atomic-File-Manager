@@ -9,12 +9,7 @@ import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import android.system.Os
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -80,6 +75,7 @@ class PdfHostileSessionDeviceTest {
     fun removeOnlyOwnedFixtures() {
         assertTrue("Every staged copy must be removed", cache.listFiles().orEmpty().isEmpty())
         assertEquals("Every staged descriptor must be closed", 0, stagedDescriptors())
+        assertEquals("No descriptor may remain on an owned fixture", emptyList<String>(), ownedTargets())
         for (owned in listOf(source, cache, directory)) assertTrue(owned.delete() || !owned.exists())
     }
 
@@ -284,91 +280,22 @@ class PdfHostileSessionDeviceTest {
         val reader = Reader()
         reader.awaitPage(1, 3)
         reader.close()
-        val baseline = descriptorCount()
-        val cycles = 12
-        repeat(cycles) {
+        // Total process descriptors are not ours to bound: API 34 HWUI keeps a pool of
+        // anon_inode:sync_file frame fences that grows to a plateau (C021 evidence). Assert by target.
+        repeat(12) { lifetime ->
             compose.runOnIdle { reader.visible.value = true }
             reader.awaitPage(1, 3)
             assertEquals(1, cache.listFiles().orEmpty().size)
+            assertTrue("Lifetime $lifetime holds its staged copy", stagedDescriptors() >= 1)
             reader.close()
+            assertEquals("Lifetime $lifetime left descriptors on owned files", emptyList<String>(), ownedTargets())
         }
-        val growth = descriptorCount() - baseline
-        assertTrue("Descriptor growth $growth across $cycles reader lifetimes", growth < cycles)
-    }
-
-    /** TEMPORARY C021 diagnostic: reports which descriptor targets grow per lifetime; always fails with the report. */
-    @Test
-    fun zzDescriptorGrowthDiagnostic() {
-        source.outputStream().use { output -> generate(List(3) { 200 to 280 }, output) }
-        val reader = Reader()
-        reader.awaitPage(1, 3)
-        reader.close()
-        val report = StringBuilder("C021-FD-DIAG\n")
-
-        fun phase(
-            name: String,
-            cycles: Int,
-            pdf: Boolean,
-        ) {
-            val before = descriptorTargets()
-            val counts = mutableListOf<Int>()
-            compose.runOnIdle { reader.control.value = !pdf }
-            repeat(cycles) {
-                compose.runOnIdle { reader.visible.value = true }
-                if (pdf) {
-                    reader.awaitPage(1, 3)
-                } else {
-                    compose.waitUntil(
-                        10_000,
-                    ) { compose.onAllNodesWithTag("control_page").fetchSemanticsNodes().size == 1 }
-                }
-                compose.runOnIdle { reader.visible.value = false }
-                compose.waitUntil(10_000) { cache.listFiles().orEmpty().isEmpty() && stagedDescriptors() == 0 }
-                compose.waitForIdle()
-                counts += descriptorTargets().size
-            }
-            val after = descriptorTargets()
-            report.append("$name: ${before.size}->${after.size} per-cycle=$counts diff=${diff(before, after)}\n")
-        }
-        phase("pdf-12", 12, pdf = true)
-        phase("image-12", 12, pdf = false)
-        phase("pdf-24", 24, pdf = true)
-        val beforeGc = descriptorTargets()
-        repeat(3) {
-            Runtime.getRuntime().gc()
-            System.runFinalization()
-            Thread.sleep(200)
-        }
-        report.append("gc: ${beforeGc.size}->${descriptorTargets().size} diff=${diff(beforeGc, descriptorTargets())}\n")
-        report.append("owned-now=${descriptorTargets().filter { it.contains(directory.name) }}\n")
-        throw AssertionError(report.toString())
-    }
-
-    private fun descriptorTargets(): List<String> =
-        File("/proc/self/fd").listFiles().orEmpty().mapNotNull { link ->
-            runCatching { Os.readlink(link.absolutePath) }.getOrNull()?.replace(Regex("\\[\\d+]"), "[]")
-        }
-
-    private fun diff(
-        before: List<String>,
-        after: List<String>,
-    ): Map<String, Int> {
-        val delta = after.groupingBy { it }.eachCount().toMutableMap()
-        before.forEach { delta[it] = (delta[it] ?: 0) - 1 }
-        return delta.filterValues { it != 0 }
     }
 
     private inner class Reader {
         val original: FileNode = runBlocking { (backend.getNode(id()) as FileResult.Success).value }
         val shown = mutableStateOf(original)
         val visible = mutableStateOf(true)
-        val control = mutableStateOf(false)
-        private val controlBitmap =
-            Bitmap.createBitmap(
-                500,
-                700,
-                Bitmap.Config.ARGB_8888,
-            ).apply { eraseColor(Color.RED) }
         private val container =
             object : AppContainer by DefaultAppContainer(compose.activity.application) {
                 override val pdfPreviewHelper = helper
@@ -377,11 +304,7 @@ class PdfHostileSessionDeviceTest {
         init {
             compose.setContent {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                    if (visible.value && control.value) {
-                        Image(controlBitmap.asImageBitmap(), null, Modifier.fillMaxSize().testTag("control_page"))
-                    } else if (visible.value) {
-                        PdfPreviewContent(shown.value, container)
-                    }
+                    if (visible.value) PdfPreviewContent(shown.value, container)
                 }
             }
         }
@@ -461,7 +384,13 @@ class PdfHostileSessionDeviceTest {
         }
     }
 
-    private fun descriptorCount(): Int = File("/proc/self/fd").listFiles().orEmpty().size
+    /** Descriptor targets on any file this test owns: the source and every staged copy. */
+    private fun ownedTargets(): List<String> {
+        val marker = "/${directory.name}/"
+        return File("/proc/self/fd").listFiles().orEmpty().mapNotNull { link ->
+            runCatching { Os.readlink(link.absolutePath) }.getOrNull()?.takeIf { it.contains(marker) }
+        }
+    }
 
     private fun generate(
         boxes: List<Pair<Int, Int>>,
