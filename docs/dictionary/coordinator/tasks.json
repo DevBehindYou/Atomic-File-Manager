@@ -867,7 +867,7 @@
       "title": "Persist crash-recoverable editor drafts",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C003"
@@ -886,10 +886,18 @@
       "validation": "Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.",
       "external_gate": null,
       "branch": "codex/claude-c026-editor-drafts",
-      "pr": null,
-      "evidence": [],
+      "pr": "#121 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head e89d969 on 89140e3 (parallel sub-agent): editor sessions were memory-only (no draft/autosave anywhere); unsaved text was lost on process death and forced release. New TextDraftStore in noBackupFilesDir/editor-drafts: one file per opaque digest of the file id, temp + fsync + atomic rename + read-back checksum, stale temps swept, bounds 2 MiB/draft, 16 drafts, 8 MiB total with oldest-first eviction; debounce 1 s after the last change; Recover/Discard bar locks Edit/Undo/Find/Save until chosen; recovery loads text as one undo step and never writes the source; Save removes the draft. No drafts for hidden nodes, .AtomicHidden, the hide folder or the vault's private_storage. Coordinator reviewed the store's write path.",
+        "Control: disabling only the session's draft use (memory-only behaviour) fails 8/9 new session/compose cases (TextEditorDraftSession 6/7, DraftRecoveryCompose 2/2); a test-only commit was not possible because the API is new.",
+        "Local: 67/67 editor tests (TextDraftStore 12, TextDrafts 2, TextEditorDraftSession 7, DraftRecoveryCompose 2, all existing editor suites); ktlint/detekt/lintDebug pass. Backup: allowBackup=false and noBackupFilesDir excluded; manifest/permissions unchanged. Record: docs/testing/EDITOR_DRAFTS_C026.md; CODE_TEXT_EDITOR.md section."
+      ],
       "remaining": [
-        "Claimed for a parallel sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+        "Hosted CI and Codex review of #121 (merge trial with #115 clean per sub-agent).",
+        "Save refusing to overwrite a source changed since load (EDT-T01, C027): a draft recovered over a changed source is marked, but Save still replaces the file (pre-existing save behaviour).",
+        "Drafts are plaintext at rest (app-private, no-backup); encryption at rest and directory fsync after rename remain.",
+        "Edits inside the 1 s debounce window are lost on process death; drafts for files later hidden/moved stay until evicted; dot-file exclusion policy is a product decision.",
+        "Physical process-kill/device acceptance needs an authorized owned fixture."
       ],
       "last_updated": "2026-11-07"
     },
@@ -1569,16 +1577,17 @@
       "validation": "Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.",
       "external_gate": null,
       "branch": "codex/claude-c047-dependency-provenance",
-      "pr": "#114 (into codex/feature-upgrade-base)",
+      "pr": "#114 slice 1, #122 slice 2 (Guava D1)",
       "evidence": [
         "Slice 1 head 6b14c6c on 89140e3 (parallel sub-agent under Claude Code): docs/testing/DEPENDENCY_PROVENANCE_C047.md records 205 resolved release-runtime modules with POM licences, advisory matching against the OSV Maven bulk export (matcher control: 20 hits on known-vulnerable versions), wrapper integrity, Actions pin table and decisions D1-D5.",
         "Hardening: ci.yml pins gradle/actions/setup-gradle to ed408507 (v4.4.3; 3 uses) and reactivecircus/android-emulator-runner to a421e438 (v2.38.0; 2 uses). Coordinator re-verified with git ls-remote that both are the peeled commits of the current v4/v2 tags, so CI code is identical.",
         "Runtime advisory: Guava 33.3.1-android (via Media3 1.8.0) is in GHSA-xxph-c9ww-hj94 / CVE-2026-102554, affected [4.0, 33.7.2); coordinator re-fetched the OSV record (published 2026-10-27). App has no ObjectInputStream use; recorded as D1, not upgraded in this PR.",
         "Wrapper: distributionSha256Sum and wrapper jar SHA-256 match Gradle's versions API for 9.3.1; setup-gradle validates the wrapper jar. Local ktlintCheck/detekt pass; release tamper-guard tests 12 + 16 OK.",
-        "Hosted on #114 head 6b14c6c: CI run 42338530487 (Static analysis; Unit tests and APK packaging) success."
+        "Hosted on #114 head 6b14c6c: CI run 42338530487 (Static analysis; Unit tests and APK packaging) success.",
+        "Slice 2 #122 head a0e05a1 on 89140e3: one dependency constraint raises transitive Guava 33.3.1-android -> 33.7.2-android (minimum fix for GHSA-xxph-c9ww-hj94 / CVE-2026-102554); resolved release graph 205 -> 205 modules, exactly 3 versions changed (guava, failureaccess 1.0.3, jspecify 1.0.1); R8 assembleRelease passes, APK 15,074,414 B both (0 B delta, dex -240 B); ktlint/detekt/lintDebug pass; 53/53 media host tests; release tamper guards 28 OK. Record: docs/testing/GUAVA_ADVISORY_C047.md."
       ],
       "remaining": [
-        "D1: Guava 33.7.2-android constraint (or Media3 carrying it) as the next one-cluster PR, gated on R8, APK size delta, media checks and tamper guards.",
+        "Hosted CI and Codex review on #122; native audio/video acceptance after #105/#109/#119 merge (no media native workflow on base).",
         "D2: build-classpath-only advisories (incl. Kotlin Gradle Plugin 2.2.10, Bouncy Castle 1.79 in AGP tooling) re-evaluated with the next Kotlin/AGP raise.",
         "D3: owner decision on in-app third-party notices; Shizuku catalog comment says Apache 2.0 but POM/upstream is MIT.",
         "D4: pin the remaining native workflows (gif/audio after #103/#105 merge); node20 action majors one cluster at a time.",

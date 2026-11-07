@@ -107,3 +107,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - Nothing merged during the pause. Integration is still `89140e3`, with no reviews or comments from Codex. Every Claude PR except #119 is green on its current head.
 - C021 #117 is host verified. Final code `098fcc0` passed CI and PDF native 11/11 on API 28 and API 34. The API 34 descriptor growth was platform graphics fences (`anon_inode:sync_file`), and the test now asserts no descriptor on any test-owned file.
 - C012 #119: besides the Lint error, the full hosted unit suite failed 7/1376: six `VideoResumeComposeTest` timeouts that pass in isolation, and one `SettingsStartupLoaderTest`. The sub-agent is investigating shared state, such as the process-wide `VideoResumePreferences.shared` store, and will fix the root cause.
+
+## 2026-11-07T10:30Z UTC — C026 #121 and C047 slice 2 #122 published
+
+- C026 [#121](https://github.com/DevBehindYou/Atomic-File-Manager/pull/121) (sub-agent): crash-recoverable editor drafts in app-private no-backup storage, with Recover/Discard. For Codex: recovering a draft over a changed source marks it as changed, but the existing Save still replaces the file. The revision-aware save refusal is C027/EDT-T01.
+- C047 slice 2 [#122](https://github.com/DevBehindYou/Atomic-File-Manager/pull/122) (coordinator): Guava 33.3.1→33.7.2-android via one constraint. Three resolved versions changed out of 205, and the R8 APK delta is 0 B.
+- C031 is still running (sub-agent). C012 is fixing the hosted Lint and full-suite failures on #119.

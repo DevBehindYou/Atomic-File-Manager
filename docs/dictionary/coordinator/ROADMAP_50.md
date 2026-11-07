@@ -476,7 +476,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C026 — Persist crash-recoverable editor drafts
 
-**P0 · claimed · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C003. Scope: EDT1.
 
@@ -490,7 +490,7 @@ Source areas: `ui/components/TextEditorSession.kt`, `domain/usecase/TextEditing.
 
 **Validation.** Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.
 
-Branch: codex/claude-c026-editor-drafts. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c026-editor-drafts. PR: #121 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C027 — Strengthen revision-aware editor publication
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: codex/claude-c047-dependency-provenance. PR: #114 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: #114 slice 1, #122 slice 2 (Guava D1). Evidence records: 6. Updated: 2026-11-07.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 
