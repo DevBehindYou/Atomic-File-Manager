@@ -100,3 +100,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 ## 2026-11-07T07:30Z UTC — C047 slice 2 (Guava advisory D1) claimed
 
 - Coordinator session, branch `codex/claude-c047-guava-advisory` from `89140e3`, area `area-build-release`. Scope: one dependency-constraint cluster in `gradle/libs.versions.toml` and `app/build.gradle.kts`, which raises transitive Guava from 33.3.1-android to 33.7.2-android, the minimum fixed version for GHSA-xxph-c9ww-hj94 / CVE-2026-102554. It needs before/after resolved graphs, R8 release packaging, the APK size delta, focused media host suites and the release tamper guards. Workflows aren't touched. The C031 sub-agent may also touch the catalog if it adopts a Markdown library; any conflict is line-adjacent only.
+
+## 2026-11-07T09:40Z UTC — Usage-limit pause; C021 host verified; C012 suite failures
+
+- Every Claude session (coordinator and sub-agents) stopped on the account usage limit from roughly 07:40Z to 09:10Z UTC. The worker restarted. No Gradle process was left running, and each worktree's work was intact. Agents were resumed via their saved transcripts: C012, C021 and C026 first, then C031 once C021 finished. That limits load and keeps the usage rate down.
+- Nothing merged during the pause. Integration is still `89140e3`, with no reviews or comments from Codex. Every Claude PR except #119 is green on its current head.
+- C021 #117 is host verified. Final code `098fcc0` passed CI and PDF native 11/11 on API 28 and API 34. The API 34 descriptor growth was platform graphics fences (`anon_inode:sync_file`), and the test now asserts no descriptor on any test-owned file.
+- C012 #119: besides the Lint error, the full hosted unit suite failed 7/1376: six `VideoResumeComposeTest` timeouts that pass in isolation, and one `SettingsStartupLoaderTest`. The sub-agent is investigating shared state, such as the process-wide `VideoResumePreferences.shared` store, and will fix the root cause.

@@ -438,7 +438,7 @@
         "Head 017ddbd on 89140e3 (parallel sub-agent): revision-keyed video resume (source id + modifiedAt + size) in private preferences, SHA-256-hashed keys, versioned bounded values, at most 200 entries (LRU), stale revision cleared on read; writes on pause/play, speed, end, ON_STOP, close and at most every 15 s while playing; start point decided once per player; paused state through the existing autoplay policy; speed is the only restored viewing mode. Coordinator reviewed the diff stat and new workflow.",
         "Failing control: VideoResumeComposeTest fails 2/2 on base (recreation and reopen start at 0); mutation checks (STOP->DESTROY, revision check removed) failed the matching tests.",
         "Local: 79/79 focused tests (VideoResumeCompose 20, VideoResumePreferences 14, VideoResumeSession 9, existing video/player/helper 36); ktlint/detekt pass. Original bytes and lastModified unchanged in every compose case.",
-        "Hosted on #119: new video-resume-native run 42340397852 success on API28 and API34 (decoded WAV journey through VideoPreviewContent). CI run 42340397793 Static analysis FAILED: Android Lint RememberReturnType at VideoPreviewContent.kt:180; sub-agent fixing with a new commit."
+        "Hosted on #119 head 017ddbd: video-resume-native 42340397852 success on API28 and API34. CI 42340397793 FAILED: Static analysis (Lint RememberReturnType at VideoPreviewContent.kt:180) and Unit tests (1376 run, 7 failed: VideoResumeComposeTest x6 ComposeTimeoutException in the full suite, SettingsStartupLoaderTest x1); sub-agent fixing with new commits."
       ],
       "remaining": [
         "Fix the Lint RememberReturnType error on #119 and re-run hosted checks; Codex review.",
@@ -703,7 +703,7 @@
       "title": "Exercise large and hostile native PDF sessions",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "implementing",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -726,11 +726,13 @@
       "evidence": [
         "Head 38f037d on 89140e3 (parallel sub-agent): PDF-B02 password-protected/encrypted PDFs were reported as damaged with a futile Retry; a SecurityException from renderer construction (after staging) now maps to UnsupportedFormat(PDF_PASSWORD_PROTECTED), shown without Retry; generic message now 'damaged or unavailable'. Staging cap, ownership and the C003 createTempFile line unchanged. Coordinator reviewed the diff; merge trial with C003 clean.",
         "Host failing control: PdfHostileSessionTest on unchanged loader 6 run, 1 failed (password vs corrupt). Local: 28/28 PDF host tests pass; ktlint/detekt pass.",
-        "Hosted on #117: CI run 42339191576 success; PDF native run 42339191724 API28 success, API34 FAILED: PdfHostileSessionDeviceTest.repeatedDisposalReleasesEveryNativeDocument 'Descriptor growth 12 across 12 reader lifetimes'. Test-only control run 42338904387 concluded failure (detail pending)."
+        "Native runs (pdf-source-session-native.yml, API28/34): control 42338904387 on test-only 7be3dde: 11 run, 2 failed per API (only the two expected password cases); 42339191724 on 38f037d: API28 11/11, API34 failed repeatedDisposalReleasesEveryNativeDocument (descriptor growth 12/12).",
+        "Diagnostic 42339979995 (temporary commit 56ddf9d, removed): API34 growth was entirely anon_inode:sync_file graphics frame fences (+16 over 12 PDF lifetimes, plateau after ~6; plain Image lifetimes, 24 more PDF lifetimes and GC added none); API28 no growth; no descriptor on the source or private copy survived any lifetime. Test now asserts per lifetime and at teardown that no fd targets a test-owned file (stricter for our files, not a tolerance).",
+        "Final code head 098fcc0: CI 42340638513 success (Unit tests; Static analysis incl. Lint); PDF native 42340638514 11/11 on API28 and 11/11 on API34. PR head 77be825 adds only the evidence record. Records: docs/testing/PDF_HOSTILE_SESSIONS_C021.md; PDF_READER.md section."
       ],
       "remaining": [
-        "Diagnose the API34 descriptor growth (real leak vs platform fd counted by the test) and fix on #117 with new commits; record both native runs.",
-        "Password entry/unlock, text/search/forms (engine decision C023); physical-provider disconnects; real-device memory pressure; device benchmarking owner-deferred."
+        "Codex review and clean trial (trial with C003 #115 clean).",
+        "Password entry/unlock and text/search/forms (engine decision, C023); physical-provider (SAF/USB/network) disconnects; real-device memory pressure; device benchmarking owner-deferred; full PDF1-PDF5 acceptance."
       ],
       "last_updated": "2026-11-07"
     },

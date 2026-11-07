@@ -382,7 +382,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C021 — Exercise large and hostile native PDF sessions
 
-**P0 · implementing · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: PDF1, PDF5.
 
@@ -396,7 +396,7 @@ Source areas: `data/preview/PdfDocumentSession.kt`, `data/preview/PdfPreviewHelp
 
 **Validation.** Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.
 
-Branch: codex/claude-c021-pdf-hostile-sessions. PR: #117 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c021-pdf-hostile-sessions. PR: #117 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C022 — Finish PDF reading modes and position restoration
 
