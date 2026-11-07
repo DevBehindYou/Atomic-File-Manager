@@ -64,7 +64,7 @@ Branch: codex/claude-c003-preview-resource-ownership. PR: none. Evidence records
 
 ### C004 — Bound thumbnail scheduling and cache identity
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U03, IMG6.
 
@@ -78,7 +78,7 @@ Source areas: `ui/components/FileThumbnail.kt`, `data/preview/FolderThumbnailRea
 
 **Validation.** Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c004-thumbnail-bounds. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C005 — Persist analysis freshness and interrupted scan state
 
@@ -382,7 +382,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C021 — Exercise large and hostile native PDF sessions
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: PDF1, PDF5.
 
@@ -396,7 +396,7 @@ Source areas: `data/preview/PdfDocumentSession.kt`, `data/preview/PdfPreviewHelp
 
 **Validation.** Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c021-pdf-hostile-sessions. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C022 — Finish PDF reading modes and position restoration
 
@@ -862,7 +862,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C047 — Audit resolved dependencies and harden build provenance
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: M12, U13.
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 

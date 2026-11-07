@@ -124,7 +124,7 @@
       "title": "Bound thumbnail scheduling and cache identity",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -143,10 +143,12 @@
       "expected_outcome": "Documented bounds with no stale thumbnails after source/revision changes.",
       "validation": "Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c004-thumbnail-bounds",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -665,7 +667,7 @@
       "title": "Exercise large and hostile native PDF sessions",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -683,10 +685,12 @@
       "expected_outcome": "Bounded progressive rendering with clear failures.",
       "validation": "Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c021-pdf-hostile-sessions",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1498,7 +1502,7 @@
       "title": "Audit resolved dependencies and harden build provenance",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001"
       ],
@@ -1517,10 +1521,12 @@
       "expected_outcome": "Traceable dependency decisions and reproducible artifact verification.",
       "validation": "Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c047-dependency-provenance",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
