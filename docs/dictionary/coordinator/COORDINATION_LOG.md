@@ -96,3 +96,7 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C012 [#119](https://github.com/DevBehindYou/Atomic-File-Manager/pull/119) (sub-agent): revision-keyed video resume. The new `video-resume-native.yml` passed on API 28/34 (run `42340397852`). Static analysis failed on Android Lint `RememberReturnType`, and the sub-agent is fixing it with a new commit. The shared agent brief now requires local `:app:lintDebug`.
 - C021 #117: the sub-agent pushed `098fcc0` for the API 34 descriptor finding. Hosted checks are running.
 - C031 `codex/claude-c031-markdown-ast` claimed for a sub-agent. Area `area-editor-markdown`, limited to Markdown parser, blocks and tests. C026's sub-agent holds the editor and draft files in the same area. The two have disjoint files, so this doesn't break the one-implementation-per-area intent; the overlap is recorded here.
+
+## 2026-11-07T07:30Z UTC — C047 slice 2 (Guava advisory D1) claimed
+
+- Coordinator session, branch `codex/claude-c047-guava-advisory` from `89140e3`, area `area-build-release`. Scope: one dependency-constraint cluster in `gradle/libs.versions.toml` and `app/build.gradle.kts`, which raises transitive Guava from 33.3.1-android to 33.7.2-android, the minimum fixed version for GHSA-xxph-c9ww-hj94 / CVE-2026-102554. It needs before/after resolved graphs, R8 release packaging, the APK size delta, focused media host suites and the release tamper guards. Workflows aren't touched. The C031 sub-agent may also touch the catalog if it adopts a Markdown library; any conflict is line-adjacent only.
