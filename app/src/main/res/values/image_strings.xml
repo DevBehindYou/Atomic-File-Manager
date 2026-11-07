@@ -9,4 +9,8 @@
     <string name="image_load_failed">The image could not be loaded. Try again or open it in another app.</string>
     <string name="gif_stop">Stop animation</string>
     <string name="gif_replay">Replay animation</string>
+    <string name="image_view_fit">Fit screen</string>
+    <string name="image_view_width">Fit width</string>
+    <string name="image_view_pixels">1:1 preview pixels</string>
+    <string name="image_view_zoom_limit">Some modes exceed the 6× preview zoom limit. Fit screen remains available.</string>
 </resources>
