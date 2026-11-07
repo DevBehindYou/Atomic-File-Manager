@@ -12,7 +12,7 @@
       "title": "Reconcile the live delta and claim the first slice",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "acceptance_pending",
       "dependencies": [],
       "scope": [
         "U04",
@@ -28,10 +28,19 @@
       "expected_outcome": "A source-identified delta report, accurate ownership and a first implementation plan.",
       "validation": "Record Git HEAD/app tree, clean or explained status, worktrees, active PR heads/check URLs and remaining gates. Codex reviews reconciliation. No whole-plugin credit for this audit.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c001-reconcile-delta",
+      "pr": "#107 (into codex/claude-coordinator-50)",
+      "evidence": [
+        "2026-11-06T20:47Z UTC: integration codex/feature-upgrade-base 89140e3f3d4a746e6a907912042911cb10c8f6a3, app tree 3cb2d6f9554cd59e412960c00489acc0db146b11; main 7782660; matches STATE.json snapshot.",
+        "PR #106 head 982d97a OPEN: Coordinator validation run 42290117364 success; CI run 42290117084 in progress when observed; not integrated.",
+        "PR #103 c80a3ce open draft, 7 ahead/11 behind integration; PR #105 0673896 open draft, 0 behind; PR #63 585e9f2 deferred. Codex-owned, untouched.",
+        "Accepted merges #89/#90/#91/#92/#93/#100/#101/#104 verified as integration ancestors; stale 4 November PENDING entries superseded (pointer added, history kept).",
+        "Delta report: docs/dictionary/coordinator/C001_RECONCILIATION.md. No application, Gradle, ADB or device action."
+      ],
+      "remaining": [
+        "Codex review of the C001 reconciliation PR.",
+        "Integration of coordinator PR #106 into codex/feature-upgrade-base before any C002 application edit."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -41,7 +50,7 @@
       "title": "Close remaining preview IO and cancellation gaps",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -59,10 +68,18 @@
       "expected_outcome": "Preview IO has explicit ownership, bounded work and tested cancellation.",
       "validation": "Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c002-preview-io-cancellation",
+      "pr": "#108 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 5793d04 on base 89140e3: ktlintCheck, detekt and 25 focused host tests pass (Exif 5, revision 3, MetadataText 7, ApkFacts 2, ImageLoadRecovery 3, FileOpeningRecovery 5; 0 failed/skipped) in 1m 54s.",
+        "Failing controls on unchanged logic: EXIF cancellation cleanup removed 1/5 fail; old produceState keys 3/3 fail.",
+        "Record: docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md; IMAGE_VIEWER.md section.",
+        "Hosted on #108 head 5793d04: CI run 42296477121 (Static analysis; Unit tests and APK packaging) success; DOCX preview native run 42296477126 success on API28 and API34. mergeStateStatus CLEAN."
+      ],
+      "remaining": [
+        "Codex review, integration of #106/#107, clean current-target trial.",
+        "MediaPreviewHelper blocking retriever: no defect reproduced; CompareSheet/DeleteSheet unkeyed produceState recorded for later."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -72,7 +89,7 @@
       "title": "Clarify preview resource ownership without a framework migration",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -91,10 +108,21 @@
       "expected_outcome": "Fewer ambiguous owners with unchanged opening behavior.",
       "validation": "Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c003-preview-resource-ownership",
+      "pr": "#115 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 7336833 on base 89140e3: new data/preview/ScratchCopies owns media-preview-/atomic-pdf-/atomic-7z- copies; the three creators route through it; DefaultAppContainer.init starts recoverOnce(cacheDir) on IO. A shared lock with creation means a live copy is never swept.",
+        "Failing control: ScratchCopyRecoveryTest (real MediaPreviewHelper/PdfDocumentLoader/TempFileSpool, fresh cache seeded with 4 orphans + 8 unrelated entries) fails 6/6 on base (orphan assertion); test-only commit 912b74b.",
+        "Local Robolectric (SDK 36, Gradle serialized): 55/55 pass (ScratchCopyRecovery 6, ScratchCopies 6, MediaPreviewOwnership 12, PdfDocumentLoader 11, ArchiveFormats 9, RemoteOpenPreparationCompose 7, ExternalPreviewHelper 4); ktlintCheck and detekt pass.",
+        "Record: docs/testing/PREVIEW_SCRATCH_OWNERSHIP_C003.md; VIDEO_PLAYER.md and ARCHIVE_MANAGER.md sections.",
+        "Hosted on #115 head 7336833: CI run 42338770980 (Static analysis; Unit tests and APK packaging) success; PDF source-session native run 42338770979 success on API28 and API34 (exercises the PdfReaderDeviceTest change)."
+      ],
+      "remaining": [
+        "Codex review, clean trial; dependency C002 (#108) unmerged (no shared file).",
+        "external-preview/ startup prune needs Codex view on asynchronous external readers.",
+        "Second seam: BuiltInFilePreviewPane holds an ExternalPreparationRequest production never starts (FilePreviewPane always routes external opening); needs Codex confirmation of the test-only fallback's role.",
+        "PDF_READER.md pointer after C021 lands; no device process-death run."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -104,7 +132,7 @@
       "title": "Bound thumbnail scheduling and cache identity",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -123,10 +151,20 @@
       "expected_outcome": "Documented bounds with no stale thumbnails after source/revision changes.",
       "validation": "Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c004-thumbnail-bounds",
+      "pr": "#116 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 800a5b5 on 89140e3 (parallel sub-agent): FolderThumbnailReader peeks now take one of 2 process-wide Semaphore permits after a pure eligibility check; a row cancelled while queued never opens a directory. Per-peek bounds (64 examined, 4 previews, 128 ancestors) unchanged. Coordinator reviewed the diff.",
+        "Failing control: base plus only the constant MAX_CONCURRENT_PEEKS: 30 run, 1 failed ('A peek beyond the bound started'); video-thumbnail and cache-key coverage passed on base (no defect there).",
+        "Local: 40/40 pass three times (FolderThumbnailReader, ProviderVideoThumbnailReader, ThumbnailSource, FileThumbnailCompose, FileThumbnail); ktlint/detekt pass. Fixture counts: folder 12 requests, max 2 concurrent, 8 opened, 4 cancelled-while-queued opened nothing; video 8 requests, max 2, 5 loaded; real Coil loader 12 requests, 9 fetches, 9 distinct keys, 3 memory hits, no stale hit after replacement.",
+        "Hosted on #116: CI run 42339001426 success. Record: docs/testing/THUMBNAIL_BOUNDS_C004.md; FILE_THUMBNAILS_VALIDATION.md section."
+      ],
+      "remaining": [
+        "Codex review and clean trial.",
+        "Folder miniature can stay stale when a child is rewritten in place without changing the folder's modified time/size while the row stays visible (code reading, not reproduced): needs a refresh generation or child revalidation.",
+        "Cache identity depends on provider-reported modifiedAt/size (SAF/MediaStore that report unchanged values for replaced content cannot be detected).",
+        "No explicit visible-first queue beyond first-come order plus cancellation; image fetches bounded only by Coil's 4 decodes. Device latency/jank measurements owner-deferred."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -136,7 +174,7 @@
       "title": "Persist analysis freshness and interrupted scan state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -154,10 +192,20 @@
       "expected_outcome": "Recoverable scan state and honestly marked cached/partial/denied results.",
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c005-analysis-freshness",
+      "pr": "#118 slice 1, #120 slice 2 (stacked on #118)",
+      "evidence": [
+        "Slice 1 head 8f0c1e9 on 89140e3: StorageUsageRepository.lastResult(volumes) returns lastGood/previousObserved/interrupted for the exact same volumes/mounts/grants with no plan, list or IO; rememberStorageUsageAnalysis seeds an IDLE state from it (entry still requires an explicit action). Codex's root-change test unchanged.",
+        "Failing control: StorageUsageReentryComposeTest fails 2/3 on base (no previous breakdown on re-entry; mid-scan exit indistinguishable from no scan); access-change guard passes on base. Test-only commit 8108bc6.",
+        "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md.",
+        "Hosted on #118 head 8f0c1e9: CI run 42339778799 success.",
+        "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md."
+      ],
+      "remaining": [
+        "Codex review of #118, then #120 (retargets to base after #118 merges); hosted CI on #120.",
+        "Search index retryRequired after an interrupted rebuild is in-memory only; needs a durable generation/checkpoint after Codex reconciles legacy #47 (SearchIndexDao).",
+        "Revoked-root/delete/rename staleness shown as 'previous ... may be stale' until the user refreshes (no automatic revalidation by design). No device process-kill run."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -197,7 +245,7 @@
       "title": "Expand malformed and long-animation GIF resource coverage",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -215,10 +263,18 @@
       "expected_outcome": "Actionable bounded failures and no retained decoder after close/replacement.",
       "validation": "Native API28/34 fixtures, repeated close/reopen and original/sentinel hashes. Record peak allocations where available. Preserve historical JNI failures and do not substitute static first-frame rendering for animation.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c007-gif-hostile-inputs",
+      "pr": "#112 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head ce199cc on 89140e3: test-only GifHostileInputTest through real ImageDecoder (Robolectric native, API28/34): huge canvas -> FileTooLarge, wide canvas scaled <=2048, four truncations -> UnsupportedFormat(GIF), oversized frame descriptor within caps, input closed exactly once. 10 new + 14 existing GIF tests pass; ktlint/detekt pass. No defect found.",
+        "Record: docs/testing/GIF_HOSTILE_INPUTS_C007.md.",
+        "Hosted on #112 head ce199cc: CI run 42302141482 (Static analysis; Unit tests and APK packaging) success; mergeable CLEAN at 2026-11-07 cloud resume. No GIF native run was path-triggered (test-only host change)."
+      ],
+      "remaining": [
+        "Native long-animation/replacement/decoder-release fixtures wait for Codex PR #103 (owns gif-playback-native.yml and GifPlaybackDeviceTest).",
+        "IMAGE_VIEWER.md update deferred to one docs pass after #103/#108 merge.",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -322,7 +378,7 @@
       "title": "Verify actual player interruptions and noisy-output policy",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -338,10 +394,18 @@
       "expected_outcome": "Playback obeys focus and source lifetime consistently.",
       "validation": "Native pause/resume/close/source-switch tests with actual Media3. Calls/Bluetooth require available authorized hardware; record those separately. Keep player releases and sentinel integrity asserted.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c011-native-focus-interruptions",
+      "pr": "#109 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head fb11f2e on 89140e3: test-only PreviewAudioFocusDeviceTest (permanent loss, transient suppression/resume, ducking at unchanged volume, source integrity) + workflow preview-audio-focus-native.yml. Local compileDebugAndroidTestKotlin/ktlint/detekt success.",
+        "Record: docs/testing/PREVIEW_AUDIO_FOCUS_NATIVE_C011.md; VIDEO_PLAYER.md section.",
+        "Hosted on #109 head fb11f2e: CI run 42297378751 success; native run 42297379230 success on API28 and API34 emulators (permanent loss, transient suppression/resume, ducking)."
+      ],
+      "remaining": [
+        "Becoming-noisy native acceptance blocked: ACTION_AUDIO_BECOMING_NOISY is a protected broadcast; needs physical headset/Bluetooth route loss (hardware). Host coverage exists.",
+        "Calls and API35+ focus rules not covered.",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -351,7 +415,7 @@
       "title": "Persist revision-aware video resume and display state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C011"
@@ -368,10 +432,20 @@
       "expected_outcome": "Reliable resume without jumping into a replacement file.",
       "validation": "Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c012-video-resume",
+      "pr": "#119 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 017ddbd on 89140e3 (parallel sub-agent): revision-keyed video resume (source id + modifiedAt + size) in private preferences, SHA-256-hashed keys, versioned bounded values, at most 200 entries (LRU), stale revision cleared on read; writes on pause/play, speed, end, ON_STOP, close and at most every 15 s while playing; start point decided once per player; paused state through the existing autoplay policy; speed is the only restored viewing mode. Coordinator reviewed the diff stat and new workflow.",
+        "Failing control: VideoResumeComposeTest fails 2/2 on base (recreation and reopen start at 0); mutation checks (STOP->DESTROY, revision check removed) failed the matching tests.",
+        "Local: 79/79 focused tests (VideoResumeCompose 20, VideoResumePreferences 14, VideoResumeSession 9, existing video/player/helper 36); ktlint/detekt pass. Original bytes and lastModified unchanged in every compose case.",
+        "Hosted on #119 head 017ddbd: video-resume-native 42340397852 success on API28 and API34. CI 42340397793 FAILED: Static analysis (Lint RememberReturnType at VideoPreviewContent.kt:180) and Unit tests (1376 run, 7 failed: VideoResumeComposeTest x6 ComposeTimeoutException in the full suite, SettingsStartupLoaderTest x1); sub-agent fixing with new commits."
+      ],
+      "remaining": [
+        "Fix the Lint RememberReturnType error on #119 and re-run hosted checks; Codex review.",
+        "Move VideoResumePreferences into AppContainer (currently VideoResumePreferences.shared(context) default) once AtomicApp.kt is free.",
+        "Rotation still closes the preview dialog (nodeForPreview/preview are plain remember in Browse/Category/Search/Home); video resumes on reopen.",
+        "Real video-codec fixtures, aspect/resize, subtitles/tracks and PiP remain VID-T02/T04. Trial merges with #109/#115 conflict only in VIDEO_PLAYER.md appends (keep both)."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -629,7 +703,7 @@
       "title": "Exercise large and hostile native PDF sessions",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -647,10 +721,19 @@
       "expected_outcome": "Bounded progressive rendering with clear failures.",
       "validation": "Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c021-pdf-hostile-sessions",
+      "pr": "#117 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 38f037d on 89140e3 (parallel sub-agent): PDF-B02 password-protected/encrypted PDFs were reported as damaged with a futile Retry; a SecurityException from renderer construction (after staging) now maps to UnsupportedFormat(PDF_PASSWORD_PROTECTED), shown without Retry; generic message now 'damaged or unavailable'. Staging cap, ownership and the C003 createTempFile line unchanged. Coordinator reviewed the diff; merge trial with C003 clean.",
+        "Host failing control: PdfHostileSessionTest on unchanged loader 6 run, 1 failed (password vs corrupt). Local: 28/28 PDF host tests pass; ktlint/detekt pass.",
+        "Native runs (pdf-source-session-native.yml, API28/34): control 42338904387 on test-only 7be3dde: 11 run, 2 failed per API (only the two expected password cases); 42339191724 on 38f037d: API28 11/11, API34 failed repeatedDisposalReleasesEveryNativeDocument (descriptor growth 12/12).",
+        "Diagnostic 42339979995 (temporary commit 56ddf9d, removed): API34 growth was entirely anon_inode:sync_file graphics frame fences (+16 over 12 PDF lifetimes, plateau after ~6; plain Image lifetimes, 24 more PDF lifetimes and GC added none); API28 no growth; no descriptor on the source or private copy survived any lifetime. Test now asserts per lifetime and at teardown that no fd targets a test-owned file (stricter for our files, not a tolerance).",
+        "Final code head 098fcc0: CI 42340638513 success (Unit tests; Static analysis incl. Lint); PDF native 42340638514 11/11 on API28 and 11/11 on API34. PR head 77be825 adds only the evidence record. Records: docs/testing/PDF_HOSTILE_SESSIONS_C021.md; PDF_READER.md section."
+      ],
+      "remaining": [
+        "Codex review and clean trial (trial with C003 #115 clean).",
+        "Password entry/unlock and text/search/forms (engine decision, C023); physical-provider (SAF/USB/network) disconnects; real-device memory pressure; device benchmarking owner-deferred; full PDF1-PDF5 acceptance."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -690,7 +773,7 @@
       "title": "Refresh the PDF engine feasibility decision",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C021"
@@ -708,10 +791,12 @@
       "expected_outcome": "A dated ADR with supported capabilities, costs and adoption or deferral rationale.",
       "validation": "Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c023-pdf-engine-decision",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed by the coordinating session: dated ADR refresh from official sources first; any prototype stays isolated and is not wired into the app."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -784,7 +869,7 @@
       "title": "Persist crash-recoverable editor drafts",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C003"
@@ -802,10 +887,20 @@
       "expected_outcome": "Durable, revision-aware draft recovery.",
       "validation": "Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c026-editor-drafts",
+      "pr": "#121 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head e89d969 on 89140e3 (parallel sub-agent): editor sessions were memory-only (no draft/autosave anywhere); unsaved text was lost on process death and forced release. New TextDraftStore in noBackupFilesDir/editor-drafts: one file per opaque digest of the file id, temp + fsync + atomic rename + read-back checksum, stale temps swept, bounds 2 MiB/draft, 16 drafts, 8 MiB total with oldest-first eviction; debounce 1 s after the last change; Recover/Discard bar locks Edit/Undo/Find/Save until chosen; recovery loads text as one undo step and never writes the source; Save removes the draft. No drafts for hidden nodes, .AtomicHidden, the hide folder or the vault's private_storage. Coordinator reviewed the store's write path.",
+        "Control: disabling only the session's draft use (memory-only behaviour) fails 8/9 new session/compose cases (TextEditorDraftSession 6/7, DraftRecoveryCompose 2/2); a test-only commit was not possible because the API is new.",
+        "Local: 67/67 editor tests (TextDraftStore 12, TextDrafts 2, TextEditorDraftSession 7, DraftRecoveryCompose 2, all existing editor suites); ktlint/detekt/lintDebug pass. Backup: allowBackup=false and noBackupFilesDir excluded; manifest/permissions unchanged. Record: docs/testing/EDITOR_DRAFTS_C026.md; CODE_TEXT_EDITOR.md section."
+      ],
+      "remaining": [
+        "Hosted CI and Codex review of #121 (merge trial with #115 clean per sub-agent).",
+        "Save refusing to overwrite a source changed since load (EDT-T01, C027): a draft recovered over a changed source is marked, but Save still replaces the file (pre-existing save behaviour).",
+        "Drafts are plaintext at rest (app-private, no-backup); encryption at rest and directory fsync after rename remain.",
+        "Edits inside the 1 s debounce window are lost on process death; drafts for files later hidden/moved stay until evicted; dot-file exclusion policy is a product decision.",
+        "Physical process-kill/device acceptance needs an authorized owned fixture."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -815,7 +910,7 @@
       "title": "Strengthen revision-aware editor publication",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C026"
@@ -835,10 +930,12 @@
       "expected_outcome": "Actionable conflicts and safe retry/recovery across supported providers.",
       "validation": "Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c027-editor-publication",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent; stacked on C026 #121 (PR base codex/claude-c026-editor-drafts) because it extends the same session code. Failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -943,7 +1040,7 @@
       "title": "Adopt a bounded maintained Markdown AST path",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -960,10 +1057,12 @@
       "expected_outcome": "A precise supported-syntax matrix with no silent claim of full conformance.",
       "validation": "Conformance corpus and bounded nested/large input cases, malformed syntax, raw disclosure and cancellation. Keep unsupported footnotes/extensions explicit and preserve native rendering security.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c031-markdown-ast",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent under Claude Code ownership; evaluation first, failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1099,7 +1198,7 @@
       "title": "Make TXT/CSV/RTF/DOCX fidelity and fallback precise",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -1116,10 +1215,18 @@
       "expected_outcome": "A verified format/fidelity table and useful user-facing limits.",
       "validation": "Real routing/selection/search fixtures and malformed/unsupported handling, no private uploads. A text extract must never be labeled faithful Office pagination.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c036-document-fidelity-precision",
+      "pr": "#111 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 8e3e1cd on 89140e3: OLE/non-ZIP/over-limit DOCX classified with specific messages and no futile Retry; RTF (all MIME types) routes to Generic. 39 focused host tests pass; ktlint/detekt pass.",
+        "Control: base PreviewType routing fails the RTF test 1/5. Base mapped OLE/plain/empty/limit inputs to IoFailure with Retry.",
+        "Record: docs/testing/DOCUMENT_FIDELITY_PRECISION_C036.md (fidelity matrix); DOCUMENT_READER.md section.",
+        "Hosted on #111 head 8e3e1cd: CI run 42301288179 (Static analysis; Unit tests and APK packaging) success; DOCX preview native run 42301288169 success on API28 and API34; mergeable CLEAN at 2026-11-07 cloud resume."
+      ],
+      "remaining": [
+        "No RTF/CSV-table/.doc/encrypted Office reading (C040 engine evaluation).",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1256,7 +1363,7 @@
       "title": "Verify actual archive formats and encrypted variants",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -1273,10 +1380,20 @@
       "expected_outcome": "Fixture-backed read/browse/extract/create capability table.",
       "validation": "Valid, truncated, wrong-password, missing-volume and unsupported-method fixtures. Compare extracted bytes, preserve originals, record licences/hashes and actionable unsupported errors.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c041-rar5-honest-errors",
+      "pr": "#110 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head de3caa0 on 89140e3: RAR5 signature detection -> UnsupportedFormat(RAR5 archive); RarStream CRC32 verification. 43 archive host tests pass (0 failed/skipped); ktlint/detekt pass.",
+        "Reproductions: CRC-flipped stored RAR4 extracted as Success before the checksum fix; disabling RAR5 detection fails 3/3 real RAR 7.23 fixtures.",
+        "Record: docs/testing/ARCHIVE_RAR_VARIANTS_C041.md; ARCHIVE_MANAGER.md section.",
+        "Hosted on #110 head de3caa0: CI run 42298802654 success; archive inspection native 42298802470 and DOCX native 42298802590 success on API28/API34."
+      ],
+      "remaining": [
+        "RAR5 reading needs engine decision (ARC-T03).",
+        "Compressed/multi-volume RAR4 fixtures need an older tool or owner sample.",
+        "Encrypted 7z maps to damaged; no local 7-Zip to make a fixture (tool blocker).",
+        "Codex review and merge gates."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1444,7 +1561,7 @@
       "title": "Audit resolved dependencies and harden build provenance",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "host_verified",
       "dependencies": [
         "C001"
       ],
@@ -1463,10 +1580,24 @@
       "expected_outcome": "Traceable dependency decisions and reproducible artifact verification.",
       "validation": "Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [],
+      "branch": "codex/claude-c047-dependency-provenance",
+      "pr": "#114 slice 1, #122 slice 2 (Guava D1)",
+      "evidence": [
+        "Slice 1 head 6b14c6c on 89140e3 (parallel sub-agent under Claude Code): docs/testing/DEPENDENCY_PROVENANCE_C047.md records 205 resolved release-runtime modules with POM licences, advisory matching against the OSV Maven bulk export (matcher control: 20 hits on known-vulnerable versions), wrapper integrity, Actions pin table and decisions D1-D5.",
+        "Hardening: ci.yml pins gradle/actions/setup-gradle to ed408507 (v4.4.3; 3 uses) and reactivecircus/android-emulator-runner to a421e438 (v2.38.0; 2 uses). Coordinator re-verified with git ls-remote that both are the peeled commits of the current v4/v2 tags, so CI code is identical.",
+        "Runtime advisory: Guava 33.3.1-android (via Media3 1.8.0) is in GHSA-xxph-c9ww-hj94 / CVE-2026-102554, affected [4.0, 33.7.2); coordinator re-fetched the OSV record (published 2026-10-27). App has no ObjectInputStream use; recorded as D1, not upgraded in this PR.",
+        "Wrapper: distributionSha256Sum and wrapper jar SHA-256 match Gradle's versions API for 9.3.1; setup-gradle validates the wrapper jar. Local ktlintCheck/detekt pass; release tamper-guard tests 12 + 16 OK.",
+        "Hosted on #114 head 6b14c6c: CI run 42338530487 (Static analysis; Unit tests and APK packaging) success.",
+        "Slice 2 #122 head a0e05a1 on 89140e3: one dependency constraint raises transitive Guava 33.3.1-android -> 33.7.2-android (minimum fix for GHSA-xxph-c9ww-hj94 / CVE-2026-102554); resolved release graph 205 -> 205 modules, exactly 3 versions changed (guava, failureaccess 1.0.3, jspecify 1.0.1); R8 assembleRelease passes, APK 15,074,414 B both (0 B delta, dex -240 B); ktlint/detekt/lintDebug pass; 53/53 media host tests; release tamper guards 28 OK. Record: docs/testing/GUAVA_ADVISORY_C047.md."
+      ],
+      "remaining": [
+        "Hosted CI and Codex review on #122; native audio/video acceptance after #105/#109/#119 merge (no media native workflow on base).",
+        "D2: build-classpath-only advisories (incl. Kotlin Gradle Plugin 2.2.10, Bouncy Castle 1.79 in AGP tooling) re-evaluated with the next Kotlin/AGP raise.",
+        "D3: owner decision on in-app third-party notices; Shizuku catalog comment says Apache 2.0 but POM/upstream is MIT.",
+        "D4: pin the remaining native workflows (gif/audio after #103/#105 merge); node20 action majors one cluster at a time.",
+        "D5: Gradle dependency verification metadata/locking/SBOM needs a decision. Old PR #49 duplicates the wrapper checksum already on base (Codex reconciliation).",
+        "Official GitHub docs/blog and api.osv.dev were unreachable from the cloud session; the pinning rationale rests on ls-remote evidence."
+      ],
       "last_updated": "2026-11-07"
     },
     {

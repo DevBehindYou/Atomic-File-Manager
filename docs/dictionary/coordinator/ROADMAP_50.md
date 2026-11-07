@@ -10,7 +10,7 @@ Default order is C001–C050. Choose the lowest eligible ID; log a blocked depen
 
 ### C001 — Reconcile the live delta and claim the first slice
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · acceptance_pending · Owner: Claude Code · Review: Codex**
 
 Dependencies: None. Scope: U04, U06, N42.
 
@@ -24,11 +24,11 @@ Source areas: `docs/dictionary/coordinator`, `docs/ai-handover`.
 
 **Validation.** Record Git HEAD/app tree, clean or explained status, worktrees, active PR heads/check URLs and remaining gates. Codex reviews reconciliation. No whole-plugin credit for this audit.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c001-reconcile-delta. PR: #107 (into codex/claude-coordinator-50). Evidence records: 5. Updated: 2026-11-07.
 
 ### C002 — Close remaining preview IO and cancellation gaps
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: U06, U09.
 
@@ -42,11 +42,11 @@ Source areas: `data/preview`, `domain/usecase`, `ui/components/preview`.
 
 **Validation.** Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U06, N42.
 
@@ -60,11 +60,11 @@ Source areas: `AtomicApp.kt`, `ui/components/BuiltInFilePreviewPane.kt`, `data/p
 
 **Validation.** Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c003-preview-resource-ownership. PR: #115 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C004 — Bound thumbnail scheduling and cache identity
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U03, IMG6.
 
@@ -78,11 +78,11 @@ Source areas: `ui/components/FileThumbnail.kt`, `data/preview/FolderThumbnailRea
 
 **Validation.** Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c004-thumbnail-bounds. PR: #116 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C005 — Persist analysis freshness and interrupted scan state
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U05.
 
@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 5. Updated: 2026-11-07.
 
 ## B — Image
 
@@ -122,7 +122,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C007 — Expand malformed and long-animation GIF resource coverage
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: IMG2, IMG6.
 
@@ -136,7 +136,7 @@ Source areas: `data/preview/GifPreviewDecoder.kt`, `GIF native fixtures`.
 
 **Validation.** Native API28/34 fixtures, repeated close/reopen and original/sentinel hashes. Record peak allocations where available. Preserve historical JNI failures and do not substitute static first-frame rendering for animation.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c007-gif-hostile-inputs. PR: #112 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C008 — Evaluate high-resolution and additional-image decoding
 
@@ -196,7 +196,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C011 — Verify actual player interruptions and noisy-output policy
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: VID1.
 
@@ -210,11 +210,11 @@ Source areas: `ui/components/preview/PreviewPlayer.kt`, `Video native tests`.
 
 **Validation.** Native pause/resume/close/source-switch tests with actual Media3. Calls/Bluetooth require available authorized hardware; record those separately. Keep player releases and sentinel integrity asserted.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c011-native-focus-interruptions. PR: #109 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C012 — Persist revision-aware video resume and display state
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · implementing · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C011. Scope: VID3.
 
@@ -228,7 +228,7 @@ Source areas: `ui/components/preview/VideoPreviewContent.kt`, `data/repository`.
 
 **Validation.** Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C013 — Complete accessible transport and fullscreen controls
 
@@ -382,7 +382,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C021 — Exercise large and hostile native PDF sessions
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: PDF1, PDF5.
 
@@ -396,7 +396,7 @@ Source areas: `data/preview/PdfDocumentSession.kt`, `data/preview/PdfPreviewHelp
 
 **Validation.** Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c021-pdf-hostile-sessions. PR: #117 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C022 — Finish PDF reading modes and position restoration
 
@@ -418,7 +418,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C023 — Refresh the PDF engine feasibility decision
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C021. Scope: PDF3, PDF4.
 
@@ -432,7 +432,7 @@ Source areas: `docs/plugins/modernization/PDF_ENGINE_EVALUATION.md`, `gradle/lib
 
 **Validation.** Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c023-pdf-engine-decision. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C024 — Add supported PDF search and safe link/password flows
 
@@ -476,7 +476,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C026 — Persist crash-recoverable editor drafts
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C003. Scope: EDT1.
 
@@ -490,11 +490,11 @@ Source areas: `ui/components/TextEditorSession.kt`, `domain/usecase/TextEditing.
 
 **Validation.** Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c026-editor-drafts. PR: #121 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C027 — Strengthen revision-aware editor publication
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C026. Scope: EDT1, EDT6, U13.
 
@@ -508,7 +508,7 @@ Source areas: `domain/usecase/TextEditing.kt`, `data/backend`, `editor UI`.
 
 **Validation.** Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c027-editor-publication. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C028 — Add a bounded large-text read-only path
 
@@ -568,7 +568,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C031 — Adopt a bounded maintained Markdown AST path
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: MD1.
 
@@ -582,7 +582,7 @@ Source areas: `ui/components/preview/MarkdownBlocks.kt`, `Markdown parser adapte
 
 **Validation.** Conformance corpus and bounded nested/large input cases, malformed syntax, raw disclosure and cancellation. Keep unsupported footnotes/extensions explicit and preserve native rendering security.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c031-markdown-ast. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C032 — Resolve relative assets and links safely
 
@@ -660,7 +660,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C036 — Make TXT/CSV/RTF/DOCX fidelity and fallback precise
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: DOC1.
 
@@ -674,7 +674,7 @@ Source areas: `document routing`, `docs/plugins/DOCUMENT_READER.md`, `document f
 
 **Validation.** Real routing/selection/search fixtures and malformed/unsupported handling, no private uploads. A text extract must never be labeled faithful Office pagination.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c036-document-fidelity-precision. PR: #111 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C037 — Render structured DOCX paragraphs and tables
 
@@ -752,7 +752,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C041 — Verify actual archive formats and encrypted variants
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: ARC1, ARC4.
 
@@ -766,7 +766,7 @@ Source areas: `domain/usecase/ArchiveFormats.kt`, `archive fixtures`.
 
 **Validation.** Valid, truncated, wrong-password, missing-volume and unsupported-method fixtures. Compare extracted bytes, preserve originals, record licences/hashes and actionable unsupported errors.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c041-rar5-honest-errors. PR: #110 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C042 — Extend archive security and work-budget defenses
 
@@ -862,7 +862,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C047 — Audit resolved dependencies and harden build provenance
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001. Scope: M12, U13.
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: #114 slice 1, #122 slice 2 (Guava D1). Evidence records: 6. Updated: 2026-11-07.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 
