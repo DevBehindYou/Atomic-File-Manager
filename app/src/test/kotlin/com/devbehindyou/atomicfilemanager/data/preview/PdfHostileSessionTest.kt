@@ -255,7 +255,7 @@ class PdfHostileSessionTest {
             inFlight++
             peakInFlight = maxOf(peakInFlight, inFlight)
             try {
-                if (index in broken) throw IllegalStateException("malformed page")
+                check(index !in broken) { "malformed page" }
                 if (staged != null) assertArrayEquals(expected, staged.readBytes())
                 val (width, height) = boxes[index % boxes.size]
                 val size = sizeFor(width, height)
