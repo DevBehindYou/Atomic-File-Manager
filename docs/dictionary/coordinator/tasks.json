@@ -773,7 +773,7 @@
       "title": "Refresh the PDF engine feasibility decision",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C021"
@@ -791,10 +791,12 @@
       "expected_outcome": "A dated ADR with supported capabilities, costs and adoption or deferral rationale.",
       "validation": "Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c023-pdf-engine-decision",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed by the coordinating session: dated ADR refresh from official sources first; any prototype stays isolated and is not wired into the app."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -908,7 +910,7 @@
       "title": "Strengthen revision-aware editor publication",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C026"
@@ -928,10 +930,12 @@
       "expected_outcome": "Actionable conflicts and safe retry/recovery across supported providers.",
       "validation": "Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c027-editor-publication",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent; stacked on C026 #121 (PR base codex/claude-c026-editor-drafts) because it extends the same session code. Failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {

@@ -418,7 +418,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C023 — Refresh the PDF engine feasibility decision
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C021. Scope: PDF3, PDF4.
 
@@ -432,7 +432,7 @@ Source areas: `docs/plugins/modernization/PDF_ENGINE_EVALUATION.md`, `gradle/lib
 
 **Validation.** Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c023-pdf-engine-decision. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C024 — Add supported PDF search and safe link/password flows
 
@@ -494,7 +494,7 @@ Branch: codex/claude-c026-editor-drafts. PR: #121 (into codex/feature-upgrade-ba
 
 ### C027 — Strengthen revision-aware editor publication
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C026. Scope: EDT1, EDT6, U13.
 
@@ -508,7 +508,7 @@ Source areas: `domain/usecase/TextEditing.kt`, `data/backend`, `editor UI`.
 
 **Validation.** Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c027-editor-publication. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C028 — Add a bounded large-text read-only path
 

@@ -113,3 +113,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C026 [#121](https://github.com/DevBehindYou/Atomic-File-Manager/pull/121) (sub-agent): crash-recoverable editor drafts in app-private no-backup storage, with Recover/Discard. For Codex: recovering a draft over a changed source marks it as changed, but the existing Save still replaces the file. The revision-aware save refusal is C027/EDT-T01.
 - C047 slice 2 [#122](https://github.com/DevBehindYou/Atomic-File-Manager/pull/122) (coordinator): Guava 33.3.1→33.7.2-android via one constraint. Three resolved versions changed out of 205, and the R8 APK delta is 0 B.
 - C031 is still running (sub-agent). C012 is fixing the hosted Lint and full-suite failures on #119.
+
+## 2026-11-07T10:40Z UTC — Claude claims C027 (sub-agent, stacked on #121) and C023
+
+- C027 `codex/claude-c027-editor-publication` (`area-editor-markdown`, plus `data/backend` save preconditions): stacked on C026 #121, with its PR base set to `codex/claude-c026-editor-drafts`. Saves must refuse to replace a source that changed after load, which closes the gap #121 exposes. C031's Markdown files are disjoint from it.
+- C023 `codex/claude-c023-pdf-engine-decision` (coordinator, `area-pdf` docs only): a dated refresh of `PDF_ENGINE_EVALUATION.md` from official sources. The catalog isn't edited unless an isolated prototype is justified. C021 #117 holds the PDF code files and isn't touched.
+- At most two sub-agents run at a time from now on, to stay inside the account's usage limit.
