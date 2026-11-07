@@ -56,10 +56,9 @@ class PdfReaderDeviceTest {
                         }
                     }
                 assertTrue(result is FileResult.Success)
-                assertEquals(
-                    before,
-                    context.cacheDir.listFiles().orEmpty().filter { it.name.startsWith("atomic-pdf-") }.toSet(),
-                )
+                // Startup may remove an earlier process's orphans meanwhile; this session must leave no copy.
+                val after = context.cacheDir.listFiles().orEmpty().filter { it.name.startsWith("atomic-pdf-") }.toSet()
+                assertTrue("PDF session left ${after - before}", (after - before).isEmpty())
             } finally {
                 source.delete()
             }

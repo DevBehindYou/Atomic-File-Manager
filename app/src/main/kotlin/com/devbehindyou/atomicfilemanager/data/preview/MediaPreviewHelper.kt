@@ -226,7 +226,7 @@ class MediaPreviewHelper(
             fileName.substringAfterLast('.', "tmp").takeIf {
                 it.length <= 12 && it.all(Char::isLetterOrDigit)
             } ?: "tmp"
-        val cacheFile = File.createTempFile("media-preview-", ".$extension", context.cacheDir)
+        val cacheFile = ScratchCopies.create(context.cacheDir, ScratchCopies.MEDIA_PREFIX, ".$extension")
         var completed = false
         return try {
             val inRes = backendSelector(id).openInput(id)
