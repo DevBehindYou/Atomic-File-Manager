@@ -83,7 +83,8 @@ internal fun rememberStorageUsageAnalysis(
     val owner = LocalLifecycleOwner.current
     val scopeKey = volumes.map { "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}" }.sorted()
     var update by remember(repository, scopeKey, analysisKey) {
-        mutableStateOf(StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
+        // Re-entry shows what this process already knows for this storage; it never starts work by itself.
+        mutableStateOf(repository.lastResult(volumes) ?: StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
     }
     var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
     // Keep an old session's cancellation callback tied to its own owner after a root change.
@@ -133,7 +134,8 @@ internal fun StorageUsagePanel(
     val previous =
         update.lastGood.takeIf { update.phase != StorageUsagePhase.COMPLETE }
             ?: update.previousObserved.takeIf {
-                update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED
+                update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED ||
+                    (current == null && update.phase == StorageUsagePhase.IDLE)
             }
     val files = previous ?: current
     val capacity = current?.capacity ?: previous?.capacity
@@ -302,7 +304,12 @@ private fun UsageCategoryRow(
 internal fun usageStatus(update: StorageUsageUpdate): String {
     val current = update.current
     return when (update.phase) {
-        StorageUsagePhase.IDLE -> "Analyze file types when you need a breakdown."
+        StorageUsagePhase.IDLE ->
+            if (update.interrupted) {
+                "The last file type scan stopped before it finished. Analyze file types again when ready."
+            } else {
+                "Analyze file types when you need a breakdown."
+            }
         StorageUsagePhase.SCANNING -> "Scanning files · ${current?.scannedFiles ?: 0} files found."
         StorageUsagePhase.COMPLETE ->
             "Readable-folder scan complete. System and private app data are outside this breakdown."
