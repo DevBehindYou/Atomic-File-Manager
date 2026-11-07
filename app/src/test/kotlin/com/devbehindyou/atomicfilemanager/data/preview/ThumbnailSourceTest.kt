@@ -1,6 +1,14 @@
 package com.devbehindyou.atomicfilemanager.data.preview
 
 import android.app.Application
+import android.graphics.Bitmap
+import coil3.ImageLoader
+import coil3.asImage
+import coil3.decode.DataSource
+import coil3.fetch.Fetcher
+import coil3.fetch.ImageFetchResult
+import coil3.request.Options
+import coil3.request.SuccessResult
 import coil3.size.Dimension
 import coil3.size.Precision
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
@@ -20,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlin.coroutines.EmptyCoroutineContext
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28, 34], application = Application::class)
@@ -107,6 +116,88 @@ class ThumbnailSourceTest {
             val request = buildThumbnailRequest(context, video, 22)
             assertTrue(request.data is ProviderVideoThumbnail)
             assertNull(request.decoderFactory)
+        }
+
+    @Test
+    fun coilCacheIdentityFollowsRevisionSourceAndRowSizeWithoutRemoteRequests() =
+        runBlocking {
+            val context = RuntimeEnvironment.getApplication()
+            val fetched = mutableListOf<Any>()
+            val loader =
+                ImageLoader.Builder(context)
+                    .coroutineContext(EmptyCoroutineContext)
+                    .diskCache(null)
+                    .components {
+                        add(
+                            object : Fetcher.Factory<Any> {
+                                override fun create(
+                                    data: Any,
+                                    options: Options,
+                                    imageLoader: ImageLoader,
+                                ) = object : Fetcher {
+                                    override suspend fun fetch(): ImageFetchResult {
+                                        fetched += data
+                                        val edge = (options.size.width as Dimension.Pixels).px
+                                        val bitmap = Bitmap.createBitmap(edge, edge, Bitmap.Config.ARGB_8888)
+                                        return ImageFetchResult(bitmap.asImage(), true, DataSource.DISK)
+                                    }
+                                }
+                            },
+                            Any::class,
+                        )
+                    }
+                    .build()
+            val keys = mutableSetOf<String>()
+
+            suspend fun show(
+                node: FileNode,
+                pixels: Int = 40,
+            ): DataSource {
+                val request = buildThumbnailRequest(context, checkNotNull(thumbnailSourceOf(node)), pixels)
+                keys += checkNotNull(request.memoryCacheKey)
+                return (loader.execute(request) as SuccessResult).dataSource
+            }
+            try {
+                val original = thumbnailNode(FileNodeId.media("external", "images", 7), "photo.jpg")
+                assertEquals(DataSource.DISK, show(original))
+                // Rapid row reuse: a fresh but equal node is a memory hit, never a second provider read.
+                assertEquals(DataSource.MEMORY_CACHE, show(original.copy()))
+                assertEquals(1, fetched.size)
+                // A replacement with a new revision is never served from the old entry.
+                assertEquals(DataSource.DISK, show(original.copy(modifiedAt = 2)))
+                assertEquals(DataSource.DISK, show(original.copy(size = 2)))
+                assertEquals(DataSource.DISK, show(original, pixels = 80))
+                // The same row id on another volume, a same-named document from another provider
+                // or user, and the same id read as a video are separate identities.
+                val otherVolume = original.copy(id = FileNodeId.media("external_primary", "images", 7))
+                assertEquals(DataSource.DISK, show(otherVolume))
+                val document = "content://documents.one/document/primary%3ADCIM%2Fphoto.jpg"
+                assertEquals(DataSource.DISK, show(thumbnailNode(FileNodeId.saf(document))))
+                assertEquals(
+                    DataSource.DISK,
+                    show(thumbnailNode(FileNodeId.saf(document.replace("documents.one", "documents.two")))),
+                )
+                assertEquals(
+                    DataSource.DISK,
+                    show(thumbnailNode(FileNodeId.saf(document.replace("documents.one", "10@documents.one")))),
+                )
+                assertEquals(DataSource.DISK, show(original.copy(mimeType = "video/mp4")))
+                assertEquals(9, fetched.size)
+                assertEquals(9, keys.size)
+                assertTrue(fetched.last() is ProviderVideoThumbnail)
+                // Revisiting an unchanged revision is deterministic and costs no request.
+                assertEquals(DataSource.MEMORY_CACHE, show(original))
+                assertEquals(DataSource.MEMORY_CACHE, show(original.copy(modifiedAt = 2)))
+                assertEquals(9, fetched.size)
+                listOf(
+                    FileNodeId.sftp("account-a", "/photo.jpg"),
+                    FileNodeId.ftps("account-a", "/photo.jpg"),
+                    FileNodeId.smb("account-a", "share/photo.jpg"),
+                    FileNodeId.webdav("account-a", "/photo.jpg"),
+                ).forEach { assertNull(thumbnailSourceOf(thumbnailNode(it))) }
+            } finally {
+                loader.shutdown()
+            }
         }
 }
 
