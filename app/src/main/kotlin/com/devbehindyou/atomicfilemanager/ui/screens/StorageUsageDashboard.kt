@@ -87,6 +87,13 @@ internal fun rememberStorageUsageAnalysis(
         mutableStateOf(repository.lastResult(volumes) ?: StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
     }
     var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
+    LaunchedEffect(repository, scopeKey, analysisKey) {
+        // An earlier process's evidence is read on IO; it only fills an entry nothing has replaced yet.
+        val restored = repository.restore(volumes)
+        if (restored != null && !requested && update.phase == StorageUsagePhase.IDLE && update.current == null) {
+            update = restored
+        }
+    }
     // Keep an old session's cancellation callback tied to its own owner after a root change.
     val notifyRunning = remember(repository, scopeKey, analysisKey) { mutableStateOf(onRunningChange) }
     notifyRunning.value = onRunningChange
