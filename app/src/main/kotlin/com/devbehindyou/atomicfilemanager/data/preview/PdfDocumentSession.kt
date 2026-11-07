@@ -27,6 +27,12 @@ interface PdfDocumentSession<T> {
     ): FileResult<T>
 }
 
+/**
+ * [FileError.UnsupportedFormat] marker for a PDF whose renderer requires a password or an unsupported
+ * security handler. The reader cannot unlock documents, so this is a feature limit, not damage.
+ */
+const val PDF_PASSWORD_PROTECTED = "password-protected PDF"
+
 internal data class PdfPageSize(val width: Int, val height: Int)
 
 internal fun pdfPageSize(
