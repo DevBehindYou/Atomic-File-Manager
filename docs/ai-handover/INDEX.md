@@ -1,5 +1,7 @@
 # AI handover index
 
+Current cross-agent work starts in the [Coordinator Dictionary](../dictionary/coordinator/README.md). It records the November 7 live PR snapshot and Claude's assigned tasks. Refresh Git/PR evidence before acting on dated pending entries below.
+
 Protocol **AI-HANDOVER/V2**. Live acceptance pointers refreshed **6 November 2026**. GIF, Markdown, PDF, Archive and DOCX slices are in feature integration. [Current plugin ledger](../plugins/modernization/PLUGIN_PROGRESS.md#6-november-accepted-slices)
 
 Use the current `next` list in STATE.yaml to resume. The 4 November detailed worktree and continuation records retain the earlier checkpoints for reference.
