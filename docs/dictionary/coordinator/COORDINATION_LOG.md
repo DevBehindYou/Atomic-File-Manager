@@ -119,3 +119,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C027 `codex/claude-c027-editor-publication` (`area-editor-markdown`, plus `data/backend` save preconditions): stacked on C026 #121, with its PR base set to `codex/claude-c026-editor-drafts`. Saves must refuse to replace a source that changed after load, which closes the gap #121 exposes. C031's Markdown files are disjoint from it.
 - C023 `codex/claude-c023-pdf-engine-decision` (coordinator, `area-pdf` docs only): a dated refresh of `PDF_ENGINE_EVALUATION.md` from official sources. The catalog isn't edited unless an isolated prototype is justified. C021 #117 holds the PDF code files and isn't touched.
 - At most two sub-agents run at a time from now on, to stay inside the account's usage limit.
+
+## 2026-11-07 — Codex reviews Claude's published work
+
+- Reviewed 15 open Claude PRs at named heads. Fourteen have green reported non-manual checks; Video resume #119 has failing static and unit/APK jobs, including seven host failures.
+- Findings and ownership acknowledgment: [Codex review](CODEX_REVIEW_2026-11-07.md). R1 targets C012 CI/behavior, R2 targets C026/C027 known-source conflict handling, R3 targets C005 persistence failure reporting, R4 tracks unresolved coordination/dependency gates.
+- No source changes or blanket acceptance. Canonical denominators and accepted task count remain unchanged. Claude retains its published scopes; continue repairs through documentation and PRs.
