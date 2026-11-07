@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicLong
 
@@ -55,6 +56,8 @@ class StorageUsageRepository(
     private val nanoTime: () -> Long = System::nanoTime,
     private val wallTime: () -> Long = System::currentTimeMillis,
     private val ttlNanos: Long = 120_000_000_000,
+    /** Optional durable copy for a later process; null keeps evidence in memory only. */
+    private val store: StorageUsageStore? = null,
 ) {
     private data class Cache(
         val inputKey: String,
@@ -73,6 +76,10 @@ class StorageUsageRepository(
 
     /** Input key of a walk that started but published no final result: the user left or it was cancelled. */
     @Volatile private var interrupted: String? = null
+
+    private val loadLock = Any()
+
+    @Volatile private var loaded = store == null
 
     /** Mark stale without destroying the last successful evidence shown during refresh/failure. */
     fun invalidate() {
@@ -100,12 +107,54 @@ class StorageUsageRepository(
         )
     }
 
+    /**
+     * Like [lastResult], after loading once (on IO) what an earlier process stored. Restored results are only
+     * ever previous evidence: they can never satisfy a cached hit, so the next request always walks again.
+     */
+    suspend fun restore(volumes: List<StorageVolumeInfo>): StorageUsageUpdate? {
+        if (!loaded) withContext(io) { load() }
+        return lastResult(volumes)
+    }
+
+    private fun load() =
+        synchronized(loadLock) {
+            if (loaded) return@synchronized
+            val stored =
+                try {
+                    store?.read()
+                } catch (_: Exception) {
+                    // Unreadable preferences only lose the previous evidence; the next scan replaces them.
+                    null
+                }
+            if (stored != null) {
+                // This process's own evidence is newer than anything a previous process stored.
+                if (cache == null) cache = stored.lastGood?.restored()
+                if (observed == null) observed = stored.observed?.restored()
+                if (interrupted == null) interrupted = stored.interruptedInputKey
+            }
+            loaded = true
+        }
+
+    private fun persist() {
+        val target = store ?: return
+        try {
+            target.write(StoredStorageUsage(cache?.stored(), observed?.stored(), interrupted))
+        } catch (_: Exception) {
+            // A failed write keeps this process's evidence; a later process just shows less.
+        }
+    }
+
+    private fun StoredStorageUsageResult.restored() = Cache(inputKey, planKey, snapshot, 0, RESTORED_REVISION)
+
+    private fun Cache.stored() = StoredStorageUsageResult(inputKey, planKey, snapshot)
+
     fun scan(
         volumes: List<StorageVolumeInfo>,
         refresh: Boolean = false,
     ): Flow<StorageUsageUpdate> =
         flow {
             writer.withLock {
+                if (!loaded) load()
                 if (refresh) invalidate()
                 val inputKey = inputKeyOf(volumes)
                 if (cache?.let { it.inputKey != inputKey } == true) invalidate()
@@ -149,6 +198,8 @@ class StorageUsageRepository(
                     )
                 } else {
                     interrupted = inputKey
+                    // Durable before any listing, so a walk ended by process death is reported next time.
+                    persist()
                     walk(plan, hit?.snapshot, requestedRevision) { update ->
                         currentCoroutineContext().ensureActive()
                         if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
@@ -163,7 +214,10 @@ class StorageUsageRepository(
                                     inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
                                 )
                         }
-                        if (update.phase != StorageUsagePhase.SCANNING) interrupted = null
+                        if (update.phase != StorageUsagePhase.SCANNING) {
+                            interrupted = null
+                            persist()
+                        }
                         emit(update.copy(previousObserved = observedHit?.snapshot))
                     }
                 }
@@ -282,6 +336,11 @@ class StorageUsageRepository(
     }
 
     private class ScanLimitReached : RuntimeException()
+
+    private companion object {
+        /** Never equal to a live revision (they start at 0), so restored results are never cached hits. */
+        const val RESTORED_REVISION = -1L
+    }
 }
 
 private fun inputKeyOf(volumes: List<StorageVolumeInfo>): String =
