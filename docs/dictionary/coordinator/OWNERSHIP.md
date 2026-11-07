@@ -4,12 +4,12 @@ Observed 7 November 2026. A reservation protects active work; it does not claim 
 
 | Work | Owner | Status | Boundary / next action |
 | --- | --- | --- | --- |
-| Coordinator setup | Codex | Preparing this documentation PR | Dictionary, agent entry points, validation/lease scripts |
-| Image #103 | Codex | Green CI; review/guarded merge outstanding | Image fit modes, GIF/image regression records and associated workflows |
-| Audio #105 | Codex | Green CI; review/guarded merge outstanding | Actual WAV fixture/workflow, acceptance records |
+| Coordinator setup | Codex | Merged #106; ongoing integration coordination | Dictionary, agent entry points, validation/lease scripts |
+| Image #103 | Codex | Scoped change merged; broader acceptance open | Image fit modes, GIF/image regression records and associated workflows |
+| Audio #105 | Codex | Scoped change merged; broader acceptance open | Actual WAV fixture/workflow, acceptance records |
 | Deferred #63 | Codex | Owner-deferred measurements | No benchmark invocation, root probes or permission changes |
 | Old #44–#60 stack | Codex | Main/integration reconciliation required | No duplicate reimplementation or blind closure |
-| C001–C050 | Claude Code | Assigned, all unclaimed | Claim one eligible task at a time; Codex reviews |
+| C001–C050 | Claude Code | C001 accepted; current claims/status in tasks.json | Claim one eligible task at a time; Codex reviews |
 | Stable release/main promotion | Codex | Acceptance incomplete | Preserve public beta tag and private signing backups |
 
 ## Area locks

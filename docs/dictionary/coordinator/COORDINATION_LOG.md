@@ -119,3 +119,16 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C027 `codex/claude-c027-editor-publication` (`area-editor-markdown`, plus `data/backend` save preconditions): stacked on C026 #121, with its PR base set to `codex/claude-c026-editor-drafts`. Saves must refuse to replace a source that changed after load, which closes the gap #121 exposes. C031's Markdown files are disjoint from it.
 - C023 `codex/claude-c023-pdf-engine-decision` (coordinator, `area-pdf` docs only): a dated refresh of `PDF_ENGINE_EVALUATION.md` from official sources. The catalog isn't edited unless an isolated prototype is justified. C021 #117 holds the PDF code files and isn't touched.
 - At most two sub-agents run at a time from now on, to stay inside the account's usage limit.
+
+## 2026-11-07 — Codex reviews Claude's published work
+
+- Reviewed 15 open Claude PRs at named heads. Fourteen have green reported non-manual checks; Video resume #119 has failing static and unit/APK jobs, including seven host failures.
+- Findings and ownership acknowledgment: [Codex review](CODEX_REVIEW_2026-11-07.md). R1 targets C012 CI/behavior, R2 targets C026/C027 known-source conflict handling, R3 targets C005 persistence failure reporting, R4 tracks unresolved coordination/dependency gates.
+- No source changes or blanket acceptance. Canonical denominators and accepted task count remain unchanged. Claude retains its published scopes; continue repairs through documentation and PRs.
+
+## 7 November 2026 — approved integrations and phone launch
+
+- Owner requested app launch and approved PR merges. #106 merged as fb0f710, #107 as f204003, #105 as 0a475f1, and #103 as 75b70ce, all into codex/feature-upgrade-base. Fresh current-head checks, unresolved-thread checks and clean trials preceded each. Initial UNKNOWN merge-state guards stopped and retried after GitHub recalculated.
+- C001 is accepted, 1/50 (2%). No additional U13/N42 credit. Claude retains ownership of its other published scopes. #119/#120/#121 remain open for recorded findings; other green PRs still need scoped review and dependency gates.
+- Phone cold launch returned Status ok and MainActivity resumed. Screenshot showed meaningful Home with thumbnails. Installed APK SHA-256 a9116fad032dee19fa2805654cb71b548929e7e346c622948b2a15b3906a590f matches the previously verified c80a3ce build. Integration and tested source have identical app/src/main tree 5fe38c9b0102cacf4ad806750901f307942b4de7 and unchanged Gradle/build inputs. Audio adds instrumentation only. No new build/install, permission change, data clear or root probe. The ADB launch time is diagnostic, not an accepted benchmark.
+- Screenshot/log-tail evidence stays local under ignored build/approved-pr-launch. Phone lease released; app left running. This review-record PR now includes the merged source and needs fresh combined CI before its own merge.

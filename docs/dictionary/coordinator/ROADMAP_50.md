@@ -10,7 +10,7 @@ Default order is C001–C050. Choose the lowest eligible ID; log a blocked depen
 
 ### C001 — Reconcile the live delta and claim the first slice
 
-**P0 · acceptance_pending · Owner: Claude Code · Review: Codex**
+**P0 · accepted · Owner: Claude Code · Review: Codex**
 
 Dependencies: None. Scope: U04, U06, N42.
 
@@ -24,7 +24,7 @@ Source areas: `docs/dictionary/coordinator`, `docs/ai-handover`.
 
 **Validation.** Record Git HEAD/app tree, clean or explained status, worktrees, active PR heads/check URLs and remaining gates. Codex reviews reconciliation. No whole-plugin credit for this audit.
 
-Branch: codex/claude-c001-reconcile-delta. PR: #107 (into codex/claude-coordinator-50). Evidence records: 5. Updated: 2026-11-07.
+Branch: codex/claude-c001-reconcile-delta. PR: #107 (into codex/claude-coordinator-50). Evidence records: 6. Updated: 2026-11-07.
 
 ### C002 — Close remaining preview IO and cancellation gaps
 

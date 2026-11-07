@@ -6,7 +6,7 @@
   "repository": "DevBehindYou/Atomic-File-Manager",
   "integration": {
     "branch": "codex/feature-upgrade-base",
-    "head": "89140e3f3d4a746e6a907912042911cb10c8f6a3",
+    "head": "75b70cef9fa53e5d15d07b6482d25b15d2106450",
     "release_accepted": false
   },
   "coordination_branch": "codex/claude-coordinator-50",
@@ -50,24 +50,26 @@
     {
       "number": 103,
       "head": "c80a3ce4cdb1cdc6c6a71dae04c91a2626ab8ac4",
-      "state": "OPEN",
+      "state": "MERGED",
       "draft": true,
       "normal_checks": "SUCCESS",
       "normal_run": 42242968794,
       "native_checks": "SUCCESS API28 and API34",
       "native_run": 42242968650,
-      "next_gate": "fresh review/dependencies/current-target trial and guarded integration merge"
+      "next_gate": "Scoped slice integrated; wider plugin acceptance remains open",
+      "merge_commit": "75b70cef9fa53e5d15d07b6482d25b15d2106450"
     },
     {
       "number": 105,
       "head": "0673896a4b8ec744c7b9c356935943f691ddbefe",
-      "state": "OPEN",
+      "state": "MERGED",
       "draft": true,
       "normal_checks": "SUCCESS",
       "normal_run": 42244590360,
       "native_checks": "SUCCESS API28 and API34",
       "native_run": 42244590510,
-      "next_gate": "exact scoped evidence/review/current-target trial and guarded integration merge"
+      "next_gate": "Scoped slice integrated; wider plugin acceptance remains open",
+      "merge_commit": "0a475f198779cc9dcba0b5d51f21550ab6c322d6"
     },
     {
       "number": 63,
@@ -111,5 +113,19 @@
     "Cloud real authentication needs provider/scope/registration and test-account evidence",
     "SQLite nativeOpen root cause unproven"
   ],
-  "snapshot_limit": "Checks observed from GitHub on November 7; not a promise that current head or base remains unchanged. Fetch/review before acting."
+  "snapshot_limit": "Checks observed from GitHub on November 7; not a promise that current head or base remains unchanged. Fetch/review before acting.",
+  "latest_task_acceptance": {
+    "accepted": 1,
+    "denominator": 50,
+    "percent": 2,
+    "scope": "C001 reconciliation only"
+  },
+  "launch_2026_11_07": {
+    "result": "Home rendered, top resumed MainActivity, no fatal match in inspected process-log tail",
+    "installed_apk_sha256": "a9116fad032dee19fa2805654cb71b548929e7e346c622948b2a15b3906a590f",
+    "tested_source": "c80a3ce4cdb1cdc6c6a71dae04c91a2626ab8ac4",
+    "production_source_tree": "5fe38c9b0102cacf4ad806750901f307942b4de7",
+    "production_tree_matches_integration": true,
+    "boundary": "Existing verified debug APK reused; build inputs unchanged. No new local build, install, grant or data reset."
+  }
 }

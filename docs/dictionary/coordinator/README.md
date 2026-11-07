@@ -30,14 +30,14 @@ Safety, reliability and correct storage behavior precede performance. Improve ca
 - Original optimization M01–M13 retains its weighted 60-unit scope. Historical implementation credit is 47/60, approximately 78%; this is not overall feature or stable-release completion. [Optimization plan](../../roadmap/OPTIMIZATION_ROADMAP.md)
 - Feature U01–U13 retains **2/13 host verified (15%) and 1/13 accepted (8%)** at this checkpoint. [Plan](../../roadmap/FEATURE_UPGRADE_PLAN.md) · [progress](../../roadmap/FEATURE_UPGRADE_PROGRESS.md)
 - Advanced eight-plugin scope retains **0/42 complete host groups, 0/42 accepted groups and 0/8 fully modernized plugins**. All eight have audits and many accepted partial slices. [Intake](../../roadmap/ADVANCED_BUILT_IN_PLUGINS_INTAKE.md) · [42-group matrix](../../plugins/modernization/PLUGIN_FEATURE_MATRIX.md) · [progress](../../plugins/modernization/PLUGIN_PROGRESS.md)
-- Claude's new execution batch is independently **0/50 accepted tasks (0%)**. Task completion earns original-plan credit only when that original milestone's complete gates pass. Fifty next actions do not exhaust every advanced requirement.
+- Claude's execution batch is independently **1/50 accepted tasks (2%)**, covering C001 reconciliation. Task completion earns original-plan credit only when that original milestone's complete gates pass. Fifty next actions do not exhaust every advanced requirement.
 - Stable v0.2.1 is not accepted or published. Integration merges and the existing 0.2.0 beta are distinct from main/stable promotion. [Release history](../../testing/BETA_0_2_0_PUBLICATION_VALIDATION.md)
 
 ## Decisions, completed work and conflicts
 
 [DECISIONS.md](DECISIONS.md) records current boundaries and known gaps. [STATE.json](STATE.json) identifies inspected PR heads/check runs. GIF #101, Editor history #90, Markdown #89, PDF #91, Archive #92 and DOCX #93 are accepted scoped improvements; do not rebuild them. Diagnostic #100 passed a tracing run without reproducing the old SQLite failure; its root cause remains unproven. Ledger #104 is merged.
 
-Image #103 and Audio #105 have green scoped CI and remain open at this snapshot. Codex owns their review and merge gates. The old main/stack PRs #44–#60 and deferred benchmark #63 must be reconciled by ancestry and validation before closure or merge; an old open PR is not a new implementation assignment. A stale handover still calls several now-merged candidates pending. Use fresh Git/PR evidence and the November 6 ledger, and preserve historical entries.
+Image #103 and Audio #105 passed scoped checks/review and clean guarded trials, and merged on 7 November. Broader Image/Audio capability acceptance remains open. The old main/stack PRs #44–#60 and deferred benchmark #63 must be reconciled by ancestry and validation before closure or merge; an old open PR is not a new implementation assignment. A stale handover still calls several now-merged candidates pending. Use fresh Git/PR evidence and the November 6 ledger, and preserve historical entries.
 
 ## Task states and evidence
 
