@@ -12,7 +12,7 @@
       "title": "Reconcile the live delta and claim the first slice",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "acceptance_pending",
+      "status": "accepted",
       "dependencies": [],
       "scope": [
         "U04",
@@ -35,12 +35,10 @@
         "PR #106 head 982d97a OPEN: Coordinator validation run 42290117364 success; CI run 42290117084 in progress when observed; not integrated.",
         "PR #103 c80a3ce open draft, 7 ahead/11 behind integration; PR #105 0673896 open draft, 0 behind; PR #63 585e9f2 deferred. Codex-owned, untouched.",
         "Accepted merges #89/#90/#91/#92/#93/#100/#101/#104 verified as integration ancestors; stale 4 November PENDING entries superseded (pointer added, history kept).",
-        "Delta report: docs/dictionary/coordinator/C001_RECONCILIATION.md. No application, Gradle, ADB or device action."
+        "Delta report: docs/dictionary/coordinator/C001_RECONCILIATION.md. No application, Gradle, ADB or device action.",
+        "Codex reviewed C001 at 4425ff3; coordinator #106 merged fb0f710 and C001 #107 merged f204003 into codex/feature-upgrade-base on 2026-11-07. Current-head normal/coordinator CI passed and a fresh clean trial preceded each merge. Only C001 scope accepted; feature/plugin full-group credit unchanged."
       ],
-      "remaining": [
-        "Codex review of the C001 reconciliation PR.",
-        "Integration of coordinator PR #106 into codex/feature-upgrade-base before any C002 application edit."
-      ],
+      "remaining": [],
       "last_updated": "2026-11-07"
     },
     {
