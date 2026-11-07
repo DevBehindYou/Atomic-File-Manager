@@ -14,6 +14,8 @@ Claude Code task **C021** (PDF1/PDF5; PDF-T01 increment). Base: feature integrat
 | --- | --- | --- |
 | Host `PdfHostileSessionTest` on unchanged loader (only the marker constant added) | `7be3dde` | 6 run, **1 failed**: `a password protected document is reported distinctly from a corrupt one` — expected `UnsupportedFormat(password-protected PDF)` but was `IoFailure(PDF preview unavailable)`. The other 5 pass on base. |
 | Native, test-only commit, workflow dispatch [run 42338904387](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42338904387) | `7be3dde` | API 28 and API 34 each: 11 run, **2 failed**, and only the two expected cases failed: `passwordProtectedDocumentIsReportedDistinctlyFromCorruption` (expected `UnsupportedFormat(password-protected PDF)` but was `IoFailure(PDF preview unavailable)`) and `sourceLossKeepsTheOpenCopyThenPasswordAndRecoveryAreReported`. `repeatedDisposalReleasesEveryNativeDocument` passed on both. |
+| Native, diagnostic commit, PR [run 42339979995](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42339979995) | `56ddf9d` | Temporary diagnostic, deliberately failing (report below). API 34 again failed `repeatedDisposalReleasesEveryNativeDocument`, growth 12. |
+| Native, final head, PR [run 42340638514](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42340638514) | `098fcc0` | **API 28: 11/11 passed. API 34: 11/11 passed** (jobs 128307327082, 128307327261). CI run 42340638513: unit tests/APK packaging and static analysis (ktlint, detekt, Lint) passed. |
 | Native, fix head, PR [run 42339191724](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42339191724) | `38f037d` | API 28: 11/11 passed. API 34: 11 run, 1 failed: `repeatedDisposalReleasesEveryNativeDocument`, "Descriptor growth 12 across 12 reader lifetimes". Investigated below. |
 
 ## Coverage added
@@ -75,7 +77,6 @@ Conclusion: **(b), not ours.** The growth is a pool of HWUI/graphics `sync_file`
 
 ## Remaining
 
-- Native outcome on the current PR head (API 28/34) after the targeted disposal assertion.
 - No password entry or unlock (PDF-T03/T04 engine decision). Text, search and forms are still not supported.
 - Physical-provider disconnects (SAF/USB/network) and memory pressure on real devices are not exercised. Device benchmarking remains owner-deferred.
 - The PDF1–PDF5 groups are not complete. This is a scoped slice.
