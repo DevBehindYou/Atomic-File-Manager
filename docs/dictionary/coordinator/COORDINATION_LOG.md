@@ -89,3 +89,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C021 #117: CI `42339191576` passed. PDF native `42339191724` passed on API 28 but failed on API 34 (`repeatedDisposalReleasesEveryNativeDocument`, descriptor growth 12 across 12 reader lifetimes). The sub-agent is investigating whether it's a real leak or a platform fd its test counts, and will fix it on the same branch. Status is back to implementing.
 - C005 #118 (coordinator) is slice 1. Hosted CI is pending.
 - C026 `codex/claude-c026-editor-drafts` claimed for a parallel sub-agent. Area `area-editor-markdown`: editor drafts, history, `TextEditorDialog` and their tests and docs. No open PR overlaps it.
+
+## 2026-11-07T07:20Z UTC — C005 slice 2 #120, C012 #119; C031 claimed
+
+- C005 slice 2 [#120](https://github.com/DevBehindYou/Atomic-File-Manager/pull/120), stacked on #118 (green, CI `42339778799`): Analysis evidence and the interrupted-walk marker now survive process death. Merge #118 first.
+- C012 [#119](https://github.com/DevBehindYou/Atomic-File-Manager/pull/119) (sub-agent): revision-keyed video resume. The new `video-resume-native.yml` passed on API 28/34 (run `42340397852`). Static analysis failed on Android Lint `RememberReturnType`, and the sub-agent is fixing it with a new commit. The shared agent brief now requires local `:app:lintDebug`.
+- C021 #117: the sub-agent pushed `098fcc0` for the API 34 descriptor finding. Hosted checks are running.
+- C031 `codex/claude-c031-markdown-ast` claimed for a sub-agent. Area `area-editor-markdown`, limited to Markdown parser, blocks and tests. C026's sub-agent holds the editor and draft files in the same area. The two have disjoint files, so this doesn't break the one-implementation-per-area intent; the overlap is recorded here.

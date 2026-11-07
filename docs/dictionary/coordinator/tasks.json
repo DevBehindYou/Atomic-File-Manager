@@ -193,16 +193,18 @@
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
       "branch": "codex/claude-c005-analysis-freshness",
-      "pr": "#118 (into codex/feature-upgrade-base)",
+      "pr": "#118 slice 1, #120 slice 2 (stacked on #118)",
       "evidence": [
         "Slice 1 head 8f0c1e9 on 89140e3: StorageUsageRepository.lastResult(volumes) returns lastGood/previousObserved/interrupted for the exact same volumes/mounts/grants with no plan, list or IO; rememberStorageUsageAnalysis seeds an IDLE state from it (entry still requires an explicit action). Codex's root-change test unchanged.",
         "Failing control: StorageUsageReentryComposeTest fails 2/3 on base (no previous breakdown on re-entry; mid-scan exit indistinguishable from no scan); access-change guard passes on base. Test-only commit 8108bc6.",
-        "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md."
+        "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md.",
+        "Hosted on #118 head 8f0c1e9: CI run 42339778799 success.",
+        "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md."
       ],
       "remaining": [
-        "Hosted CI on #118 and Codex review.",
-        "Slice 2: persist lastGood/observed/interrupted across process death (bounded codec or explicit migration) with migration, restart and stale-completion tests.",
-        "Search index retryRequired after an interrupted rebuild is in-memory only; needs a durable generation/checkpoint after Codex reconciles legacy #47 (SearchIndexDao)."
+        "Codex review of #118, then #120 (retargets to base after #118 merges); hosted CI on #120.",
+        "Search index retryRequired after an interrupted rebuild is in-memory only; needs a durable generation/checkpoint after Codex reconciles legacy #47 (SearchIndexDao).",
+        "Revoked-root/delete/rename staleness shown as 'previous ... may be stale' until the user refreshes (no automatic revalidation by design). No device process-kill run."
       ],
       "last_updated": "2026-11-07"
     },
@@ -413,7 +415,7 @@
       "title": "Persist revision-aware video resume and display state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C011"
@@ -431,10 +433,18 @@
       "validation": "Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.",
       "external_gate": null,
       "branch": "codex/claude-c012-video-resume",
-      "pr": null,
-      "evidence": [],
+      "pr": "#119 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 017ddbd on 89140e3 (parallel sub-agent): revision-keyed video resume (source id + modifiedAt + size) in private preferences, SHA-256-hashed keys, versioned bounded values, at most 200 entries (LRU), stale revision cleared on read; writes on pause/play, speed, end, ON_STOP, close and at most every 15 s while playing; start point decided once per player; paused state through the existing autoplay policy; speed is the only restored viewing mode. Coordinator reviewed the diff stat and new workflow.",
+        "Failing control: VideoResumeComposeTest fails 2/2 on base (recreation and reopen start at 0); mutation checks (STOP->DESTROY, revision check removed) failed the matching tests.",
+        "Local: 79/79 focused tests (VideoResumeCompose 20, VideoResumePreferences 14, VideoResumeSession 9, existing video/player/helper 36); ktlint/detekt pass. Original bytes and lastModified unchanged in every compose case.",
+        "Hosted on #119: new video-resume-native run 42340397852 success on API28 and API34 (decoded WAV journey through VideoPreviewContent). CI run 42340397793 Static analysis FAILED: Android Lint RememberReturnType at VideoPreviewContent.kt:180; sub-agent fixing with a new commit."
+      ],
       "remaining": [
-        "Claimed for a parallel sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+        "Fix the Lint RememberReturnType error on #119 and re-run hosted checks; Codex review.",
+        "Move VideoResumePreferences into AppContainer (currently VideoResumePreferences.shared(context) default) once AtomicApp.kt is free.",
+        "Rotation still closes the preview dialog (nodeForPreview/preview are plain remember in Browse/Category/Search/Home); video resumes on reopen.",
+        "Real video-codec fixtures, aspect/resize, subtitles/tracks and PiP remain VID-T02/T04. Trial merges with #109/#115 conflict only in VIDEO_PLAYER.md appends (keep both)."
       ],
       "last_updated": "2026-11-07"
     },
@@ -1016,7 +1026,7 @@
       "title": "Adopt a bounded maintained Markdown AST path",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -1033,10 +1043,12 @@
       "expected_outcome": "A precise supported-syntax matrix with no silent claim of full conformance.",
       "validation": "Conformance corpus and bounded nested/large input cases, malformed syntax, raw disclosure and cancellation. Keep unsupported footnotes/extensions explicit and preserve native rendering security.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c031-markdown-ast",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent under Claude Code ownership; evaluation first, failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
