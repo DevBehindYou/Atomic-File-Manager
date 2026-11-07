@@ -89,7 +89,7 @@
       "title": "Clarify preview resource ownership without a framework migration",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C002"
@@ -108,10 +108,13 @@
       "expected_outcome": "Fewer ambiguous owners with unchanged opening behavior.",
       "validation": "Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c003-preview-resource-ownership",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Slice 1: one process-wide owner for preview scratch copies (media-preview-, atomic-pdf-, atomic-7z-) that removes copies orphaned by process death before this process creates its first copy; startup sweep from DefaultAppContainer.",
+        "Later slice candidate: BuiltInFilePreviewPane keeps a second ExternalPreparationRequest that production never starts (FilePreviewPane always routes external opening); make it fallback-only after Codex confirms the fallback's role."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -214,7 +217,7 @@
       "title": "Expand malformed and long-animation GIF resource coverage",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "implementing",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -236,10 +239,10 @@
       "pr": "#112 (into codex/feature-upgrade-base)",
       "evidence": [
         "Head ce199cc on 89140e3: test-only GifHostileInputTest through real ImageDecoder (Robolectric native, API28/34): huge canvas -> FileTooLarge, wide canvas scaled <=2048, four truncations -> UnsupportedFormat(GIF), oversized frame descriptor within caps, input closed exactly once. 10 new + 14 existing GIF tests pass; ktlint/detekt pass. No defect found.",
-        "Record: docs/testing/GIF_HOSTILE_INPUTS_C007.md."
+        "Record: docs/testing/GIF_HOSTILE_INPUTS_C007.md.",
+        "Hosted on #112 head ce199cc: CI run 42302141482 (Static analysis; Unit tests and APK packaging) success; mergeable CLEAN at 2026-11-07 cloud resume. No GIF native run was path-triggered (test-only host change)."
       ],
       "remaining": [
-        "Hosted CI on #112 (pending at handoff).",
         "Native long-animation/replacement/decoder-release fixtures wait for Codex PR #103 (owns gif-playback-native.yml and GifPlaybackDeviceTest).",
         "IMAGE_VIEWER.md update deferred to one docs pass after #103/#108 merge.",
         "Codex review and merge gates."
@@ -1154,10 +1157,10 @@
       "evidence": [
         "Head 8e3e1cd on 89140e3: OLE/non-ZIP/over-limit DOCX classified with specific messages and no futile Retry; RTF (all MIME types) routes to Generic. 39 focused host tests pass; ktlint/detekt pass.",
         "Control: base PreviewType routing fails the RTF test 1/5. Base mapped OLE/plain/empty/limit inputs to IoFailure with Retry.",
-        "Record: docs/testing/DOCUMENT_FIDELITY_PRECISION_C036.md (fidelity matrix); DOCUMENT_READER.md section."
+        "Record: docs/testing/DOCUMENT_FIDELITY_PRECISION_C036.md (fidelity matrix); DOCUMENT_READER.md section.",
+        "Hosted on #111 head 8e3e1cd: CI run 42301288179 (Static analysis; Unit tests and APK packaging) success; DOCX preview native run 42301288169 success on API28 and API34; mergeable CLEAN at 2026-11-07 cloud resume."
       ],
       "remaining": [
-        "Hosted CI and DOCX native on #111 (pending at handoff).",
         "No RTF/CSV-table/.doc/encrypted Office reading (C040 engine evaluation).",
         "Codex review and merge gates."
       ],

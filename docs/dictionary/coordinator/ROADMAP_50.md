@@ -46,7 +46,7 @@ Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
-**P1 · assigned · Owner: Claude Code · Review: Codex**
+**P1 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U06, N42.
 
@@ -60,7 +60,7 @@ Source areas: `AtomicApp.kt`, `ui/components/BuiltInFilePreviewPane.kt`, `data/p
 
 **Validation.** Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c003-preview-resource-ownership. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C004 — Bound thumbnail scheduling and cache identity
 
@@ -122,7 +122,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C007 — Expand malformed and long-animation GIF resource coverage
 
-**P0 · implementing · Owner: Claude Code · Review: Codex**
+**P0 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: IMG2, IMG6.
 
@@ -136,7 +136,7 @@ Source areas: `data/preview/GifPreviewDecoder.kt`, `GIF native fixtures`.
 
 **Validation.** Native API28/34 fixtures, repeated close/reopen and original/sentinel hashes. Record peak allocations where available. Preserve historical JNI failures and do not substitute static first-frame rendering for animation.
 
-Branch: codex/claude-c007-gif-hostile-inputs. PR: #112 (into codex/feature-upgrade-base). Evidence records: 2. Updated: 2026-11-07.
+Branch: codex/claude-c007-gif-hostile-inputs. PR: #112 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C008 — Evaluate high-resolution and additional-image decoding
 
@@ -674,7 +674,7 @@ Source areas: `document routing`, `docs/plugins/DOCUMENT_READER.md`, `document f
 
 **Validation.** Real routing/selection/search fixtures and malformed/unsupported handling, no private uploads. A text extract must never be labeled faithful Office pagination.
 
-Branch: codex/claude-c036-document-fidelity-precision. PR: #111 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c036-document-fidelity-precision. PR: #111 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C037 — Render structured DOCX paragraphs and tables
 
