@@ -34,6 +34,7 @@ import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.MediaPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.PdfPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.ProviderVideoThumbnailFetcher
+import com.devbehindyou.atomicfilemanager.data.preview.ScratchCopies
 import com.devbehindyou.atomicfilemanager.data.recents.RecentMediaSource
 import com.devbehindyou.atomicfilemanager.data.repository.FolderSortPreferences
 import com.devbehindyou.atomicfilemanager.data.repository.HiddenFilesRepositoryImpl
@@ -155,6 +156,11 @@ class DefaultAppContainer(private val application: Application) : AppContainer {
 
     /** Lives as long as the process; used for start-up loads that must not block the main thread. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        // Preview copies left by a process that died mid-preview have no other owner. Creation waits for this.
+        appScope.launch(Dispatchers.IO) { ScratchCopies.recoverOnce(application.cacheDir) }
+    }
 
     private val database by lazy { AtomicDatabase.create(application) }
 

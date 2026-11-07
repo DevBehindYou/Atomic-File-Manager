@@ -47,3 +47,7 @@ See [the candidate validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md
 ## Scoped acceptance, 6 November 2026
 
 Duplicate-path rejection and inspection cancellation passed host checks. The FILE inspection case passed on each API 28 and 34 emulator. PR #92 merged into feature integration as `ac668e5`. ARC1–ARC5 and wider archive workflows remain open. [Validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md)
+
+## Scratch copies after process death — 7 November 2026 (C003 slice 1)
+
+Preview scratch copies (`media-preview-`, `atomic-pdf-`, `atomic-7z-`) now have one process-wide owner, `ScratchCopies`. Copies orphaned when an earlier process died mid-preview are removed once per process: at startup or before this process's first copy, under a lock shared by every creator, so a live copy is never touched. Session cleanup, staging limits and `external-preview/` expiry are unchanged. Evidence and the failing control: [C003 record](../testing/PREVIEW_SCRATCH_OWNERSHIP_C003.md). This is host verified only; the plugin version is unchanged.

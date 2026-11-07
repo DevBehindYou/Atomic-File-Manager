@@ -94,7 +94,7 @@ internal class PdfDocumentLoader<T>(
         try {
             require(byteLimit > 0)
             withContext(dispatcher) {
-                val file = File.createTempFile("atomic-pdf-", ".pdf", cacheDirectory()).also { cached = it }
+                val file = ScratchCopies.create(cacheDirectory(), ScratchCopies.PDF_PREFIX, ".pdf").also { cached = it }
                 val input =
                     when (val result = openInput(id)) {
                         is FileResult.Success -> result.value

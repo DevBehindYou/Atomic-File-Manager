@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.data.archive
 
+import com.devbehindyou.atomicfilemanager.data.preview.ScratchCopies
 import com.devbehindyou.atomicfilemanager.domain.usecase.SeekableSpool
 import com.devbehindyou.atomicfilemanager.domain.usecase.Spooled
 import java.io.File
@@ -13,7 +14,7 @@ import java.nio.file.StandardOpenOption
 class TempFileSpool(private val dir: File) : SeekableSpool {
     override fun spool(input: InputStream): Spooled {
         dir.mkdirs()
-        val temp = File.createTempFile("atomic-7z-", ".7z", dir)
+        val temp = ScratchCopies.create(dir, ScratchCopies.ARCHIVE_PREFIX, ".7z")
         try {
             temp.outputStream().use { input.copyTo(it) }
             val channel = Files.newByteChannel(temp.toPath(), StandardOpenOption.READ)
