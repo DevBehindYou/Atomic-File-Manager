@@ -114,10 +114,11 @@
         "Slice 1 head 7336833 on base 89140e3: new data/preview/ScratchCopies owns media-preview-/atomic-pdf-/atomic-7z- copies; the three creators route through it; DefaultAppContainer.init starts recoverOnce(cacheDir) on IO. A shared lock with creation means a live copy is never swept.",
         "Failing control: ScratchCopyRecoveryTest (real MediaPreviewHelper/PdfDocumentLoader/TempFileSpool, fresh cache seeded with 4 orphans + 8 unrelated entries) fails 6/6 on base (orphan assertion); test-only commit 912b74b.",
         "Local Robolectric (SDK 36, Gradle serialized): 55/55 pass (ScratchCopyRecovery 6, ScratchCopies 6, MediaPreviewOwnership 12, PdfDocumentLoader 11, ArchiveFormats 9, RemoteOpenPreparationCompose 7, ExternalPreviewHelper 4); ktlintCheck and detekt pass.",
-        "Record: docs/testing/PREVIEW_SCRATCH_OWNERSHIP_C003.md; VIDEO_PLAYER.md and ARCHIVE_MANAGER.md sections."
+        "Record: docs/testing/PREVIEW_SCRATCH_OWNERSHIP_C003.md; VIDEO_PLAYER.md and ARCHIVE_MANAGER.md sections.",
+        "Hosted on #115 head 7336833: CI run 42338770980 (Static analysis; Unit tests and APK packaging) success; PDF source-session native run 42338770979 success on API28 and API34 (exercises the PdfReaderDeviceTest change)."
       ],
       "remaining": [
-        "Hosted CI on #115, Codex review, clean trial; dependency C002 (#108) unmerged (no shared file).",
+        "Codex review, clean trial; dependency C002 (#108) unmerged (no shared file).",
         "external-preview/ startup prune needs Codex view on asynchronous external readers.",
         "Second seam: BuiltInFilePreviewPane holds an ExternalPreparationRequest production never starts (FilePreviewPane always routes external opening); needs Codex confirmation of the test-only fallback's role.",
         "PDF_READER.md pointer after C021 lands; no device process-death run."
@@ -131,7 +132,7 @@
       "title": "Bound thumbnail scheduling and cache identity",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -151,10 +152,18 @@
       "validation": "Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.",
       "external_gate": null,
       "branch": "codex/claude-c004-thumbnail-bounds",
-      "pr": null,
-      "evidence": [],
+      "pr": "#116 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 800a5b5 on 89140e3 (parallel sub-agent): FolderThumbnailReader peeks now take one of 2 process-wide Semaphore permits after a pure eligibility check; a row cancelled while queued never opens a directory. Per-peek bounds (64 examined, 4 previews, 128 ancestors) unchanged. Coordinator reviewed the diff.",
+        "Failing control: base plus only the constant MAX_CONCURRENT_PEEKS: 30 run, 1 failed ('A peek beyond the bound started'); video-thumbnail and cache-key coverage passed on base (no defect there).",
+        "Local: 40/40 pass three times (FolderThumbnailReader, ProviderVideoThumbnailReader, ThumbnailSource, FileThumbnailCompose, FileThumbnail); ktlint/detekt pass. Fixture counts: folder 12 requests, max 2 concurrent, 8 opened, 4 cancelled-while-queued opened nothing; video 8 requests, max 2, 5 loaded; real Coil loader 12 requests, 9 fetches, 9 distinct keys, 3 memory hits, no stale hit after replacement.",
+        "Hosted on #116: CI run 42339001426 success. Record: docs/testing/THUMBNAIL_BOUNDS_C004.md; FILE_THUMBNAILS_VALIDATION.md section."
+      ],
       "remaining": [
-        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+        "Codex review and clean trial.",
+        "Folder miniature can stay stale when a child is rewritten in place without changing the folder's modified time/size while the row stays visible (code reading, not reproduced): needs a refresh generation or child revalidation.",
+        "Cache identity depends on provider-reported modifiedAt/size (SAF/MediaStore that report unchanged values for replaced content cannot be detected).",
+        "No explicit visible-first queue beyond first-come order plus cancellation; image fetches bounded only by Coil's 4 decodes. Device latency/jank measurements owner-deferred."
       ],
       "last_updated": "2026-11-07"
     },
@@ -165,7 +174,7 @@
       "title": "Persist analysis freshness and interrupted scan state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "host_verified",
       "dependencies": [
         "C001",
         "C002"
@@ -184,10 +193,16 @@
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
       "branch": "codex/claude-c005-analysis-freshness",
-      "pr": null,
-      "evidence": [],
+      "pr": "#118 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Slice 1 head 8f0c1e9 on 89140e3: StorageUsageRepository.lastResult(volumes) returns lastGood/previousObserved/interrupted for the exact same volumes/mounts/grants with no plan, list or IO; rememberStorageUsageAnalysis seeds an IDLE state from it (entry still requires an explicit action). Codex's root-change test unchanged.",
+        "Failing control: StorageUsageReentryComposeTest fails 2/3 on base (no previous breakdown on re-entry; mid-scan exit indistinguishable from no scan); access-change guard passes on base. Test-only commit 8108bc6.",
+        "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md."
+      ],
       "remaining": [
-        "Claimed by the coordinating session; source audit first, then schema and consumers as dependent PRs."
+        "Hosted CI on #118 and Codex review.",
+        "Slice 2: persist lastGood/observed/interrupted across process death (bounded codec or explicit migration) with migration, restart and stale-completion tests.",
+        "Search index retryRequired after an interrupted rebuild is in-memory only; needs a durable generation/checkpoint after Codex reconciles legacy #47 (SearchIndexDao)."
       ],
       "last_updated": "2026-11-07"
     },
@@ -678,7 +693,7 @@
       "title": "Exercise large and hostile native PDF sessions",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "claimed",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C002"
@@ -697,10 +712,15 @@
       "validation": "Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.",
       "external_gate": null,
       "branch": "codex/claude-c021-pdf-hostile-sessions",
-      "pr": null,
-      "evidence": [],
+      "pr": "#117 (into codex/feature-upgrade-base)",
+      "evidence": [
+        "Head 38f037d on 89140e3 (parallel sub-agent): PDF-B02 password-protected/encrypted PDFs were reported as damaged with a futile Retry; a SecurityException from renderer construction (after staging) now maps to UnsupportedFormat(PDF_PASSWORD_PROTECTED), shown without Retry; generic message now 'damaged or unavailable'. Staging cap, ownership and the C003 createTempFile line unchanged. Coordinator reviewed the diff; merge trial with C003 clean.",
+        "Host failing control: PdfHostileSessionTest on unchanged loader 6 run, 1 failed (password vs corrupt). Local: 28/28 PDF host tests pass; ktlint/detekt pass.",
+        "Hosted on #117: CI run 42339191576 success; PDF native run 42339191724 API28 success, API34 FAILED: PdfHostileSessionDeviceTest.repeatedDisposalReleasesEveryNativeDocument 'Descriptor growth 12 across 12 reader lifetimes'. Test-only control run 42338904387 concluded failure (detail pending)."
+      ],
       "remaining": [
-        "Claimed for parallel execution by a Claude cloud sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+        "Diagnose the API34 descriptor growth (real leak vs platform fd counted by the test) and fix on #117 with new commits; record both native runs.",
+        "Password entry/unlock, text/search/forms (engine decision C023); physical-provider disconnects; real-device memory pressure; device benchmarking owner-deferred."
       ],
       "last_updated": "2026-11-07"
     },
@@ -835,7 +855,7 @@
       "title": "Persist crash-recoverable editor drafts",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "claimed",
       "dependencies": [
         "C001",
         "C003"
@@ -853,10 +873,12 @@
       "expected_outcome": "Durable, revision-aware draft recovery.",
       "validation": "Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.",
       "external_gate": null,
-      "branch": null,
+      "branch": "codex/claude-c026-editor-drafts",
       "pr": null,
       "evidence": [],
-      "remaining": [],
+      "remaining": [
+        "Claimed for a parallel sub-agent under Claude Code ownership; failing control, hosted CI and Codex review pending."
+      ],
       "last_updated": "2026-11-07"
     },
     {
@@ -1538,10 +1560,10 @@
         "Slice 1 head 6b14c6c on 89140e3 (parallel sub-agent under Claude Code): docs/testing/DEPENDENCY_PROVENANCE_C047.md records 205 resolved release-runtime modules with POM licences, advisory matching against the OSV Maven bulk export (matcher control: 20 hits on known-vulnerable versions), wrapper integrity, Actions pin table and decisions D1-D5.",
         "Hardening: ci.yml pins gradle/actions/setup-gradle to ed408507 (v4.4.3; 3 uses) and reactivecircus/android-emulator-runner to a421e438 (v2.38.0; 2 uses). Coordinator re-verified with git ls-remote that both are the peeled commits of the current v4/v2 tags, so CI code is identical.",
         "Runtime advisory: Guava 33.3.1-android (via Media3 1.8.0) is in GHSA-xxph-c9ww-hj94 / CVE-2026-102554, affected [4.0, 33.7.2); coordinator re-fetched the OSV record (published 2026-10-27). App has no ObjectInputStream use; recorded as D1, not upgraded in this PR.",
-        "Wrapper: distributionSha256Sum and wrapper jar SHA-256 match Gradle's versions API for 9.3.1; setup-gradle validates the wrapper jar. Local ktlintCheck/detekt pass; release tamper-guard tests 12 + 16 OK."
+        "Wrapper: distributionSha256Sum and wrapper jar SHA-256 match Gradle's versions API for 9.3.1; setup-gradle validates the wrapper jar. Local ktlintCheck/detekt pass; release tamper-guard tests 12 + 16 OK.",
+        "Hosted on #114 head 6b14c6c: CI run 42338530487 (Static analysis; Unit tests and APK packaging) success."
       ],
       "remaining": [
-        "Hosted CI on #114 and Codex review.",
         "D1: Guava 33.7.2-android constraint (or Media3 carrying it) as the next one-cluster PR, gated on R8, APK size delta, media checks and tamper guards.",
         "D2: build-classpath-only advisories (incl. Kotlin Gradle Plugin 2.2.10, Bouncy Castle 1.79 in AGP tooling) re-evaluated with the next Kotlin/AGP raise.",
         "D3: owner decision on in-app third-party notices; Shizuku catalog comment says Apache 2.0 but POM/upstream is MIT.",

@@ -60,11 +60,11 @@ Source areas: `AtomicApp.kt`, `ui/components/BuiltInFilePreviewPane.kt`, `data/p
 
 **Validation.** Compare before/after ownership call sites. Test close, retry, replacement and recreation; ensure exactly-once release of descriptors/players. Existing host/native opening regressions remain green.
 
-Branch: codex/claude-c003-preview-resource-ownership. PR: #115 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
+Branch: codex/claude-c003-preview-resource-ownership. PR: #115 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C004 — Bound thumbnail scheduling and cache identity
 
-**P1 · claimed · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U03, IMG6.
 
@@ -78,11 +78,11 @@ Source areas: `ui/components/FileThumbnail.kt`, `data/preview/FolderThumbnailRea
 
 **Validation.** Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.
 
-Branch: codex/claude-c004-thumbnail-bounds. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c004-thumbnail-bounds. PR: #116 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C005 — Persist analysis freshness and interrupted scan state
 
-**P1 · claimed · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: U05.
 
@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/claude-c005-analysis-freshness. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c005-analysis-freshness. PR: #118 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ## B — Image
 
@@ -382,7 +382,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C021 — Exercise large and hostile native PDF sessions
 
-**P0 · claimed · Owner: Claude Code · Review: Codex**
+**P0 · implementing · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C002. Scope: PDF1, PDF5.
 
@@ -396,7 +396,7 @@ Source areas: `data/preview/PdfDocumentSession.kt`, `data/preview/PdfPreviewHelp
 
 **Validation.** Native API28/34 page navigation, source loss/replacement and repeated disposal tests; record peak retained pages/bitmap allocations/FD closure. Distinguish password unsupported from generic corruption.
 
-Branch: codex/claude-c021-pdf-hostile-sessions. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c021-pdf-hostile-sessions. PR: #117 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
 
 ### C022 — Finish PDF reading modes and position restoration
 
@@ -476,7 +476,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C026 — Persist crash-recoverable editor drafts
 
-**P0 · assigned · Owner: Claude Code · Review: Codex**
+**P0 · claimed · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C003. Scope: EDT1.
 
@@ -490,7 +490,7 @@ Source areas: `ui/components/TextEditorSession.kt`, `domain/usecase/TextEditing.
 
 **Validation.** Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.
 
-Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c026-editor-drafts. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C027 — Strengthen revision-aware editor publication
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: codex/claude-c047-dependency-provenance. PR: #114 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: #114 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 

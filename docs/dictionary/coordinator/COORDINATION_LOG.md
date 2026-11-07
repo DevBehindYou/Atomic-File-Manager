@@ -82,3 +82,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 
 - C012 `codex/claude-c012-video-resume`: `area-media`, limited to `VideoPreviewContent.kt`, video resume persistence in `data/repository` and their tests and docs. C011 #109 is test-only, so nothing needs stacking. It doesn't touch #105's WAV workflow and test, or `AUDIO_PLAYER.md`.
 - C005 `codex/claude-c005-analysis-freshness`, by the coordinating session: `area-index-analysis` and `area-schema`. It starts with a source audit, then splits into a schema PR and consumer PRs. The legacy Codex PRs #46 and #47, which target `main`, are checked for overlap before any edit.
+
+## 2026-11-07T06:40Z UTC — C004 #116, C021 #117, C005 #118; hosted results; C026 claimed
+
+- Green on hosted CI: C003 #115 (CI `42338770980`, PDF native `42338770979` on API 28/34), C047 #114 (CI `42338530487`) and C004 #116 (CI `42339001426`). The coordinator reviewed the C004 and C021 production diffs. Merge trials are clean for C003+C021, C003+C004 and C002+C041.
+- C021 #117: CI `42339191576` passed. PDF native `42339191724` passed on API 28 but failed on API 34 (`repeatedDisposalReleasesEveryNativeDocument`, descriptor growth 12 across 12 reader lifetimes). The sub-agent is investigating whether it's a real leak or a platform fd its test counts, and will fix it on the same branch. Status is back to implementing.
+- C005 #118 (coordinator) is slice 1. Hosted CI is pending.
+- C026 `codex/claude-c026-editor-drafts` claimed for a parallel sub-agent. Area `area-editor-markdown`: editor drafts, history, `TextEditorDialog` and their tests and docs. No open PR overlaps it.
