@@ -2,6 +2,77 @@
 
 Evidence checked **26 October2026**; source `3aa7538fb1b2774fad63935bc6cb3cd206ef01cc`. Research/decision proposal only: no dependency, app source, permissions, device state or build configuration changed. The existing API27 floor, compileSdk36/AGP9.1.1 and native Kotlin/Compose/Atomic UI remain authoritative. Fixed modernization credit stays **0/42 host, 0/42 accepted; 0/8 whole plugins**.
 
+## Decision record refresh — 8 November 2026 (C023)
+
+**Status: proposed ADR for Codex and owner review.** Claude Code (Claude cloud), C023, base `40c39dd`. Official sources and artifacts were checked 7–8 November 2026. The sections below this one are the 26 October evaluation, kept as history. Their API27 statements are superseded: **the current floor is API28** (convention plugin `minSdk = 28`). No dependency, toolchain or app source change is committed by this record. The build probe below was temporary and uncommitted.
+
+### What changed since 26 October
+
+- **Atomic's reader:** source/revision session ownership is accepted (#91). C021 (#117, not yet merged) makes a password-protected or encrypted PDF a distinct `UnsupportedFormat(PDF_PASSWORD_PROTECTED)` with no futile Retry. It also adds 1,000-page, mixed-size and malformed native fixtures (API 28/34 11/11). Search, selection, links and password *entry* are still not implemented.
+- **Platform contract re-read** ([PdfRendererPreV](https://developer.android.com/reference/android/graphics/pdf/PdfRendererPreV), [LoadParams](https://developer.android.com/reference/android/graphics/pdf/LoadParams)): both are "Added in API level 35, also in S Extensions 13". `PdfRendererPreV(descriptor, LoadParams)` throws `SecurityException` for a wrong password or an unsupported security scheme. That's the same signal C021 maps today, so a password-entry adapter can reuse it.
+- **AndroidX PDF:** still **1.0.0-beta01, 26 August 2026** (Google Maven `maven-metadata.xml`, lastUpdated `20260826170416`), with no newer release. Per the [release notes](https://developer.android.com/jetpack/androidx/releases/pdf), beta01 adds page-streamed search and debounced input in `PdfViewerFragment`, an optional OCR provider (`pdf-ocr-play-services`, ML Kit), and experimental `PdfViewer`/annotation APIs behind `@ExperimentalPdfApi`.
+- **AndroidX PDF AAR metadata**, read from the published beta01 AARs:
+
+  | Artifact | AAR bytes | minSdk | minCompileSdk | minCompileSdkExtension | min AGP |
+  | --- | --- | --- | --- | --- | --- |
+  | pdf-viewer | 1,290,390 | 28 | 36 | 19 | 8.9.1 |
+  | pdf-viewer-fragment | 124,652 | 28 | 36 | 19 | 8.9.1 |
+  | pdf-core | 104,554 | 28 | 36 | 19 | 8.9.1 |
+  | pdf-document-service | 255,612 | 28 | 36 | 19 | 8.9.1 |
+  | pdf-compose | 57,409 | 28 | **37** | 0 | 9.1.0 |
+
+  None contains a native `.so`. **minSdk 28 now matches Atomic's floor**, so the older API27-fallback objection no longer applies. `pdf-compose` still needs compileSdk 37 and can't be adopted on the current toolchain.
+- **[PdfViewerFragment reference](https://developer.android.com/reference/androidx/pdf/viewer/fragment/PdfViewerFragment):** it still states that "every activity/fragment that uses this class has to be themed with Theme.AppCompat or a theme that extends that theme". Atomic's `Theme.Atomic` is a platform theme, so this is a scoped integration cost.
+- **MuPDF:** the latest upstream tag is now **1.28.6** (`git ls-remote` on ArtifexSoftware/mupdf). `maven.ghostscript.com` was refused by the cloud network policy, so the 1.28.6 AAR, POM and size weren't re-read. AGPL-or-commercial licensing is unchanged.
+- **PdfBox-Android:** the latest release is still **2.0.27.0, last updated 2 January 2023** (Maven Central metadata). There's been no release in almost four years, which strengthens the earlier "not recommended" call.
+
+### Isolated build probe (temporary, uncommitted)
+
+On base `89140e3`, in a scratch worktree:
+
+- **Without an extension:** adding `androidx.pdf:pdf-viewer-fragment:1.0.0-beta01` makes `:app:checkReleaseAarMetadata` fail under the current toolchain (compileSdk 36, no extension). All four View-based artifacts report that dependents "compile against an SDK with an extension level of 19 or higher".
+- **With `compileSdkExtension = 19`** (SDK package `platforms;android-36-ext19`) in the convention plugin, the check passes. That's a one-line toolchain change, not a compileSdk or AGP raise.
+- **Resolved release runtime graph:** 205 → 213 modules.
+  - New: Material Components 1.13.0, ConstraintLayout 2.1.0 and constraintlayout-core, CardView, CoordinatorLayout, graphics-shapes, and a **beta transitive `viewpager2:1.1.0-beta02`**.
+  - Bumped: recyclerview 1.4.0, customview 1.2.0, drawerlayout 1.1.1, autofill 1.3.0, annotation-experimental 1.5.1.
+  - No longer resolved: `documentfile:1.0.0`, `legacy-support-core-utils`, `print`, `localbroadcastmanager`. Any adoption must confirm that SAF code doesn't depend on those transitively.
+- **R8 release size**, with a temporary keep rule standing in for real use of `PdfViewerFragment`:
+
+  | | Base (`89140e3`) | With AndroidX PDF fragment |
+  | --- | --- | --- |
+  | APK bytes | 15,074,414 | 16,268,942 (**+1,194,528 B, +7.9%**) |
+  | `classes.dex` + `classes2.dex` | 13,663,688 | 14,278,128 (+614,440 B) |
+  | APK entries | 718 | 830 |
+
+  Real integration would differ, since resource shrinking and the actually used surface change the number. It's an order-of-magnitude cost, not a measured adoption.
+- **Build memory:** the first probe build failed with `OutOfMemoryError` in R8 under the repository's `org.gradle.jvmargs=-Xmx1536m`. It passed with `-Xmx8g`. Hosted workflows set `-Xmx3g`, but local and CI build memory still needs checking for any adoption.
+
+### Decision (proposed)
+
+1. **Keep option A as the first route:** the retained PdfRenderer raster plus platform capability adapters.
+   - Next PDF increment: password **entry** through `PdfRendererPreV` + `LoadParams` on API 35+, or S-extension ≥ 13. It reuses C021's distinct password state, with a session-only secret (no preferences, logs or saved state).
+   - Then read-only search, selection and links through `PdfRenderer.Page` on API 35–36 and `PdfRendererPreV.Page` on S-extension 13 devices.
+   - API 28–34 devices without the extension keep raster plus Open with.
+   - No new dependency, no toolchain change, no APK growth beyond app code.
+2. **Defer option B (AndroidX PDF fragment).** It's now technically reachable at API 28 with `compileSdkExtension = 19`. Its costs:
+   - about +1.1 MiB of APK;
+   - a beta artifact with a beta transitive;
+   - Material/AppCompat theme scoping;
+   - removal of four transitive modules from the resolved graph;
+   - higher R8 memory.
+
+   It's also not obviously better than option A on API 35+ devices, where the platform already exposes the same primitives. Re-evaluate when AndroidX PDF reaches stable, or if option A's adapters prove too costly to build.
+3. **Defer option C (bundled parser).** MuPDF stays AGPL or commercial, with unverified 1.28.6 artifacts. PdfBox-Android hasn't released since January 2023. Neither is adopted.
+
+### Unanswered and residual
+
+- MuPDF 1.28.6 artifact, ABI and size, and any exact-version advisories (host blocked).
+- AndroidX PDF's beta-to-stable timeline.
+- Whether the S-extension-13 PreV path behaves identically on real API 31–34 devices. The connected phone's extension level is still unread, and device checks are owner-deferred.
+- Text-bearing, password, scanned and malformed fixtures for the adapter, on API 28 (fallback), API 34 with and without the extension, and API 35+.
+
+No advanced-feature, performance or release claim follows from this record. PDF1–PDF5 requirements stay open in the [42-group matrix](PLUGIN_FEATURE_MATRIX.md).
+
 ## Existing bounded reader
 
 Atomic's [PdfDocumentSession](../../../app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/preview/PdfDocumentSession.kt) copies a selected source to a private seekable file, caps spooling at128MiB, serializes page rendering/close and caps raster allocation (default1600px request,2048px edge/four million pixels). [PdfPreviewHelper](../../../app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/preview/PdfPreviewHelper.kt) opens the original `PdfRenderer(ParcelFileDescriptor)` and supplies raster pages. [PdfPreviewContent](../../../app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/PdfPreviewContent.kt) owns page/jump/retry/zoom; its outer key and opening effect currently use identity only. Same-ID revision/helper ownership needs a frozen consumer before a bug/fix claim. Generic loader exception mapping also cannot distinguish a required/wrong password from every other opening failure. No text/password/annotation engine is currently wired.
