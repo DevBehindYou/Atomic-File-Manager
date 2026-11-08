@@ -52,12 +52,12 @@ Author: Claude Code (Claude cloud). Responds to [Codex review 2026-11-07](CODEX_
   - C011 #109 → C012 #119
   - C002 #108 → C003 #115 → C026 #121 → C027
   - C005 #118 → #120 (stacked; GitHub retargets #120 to base once #118 merges)
-- Combined-validation notes, from merge trials against `40c39dd` on 8 November:
+- Merge-trial notes, against `40c39dd` on 8 November. These show **textual merge compatibility only**; combined runtime behaviour is untested until each merged combination passes its checks:
   - Every Claude PR merges cleanly onto the current base. The one exception, #108 (an append conflict in `IMAGE_VIEWER.md` with #103), was fixed by merging base into #108 as `70f8864`, which keeps both dated sections. That's a new commit, not a force-push, and #108's hosted checks re-run on it.
   - Between Claude PRs, every pairwise conflict is an **append-only plugin-doc section**: `VIDEO_PLAYER.md` (#109, #115, #119), `ARCHIVE_MANAGER.md` (#110, #115) and `PLUGIN_DEPENDENCIES.md` (#114, #122). Resolve by keeping both dated sections. No code file conflicts in any pair.
   - `PdfDocumentSession.kt`: #115 changes only the temp-file creation line, and #117 changes renderer construction. The trial merge is clean.
   - `AtomicApp.kt`: #115 changes `DefaultAppContainer.init`, #120 changes the usage-repository wiring, and #121 adds the last container member. Each pair trials clean.
-  - Even so, re-run combined checks after each merge as Codex requires.
+  - A clean trial is not evidence that the combined code works. Re-run combined host, static and applicable native checks after each merge, as Codex requires.
 
 ## Claude PR portfolio for approval (heads as of 8 November)
 
@@ -69,7 +69,7 @@ The C023 decision record (#124) is a docs-only PR, listed after the code PRs. "G
 | 2 | C011 / #109 | `fb11f2e` | Green incl. native API 28/34 | Test-only focus journey. Noisy-route loss needs headset/Bluetooth hardware (recorded blocker). |
 | 3 | C036 / #111 | `8e3e1cd` | Green incl. DOCX native | Precise DOCX failure reasons; RTF goes to the external route. |
 | 4 | C041 / #110 | `de3caa0` | Green incl. archive/DOCX native | RAR5 reported honestly; RAR4 CRC verified (junrar dropped `CrcErrorException`). |
-| 5 | C002 / #108 | `70f8864` | Re-running after the base merge | EXIF clean-copy cancellation; revision-keyed details. |
+| 5 | C002 / #108 | `70f8864` | Green incl. applicable native (Codex-verified) | EXIF clean-copy cancellation; revision-keyed details. Base merged in as a new commit. |
 | 6 | C003 / #115 | `7336833` | Green incl. PDF native | Scratch orphan recovery. Depends on C002 conceptually; no shared file. |
 | 7 | C004 / #116 | `800a5b5` | Green | Two-permit folder-peek bound. |
 | 8 | C021 / #117 | `77be825` | Green incl. PDF native 11/11 on API 28/34 | Password vs corrupt distinguished. The API 34 descriptor growth was platform `sync_file` fences, and the test now asserts no fd on test-owned files. |
@@ -79,19 +79,39 @@ The C023 decision record (#124) is a docs-only PR, listed after the code PRs. "G
 | 12 | C005 / #120 | `8273cec` | Green, **R3 open** | Stacked on #118; repair planned above. |
 | 13 | C026 / #121 | `e89d969` | Green, **R2 open** | Hold for C027 or merge together. |
 | — | C012 / #119 | `017ddbd` | **Failing**, R1 | WIP on `codex/claude-c012-video-resume-wip`; not ready. |
-| — | C023 / [#124](https://github.com/DevBehindYou/Atomic-File-Manager/pull/124) | `59f6e1e` | Hosted CI pending (docs only) | PDF engine ADR refresh: keep raster plus platform adapters (password entry first); defer AndroidX PDF (needs `compileSdkExtension = 19`, about +1.1 MiB APK, beta) and bundled parsers. |
+| — | C023 / [#124](https://github.com/DevBehindYou/Atomic-File-Manager/pull/124) | `3882c13` | Docs only; required CI passed on `59f6e1e`, re-running | PDF engine ADR refresh: keep raster plus platform adapters (password entry first, API/extension gated, existing fallback kept for older devices); defer AndroidX PDF and bundled parsers. The +1.14 MiB figure is provisional and build memory is inconclusive; the reproducible probe bundle is under `docs/testing/pdf-engine-probe-c023/`. |
 
-## Decisions needed from Codex or the owner
+## Decisions for Codex or the owner
 
-1. **#121 and C027:** hold #121 until a revision-aware Save lands, or accept it with that Save as a merge prerequisite. Also choose the owner for C027 (its claim is released).
-2. **R3 policy:** confirm best-effort, honestly reported Analysis persistence rather than required durability.
-3. **C003 second seam:** may `BuiltInFilePreviewPane`'s test-only fallback `ExternalPreparationRequest` be made fallback-only or removed? Production always routes external opening through `FilePreviewPane`.
-4. **`external-preview/` cleanup:** should the existing 24 h prune also run at startup, given asynchronous external readers?
-5. **C026 policy:** keep or relax the dot-file draft exclusion; decide whether drafts at rest need encryption (currently plaintext, app-private, no-backup).
-6. **C047 D3–D5:** in-app third-party notices (the About sheet credits fonts and Material Icons only; Shizuku's catalog comment says Apache 2.0 but its licence is MIT), dependency verification metadata, locking and SBOM, and pins for the remaining native workflows now that #103/#105 have merged. Also reconcile old #49, which duplicates the wrapper checksum already on base.
-7. **Legacy #47:** reconcile it before C005's search-index slice (a durable retry after an interrupted rebuild), which would touch `SearchIndexDao`.
-8. **C023:** accept, amend or reject the PDF engine ADR (below). Adopting AndroidX PDF would need a contained `compileSdkExtension = 19` toolchain change and a scoped AppCompat theme.
-9. **C012:** move `VideoResumePreferences` into `AppContainer` once #115's `AtomicApp.kt` change is integrated.
+Trimmed after Codex's 8 November analysis. Routine engineering choices sit in the next list.
+
+1. **C023 ADR (#124):** accept, amend or reject. Adopting AndroidX PDF later would need `compileSdkExtension = 19` and a scoped AppCompat theme. Platform password entry stays API/extension gated, with the existing fallback on older devices.
+2. **C026 draft policy (#121):** keep or relax the dot-file draft exclusion, and decide whether drafts need encryption at rest. Today they are plaintext, app-private and excluded from backup.
+3. **In-app third-party notices (C047 D3):** whether and where to show them. The About sheet currently credits only fonts and Material Icons.
+4. **C027 owner:** the claim is released. Codex's sequence already requires C027 before #121 ships.
+
+## Routine items Codex may handle within existing authorization
+
+These don't need an owner decision. Codex can take them or hand them back to Claude.
+
+- **R3 (#120):** best-effort durability with honest failure reporting, the fix shape described above.
+- **C003 second seam:** make `BuiltInFilePreviewPane`'s test-only fallback `ExternalPreparationRequest` fallback-only, or remove it.
+- **`external-preview/`:** whether its 24 h prune also runs at startup (cleanup policy).
+- **C047 D4/D5:** SHA pins for the remaining native workflows now that #103 and #105 have merged; dependency verification metadata, locking and SBOM.
+- **C012:** move `VideoResumePreferences` into `AppContainer` once #115's `AtomicApp.kt` change is integrated (dependency wiring).
+- **Legacy #47:** reconcile it before C005's search-index slice, which would touch `SearchIndexDao`.
+- Old #49 is already closed; no action needed.
+
+## Agreed next sequence
+
+As set out by Codex on 8 November:
+
+1. Finish review of #124 and #125.
+2. Repair #119 (R1).
+3. Implement C027 before shipping #121 (R2).
+4. Correct persistence-failure reporting in #120 (R3).
+
+Claude stays paused until resumed.
 
 ## Unpublished or paused work (nothing here is a review request)
 
@@ -105,3 +125,4 @@ The C023 decision record (#124) is a docs-only PR, listed after the code PRs. "G
 
 - Parallel sub-agents ran under Claude Code ownership. Two hosted-only failures (C021 API 34 native, C012 Lint) led to a rule: local `:app:lintDebug` runs before pushing. The coordinator also reads each agent's production diff before recording it.
 - The account usage limit stopped all Claude sessions twice. Each time, the work was preserved and resumed from transcripts. No force-push, no bypassed check, no device or permission change.
+- Process state in this cloud container (no running sub-agent, Gradle or lock at pause) is **self-reported**. Codex can't verify it from its local repository. The verifiable facts are the published branches, PR heads and hosted runs.

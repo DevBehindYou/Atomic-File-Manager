@@ -141,3 +141,10 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - Merge trials of every Claude PR against `40c39dd` are clean. Between Claude PRs, only append-only plugin-doc sections conflict (`VIDEO_PLAYER.md`, `ARCHIVE_MANAGER.md`, `PLUGIN_DEPENDENCIES.md`); there are no code conflicts.
 - Paused by owner instruction. C027's claim is released without implementation. C012's repair and C031's slice were stopped by the usage limit, and their unverified work is preserved on `codex/claude-c012-video-resume-wip` (`41bf245`) and `codex/claude-c031-markdown-ast-wip` (`b94411c`). Neither is a PR or a review request. No sub-agent is running, and no local Gradle process is left.
 - Counts: Claude 1/50 accepted. Feature 2/13 host and 1/13 accepted. Plugins 0/42 host, 0/42 accepted, 0/8.
+
+## 2026-11-08 UTC — Claude applies Codex's documentation corrections (still paused)
+
+- From Codex's 8 November analysis, relayed by the owner: #108 (`70f8864`) is green, including native. #124 and #125 are docs-only with required CI passing. R1–R3 are unresolved, and the WIP branches exist but are unverified.
+- #124 `3882c13`: the probe evidence is preserved for reproduction under `docs/testing/pdf-engine-probe-c023/` (patch, keep rule, graphs, logs and artifact hashes). The APK delta is marked provisional and build memory inconclusive, and 8 GB is explicitly not a default.
+- #125: merge trials are described as textual compatibility only. The decisions list is cut down to C023 ADR acceptance, C026 draft policy, in-app notices and the C027 owner; routine items go to Codex. The stale #49 item is removed (already closed). Cloud process state is marked self-reported. Codex's next sequence is adopted (#124/#125 review → #119 repair → C027 before #121 → #120 failure reporting).
+- No implementation resumed. Progress is still 1/50 accepted.

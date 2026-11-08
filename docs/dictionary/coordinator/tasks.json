@@ -798,9 +798,11 @@
       "evidence": [
         "Decision record refresh in docs/plugins/modernization/PDF_ENGINE_EVALUATION.md (head 59f6e1e on 40c39dd), from official sources checked 7-8 Nov 2026: AndroidX PDF still 1.0.0-beta01 (26 Aug 2026); its view, fragment, core and document-service AARs declare minSdk 28, minCompileSdk 36, minCompileSdkExtension 19 (pdf-compose compileSdk 37); PdfRendererPreV/LoadParams are API 35 or S Extensions 13; PdfViewerFragment requires Theme.AppCompat; MuPDF latest tag 1.28.6 (Maven host blocked); PdfBox-Android last release 2.0.27.0 (2 Jan 2023).",
         "Uncommitted isolated probe on 89140e3: checkReleaseAarMetadata fails with compileSdk 36 and passes with compileSdkExtension 19; release graph 205 -> 213 modules (Material 1.13.0, beta viewpager2 transitive; documentfile and 3 others no longer resolved); R8 APK +1,194,528 B (+7.9%) with a keep rule standing in for use; R8 OOM under the repo's 1.5 GB heap.",
-        "Proposed: keep raster plus platform adapters (password entry first, then read-only search, selection and links); defer AndroidX PDF and bundled parsers."
+        "Proposed: keep raster plus platform adapters (password entry first, then read-only search, selection and links); defer AndroidX PDF and bundled parsers.",
+        "8 Nov, after Codex's analysis (head 3882c13): the reproducible probe bundle docs/testing/pdf-engine-probe-c023/ holds the patch (dependency, extension 19, keep rule), raw and normalized graphs, AAR-metadata logs, the 1.5 GB OOM excerpt, the 8 GB pass, and SHA-256 for both APKs and all five AARs. The APK delta is provisional (one keep-rule probe). Build memory is inconclusive (only 1.5 GB fail and 8 GB pass tried; practical heap untested); 8 GB is not proposed as a default."
       ],
       "remaining": [
+        "Re-measure the APK delta in a real integration, and test a practical serialized build heap (e.g. 3 GB) before any AndroidX PDF adoption.",
         "Codex or owner review of the ADR (#124); research-only, so it doesn't close any PDF capability.",
         "MuPDF 1.28.6 artifact/ABI/size/advisories unverified; S-extension behaviour on real API 31-34 devices unverified (device checks owner-deferred)."
       ],
@@ -1605,10 +1607,10 @@
         "D2: build-classpath-only advisories (incl. Kotlin Gradle Plugin 2.2.10, Bouncy Castle 1.79 in AGP tooling) re-evaluated with the next Kotlin/AGP raise.",
         "D3: owner decision on in-app third-party notices; Shizuku catalog comment says Apache 2.0 but POM/upstream is MIT.",
         "D4: pin the remaining native workflows (gif/audio after #103/#105 merge); node20 action majors one cluster at a time.",
-        "D5: Gradle dependency verification metadata/locking/SBOM needs a decision. Old PR #49 duplicates the wrapper checksum already on base (Codex reconciliation).",
+        "D5: Gradle dependency verification metadata/locking/SBOM needs a decision.",
         "Official GitHub docs/blog and api.osv.dev were unreachable from the cloud session; the pinning rationale rests on ls-remote evidence."
       ],
-      "last_updated": "2026-11-07"
+      "last_updated": "2026-11-08"
     },
     {
       "id": "C048",

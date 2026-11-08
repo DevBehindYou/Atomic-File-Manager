@@ -432,7 +432,7 @@ Source areas: `docs/plugins/modernization/PDF_ENGINE_EVALUATION.md`, `gradle/lib
 
 **Validation.** Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.
 
-Branch: codex/claude-c023-pdf-engine-decision. PR: #124 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-08.
+Branch: codex/claude-c023-pdf-engine-decision. PR: #124 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-08.
 
 ### C024 — Add supported PDF search and safe link/password flows
 
@@ -876,7 +876,7 @@ Source areas: `gradle/libs.versions.toml`, `build-logic`, `.github/workflows`, `
 
 **Validation.** Official-source date/URLs, resolved graph and licence records; static/unit/native/R8 checks affected by each change, APK size delta and existing release tamper guards. No secrets or private signing assets in outputs.
 
-Branch: codex/claude-c047-dependency-provenance. PR: #114 slice 1, #122 slice 2 (Guava D1). Evidence records: 6. Updated: 2026-11-07.
+Branch: codex/claude-c047-dependency-provenance. PR: #114 slice 1, #122 slice 2 (Guava D1). Evidence records: 6. Updated: 2026-11-08.
 
 ### C048 — Assemble stable plugin/provider/accessibility acceptance
 
