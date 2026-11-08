@@ -36,7 +36,7 @@ On base `89140e3`, in a scratch worktree:
   - New: Material Components 1.13.0, ConstraintLayout 2.1.0 and constraintlayout-core, CardView, CoordinatorLayout, graphics-shapes, and a **beta transitive `viewpager2:1.1.0-beta02`**.
   - Bumped: recyclerview 1.4.0, customview 1.2.0, drawerlayout 1.1.1, autofill 1.3.0, annotation-experimental 1.5.1.
   - No longer resolved: `documentfile:1.0.0`, `legacy-support-core-utils`, `print`, `localbroadcastmanager`. Any adoption must confirm that SAF code doesn't depend on those transitively.
-- **R8 release size**, with a temporary keep rule standing in for real use of `PdfViewerFragment`:
+- **R8 release size (provisional)**, with a temporary keep rule standing in for real use of `PdfViewerFragment`. It comes from a single run; the reproducible patch, graphs, logs and hashes are in the [probe evidence bundle](../../testing/pdf-engine-probe-c023/README.md):
 
   | | Base (`89140e3`) | With AndroidX PDF fragment |
   | --- | --- | --- |
@@ -45,7 +45,12 @@ On base `89140e3`, in a scratch worktree:
   | APK entries | 718 | 830 |
 
   Real integration would differ, since resource shrinking and the actually used surface change the number. It's an order-of-magnitude cost, not a measured adoption.
-- **Build memory:** the first probe build failed with `OutOfMemoryError` in R8 under the repository's `org.gradle.jvmargs=-Xmx1536m`. It passed with `-Xmx8g`. Hosted workflows set `-Xmx3g`, but local and CI build memory still needs checking for any adoption.
+- **Build memory: inconclusive.**
+  - Under the repository default `org.gradle.jvmargs=-Xmx1536m`, the probe failed once. `lintVitalAnalyzeRelease` and R8 both hit `OutOfMemoryError` in the same JVM.
+  - With `-Xmx8g` it passed. No heap in between was tried.
+  - The unchanged base release passed at the default.
+  - The failing run was serialized with other Gradle builds, but the host was shared with other agent activity.
+  - A practical heap, such as the 3 GB used by hosted workflows, still needs a serialized test. 8 GB is **not** proposed as a default.
 
 ### Decision (proposed)
 
@@ -55,11 +60,11 @@ On base `89140e3`, in a scratch worktree:
    - API 28–34 devices without the extension keep raster plus Open with.
    - No new dependency, no toolchain change, no APK growth beyond app code.
 2. **Defer option B (AndroidX PDF fragment).** It's now technically reachable at API 28 with `compileSdkExtension = 19`. Its costs:
-   - about +1.1 MiB of APK;
+   - about +1.1 MiB of APK (provisional; one keep-rule probe);
    - a beta artifact with a beta transitive;
    - Material/AppCompat theme scoping;
    - removal of four transitive modules from the resolved graph;
-   - higher R8 memory.
+   - possibly higher build memory (inconclusive; untested at a practical heap).
 
    It's also not obviously better than option A on API 35+ devices, where the platform already exposes the same primitives. Re-evaluate when AndroidX PDF reaches stable, or if option A's adapters prove too costly to build.
 3. **Defer option C (bundled parser).** MuPDF stays AGPL or commercial, with unverified 1.28.6 artifacts. PdfBox-Android hasn't released since January 2023. Neither is adopted.
