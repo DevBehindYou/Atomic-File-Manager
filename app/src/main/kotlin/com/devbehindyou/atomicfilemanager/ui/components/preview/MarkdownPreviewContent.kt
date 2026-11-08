@@ -166,82 +166,108 @@ private fun RenderedMarkdownView(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(blocks) { block ->
-            val line = block.text.trimEnd()
-            when {
-                block.code -> MarkdownCodeBlock(block.text)
-                line.startsWith("# ") -> {
-                    Text(
-                        text = line.removePrefix("# "),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                line.startsWith("## ") -> {
-                    Text(
-                        text = line.removePrefix("## "),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                line.startsWith("### ") -> {
-                    Text(
-                        text = line.removePrefix("### "),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                line.startsWith("- ") || line.startsWith("* ") -> {
-                    Row(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(text = "• ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = line.substring(2),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-                line.startsWith("> ") -> {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = line.removePrefix("> "),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontStyle = FontStyle.Italic,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp),
-                        )
-                    }
-                }
-                line.startsWith("---") || line.startsWith("***") -> {
-                    Spacer(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant),
-                    )
-                }
-                line.isBlank() -> {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                else -> {
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+        items(blocks) { block -> MarkdownBlockView(block) }
+    }
+}
+
+/** Containers become start padding; a quote keeps its tinted surface around each of its blocks. */
+@Composable
+private fun MarkdownBlockView(block: MarkdownBlock) {
+    val indent = Modifier.padding(start = (block.listDepth * LIST_INDENT_DP).dp)
+    if (block.quoteDepth > 0) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            shape = RoundedCornerShape(4.dp),
+            modifier = indent.fillMaxWidth(),
+        ) {
+            Box(
+                Modifier.padding(
+                    start = (QUOTE_INDENT_DP * block.quoteDepth).dp,
+                    top = 8.dp,
+                    end = 12.dp,
+                    bottom = 8.dp,
+                ),
+            ) {
+                MarkdownLeaf(block, quoted = true)
             }
+        }
+    } else {
+        Box(indent) { MarkdownLeaf(block, quoted = false) }
+    }
+}
+
+@Composable
+private fun MarkdownLeaf(
+    block: MarkdownBlock,
+    quoted: Boolean,
+) {
+    val marker = block.marker
+    if (marker == null) {
+        MarkdownLeafContent(block, quoted)
+    } else {
+        Row {
+            Text(text = "$marker ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            MarkdownLeafContent(block, quoted)
         }
     }
 }
+
+@Composable
+private fun MarkdownLeafContent(
+    block: MarkdownBlock,
+    quoted: Boolean,
+) {
+    when (block.kind) {
+        MarkdownBlockKind.Heading -> {
+            val style =
+                when (block.level) {
+                    1 -> MaterialTheme.typography.headlineMedium
+                    2 -> MaterialTheme.typography.titleLarge
+                    3 -> MaterialTheme.typography.titleMedium
+                    4 -> MaterialTheme.typography.titleSmall
+                    else -> MaterialTheme.typography.labelLarge
+                }
+            val colors = MaterialTheme.colorScheme
+            Text(
+                text = block.text,
+                style = style,
+                fontWeight = if (block.level <= 2) FontWeight.Bold else FontWeight.SemiBold,
+                color = if (block.level == 2) colors.primary else colors.onSurface,
+            )
+        }
+        MarkdownBlockKind.Code -> MarkdownCodeBlock(block.text)
+        MarkdownBlockKind.Raw -> {
+            // HTML blocks and reference definitions are disclosed as source, never interpreted.
+            Text(
+                text = block.text,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        MarkdownBlockKind.Rule -> {
+            Spacer(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+        }
+        MarkdownBlockKind.Paragraph -> {
+            Text(
+                text = block.text,
+                style = MaterialTheme.typography.bodyMedium,
+                fontStyle = if (quoted) FontStyle.Italic else FontStyle.Normal,
+                color = if (quoted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+private const val LIST_INDENT_DP = 16
+private const val QUOTE_INDENT_DP = 12
 
 @Composable
 private fun MarkdownCodeBlock(

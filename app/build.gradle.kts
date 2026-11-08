@@ -129,6 +129,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.androidx.exifinterface)
     implementation(libs.tink.android)
+    implementation(libs.commonmark)
 
     implementation(libs.hilt.android)
 

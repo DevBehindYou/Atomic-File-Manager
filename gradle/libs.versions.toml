@@ -59,6 +59,9 @@ xz = "1.10"
 media3 = "1.8.0"
 # Encrypted vault (ALL_IN_ONE_PLAN.md 2.5), Apache 2.0. Maven Central, checked 6 Oct 2026.
 tink = "1.23.0"
+# Markdown block parsing (C031), BSD-2-Clause, no runtime dependencies. 0.32.0 is the first release whose
+# core supports Android minSdk < 30 (0.24.0-0.31.0 call List.of). Maven Central, checked 7 Nov 2026.
+commonmark = "0.32.0"
 # Photo metadata view and clean copies (ALL_IN_ONE_PLAN.md 4.2). Picked without access to Google
 # Maven from the cloud session; CI resolves it.
 exifinterface = "1.4.1"
@@ -131,6 +134,7 @@ media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", versi
 media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
+commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
