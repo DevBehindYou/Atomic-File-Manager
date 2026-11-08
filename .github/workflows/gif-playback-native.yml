@@ -6,8 +6,12 @@ on:
     paths:
       - '.github/workflows/gif-playback-native.yml'
       - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/GifPlaybackDeviceTest.kt'
+      - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/ImageFocusedGestureDeviceTest.kt'
       - 'app/src/androidTest/assets/gif/**'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/ImageGallery.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/ImageTransformGeometry.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/ImageViewModes.kt'
+      - 'app/src/main/res/values/image_strings.xml'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/AnimatedGifImage.kt'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/preview/GifPreviewDecoder.kt'
 

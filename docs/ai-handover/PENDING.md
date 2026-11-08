@@ -1,5 +1,7 @@
 # Pending work and exit gates
 
+> **7 November 2026 reconciliation (Claude Code, C001):** TASK-101, TASK-102 and the PDF/DOCX/Archive parts of TASK-103 are superseded by accepted integration merges #101 `33152a5`, #89 `bf2f1ae`, #91 `956839c`, #92 `ac668e5` and #93 `76eff0c`. The image-fit candidate is superseded by Codex-owned PR #103. TASK-104 to TASK-107 remain open. The entries below are kept as dated history. See [C001 reconciliation](../dictionary/coordinator/C001_RECONCILIATION.md).
+
 Updated **4 November 2026**. This handover does not start implementation. Resume the following sequence when requested. Scope and fixed denominators remain in the feature and plugin ledgers; these tasks are continuation slices, not new percentage units.
 
 ## TASK-101 - Accept the current GIF repair
