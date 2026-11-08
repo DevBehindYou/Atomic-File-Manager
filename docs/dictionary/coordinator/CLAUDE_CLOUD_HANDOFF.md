@@ -74,3 +74,18 @@ Each PR branch carries its evidence record under `docs/testing/`:
 - Linked worktrees under `C:/Users/temp/Documents/GitHub/afm-claude/` (`c001`, `c002`, `c011`, `c036`, `c007`). All work in them is committed and pushed. The `c011` worktree's branch is now `codex/claude-c041-rar5-honest-errors`.
 - RAR5 fixtures came from the local `Rar.exe` 7.23. Their bytes are embedded as Base64 in `ArchiveRarVariantsTest`, so no tool is needed to rerun the tests.
 - The primary checkout (`codex/beta-0.2.0`), the user artwork `docs/design/icon-variations/`, ignored tools and signing backups were not touched.
+
+## Paused for Codex approval — 8 November 2026
+
+Claude cloud is paused at the owner's request. Read [the review response](CLAUDE_REVIEW_RESPONSE_2026-11-08.md) first; it supersedes the PR table above for current heads and states.
+
+Resume checklist (only after the owner or Codex un-pauses Claude):
+
+1. Fetch. Re-read the latest Codex review, comments and log entries, then re-trial every open Claude PR against the current integration head.
+2. Repair the findings in this order, each on its existing branch with new commits:
+   - R1 on #119: start from `codex/claude-c012-video-resume-wip` only after re-verifying it.
+   - R3 on #120.
+   - R2 through C027, but only if Codex assigns it to Claude.
+3. Resume C031 from `codex/claude-c031-markdown-ast-wip`: verify locally, assess the dependency, then open a PR.
+4. Run at most two sub-agents. Serialize local Gradle (`flock`) and require local `:app:lintDebug`. Read each agent's production diff before recording it.
+5. Cloud tooling: the session environment "Atomic-File-Manager" allows `dl.google.com`, so the Android SDK can be installed at `/root/android-sdk`. R8 release builds may need more than the repository's 1.5 GB Gradle heap when large dependencies are probed.

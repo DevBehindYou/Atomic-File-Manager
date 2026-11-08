@@ -42,7 +42,7 @@ Source areas: `data/preview`, `domain/usecase`, `ui/components/preview`.
 
 **Validation.** Use dispatcher assertions and suspended fake streams for cancellation, denied reads and source replacement. Run affected opening/preview consumers and static checks; retain a failing reproduction for each defect.
 
-Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
+Branch: codex/claude-c002-preview-io-cancellation. PR: #108 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-08.
 
 ### C003 — Clarify preview resource ownership without a framework migration
 
@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 5. Updated: 2026-11-07.
+Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 5. Updated: 2026-11-08.
 
 ## B — Image
 
@@ -228,7 +228,7 @@ Source areas: `ui/components/preview/VideoPreviewContent.kt`, `data/repository`.
 
 **Validation.** Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.
 
-Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
+Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-08.
 
 ### C013 — Complete accessible transport and fullscreen controls
 
@@ -418,7 +418,7 @@ Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-07.
 
 ### C023 — Refresh the PDF engine feasibility decision
 
-**P1 · claimed · Owner: Claude Code · Review: Codex**
+**P1 · host_verified · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C021. Scope: PDF3, PDF4.
 
@@ -432,7 +432,7 @@ Source areas: `docs/plugins/modernization/PDF_ENGINE_EVALUATION.md`, `gradle/lib
 
 **Validation.** Minimal isolated prototype and resolved dependency/licence inventory, API28/34 functional fixtures and APK delta. Record unanswered security/redistribution concerns; no advanced-feature claims from dependency presence.
 
-Branch: codex/claude-c023-pdf-engine-decision. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c023-pdf-engine-decision. PR: #124 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-08.
 
 ### C024 — Add supported PDF search and safe link/password flows
 
@@ -490,11 +490,11 @@ Source areas: `ui/components/TextEditorSession.kt`, `domain/usecase/TextEditing.
 
 **Validation.** Fault injection between each draft write phase, restart/corrupt-draft/source-change tests, bounded write counts and original hashes. Physical process-kill tests require appropriate owned-fixture authorization.
 
-Branch: codex/claude-c026-editor-drafts. PR: #121 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c026-editor-drafts. PR: #121 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-08.
 
 ### C027 — Strengthen revision-aware editor publication
 
-**P0 · claimed · Owner: Claude Code · Review: Codex**
+**P0 · assigned · Owner: Claude Code · Review: Codex**
 
 Dependencies: C001, C026. Scope: EDT1, EDT6, U13.
 
@@ -508,7 +508,7 @@ Source areas: `domain/usecase/TextEditing.kt`, `data/backend`, `editor UI`.
 
 **Validation.** Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.
 
-Branch: codex/claude-c027-editor-publication. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: unclaimed. PR: none. Evidence records: 0. Updated: 2026-11-08.
 
 ### C028 — Add a bounded large-text read-only path
 
@@ -582,7 +582,7 @@ Source areas: `ui/components/preview/MarkdownBlocks.kt`, `Markdown parser adapte
 
 **Validation.** Conformance corpus and bounded nested/large input cases, malformed syntax, raw disclosure and cancellation. Keep unsupported footnotes/extensions explicit and preserve native rendering security.
 
-Branch: codex/claude-c031-markdown-ast. PR: none. Evidence records: 0. Updated: 2026-11-07.
+Branch: codex/claude-c031-markdown-ast. PR: none. Evidence records: 1. Updated: 2026-11-08.
 
 ### C032 — Resolve relative assets and links safely
 
