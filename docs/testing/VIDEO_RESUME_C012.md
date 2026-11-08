@@ -27,7 +27,8 @@ Two mutations were also run against the new code. Turning the STOP checkpoint in
   - Storage is the private SharedPreferences file `atomic_video_resume`. It keeps one entry per source, keyed by SHA-256 of the source id, so no path or account name is stored.
   - Values are versioned JSON capped at 256 characters. Position must be 0 to 7 days, speed 0.25 to 4×, and anything else is dropped.
   - The store keeps at most **200** entries and evicts the least recently written. Reading a different revision of the same source removes the stale entry.
-  - Writes are queued on an injected IO dispatcher and collapse per key. A queued value is visible to `read` at once, so a recreated viewer never reads behind its predecessor's last write.
+  - `read` loads the file on an injected IO dispatcher. After that, `save` and `forget` only edit the framework's in-memory map and `apply()` it, so disk writes stay asynchronous and off the main thread. A write that arrives before any read loads the file on IO first.
+  - All instances in a process share the framework's one map for the file. A recreated viewer therefore never reads behind its predecessor's last write, and the store keeps no process-wide state of its own.
 - `ui/components/preview/VideoResumeSession.kt` holds the policy:
   - It decides the start point once, when a player is created. A recomposition reuses the same session and never seeks again.
   - Explicit checkpoints write only real changes. Play/pause and speed are always written. A position change is written only if it is at least 1 s.
@@ -36,9 +37,9 @@ Two mutations were also run against the new code. Turning the STOP checkpoint in
   - A saved point the file can no longer reach is not applied and is forgotten.
 - `VideoPreviewContent.kt` does the wiring:
   - It reads the saved state for the exact revision before the player exists.
-  - It passes the restored play/pause request through the existing autoplay policy, and seeks and sets speed only on the newly created player.
+  - It passes the restored play/pause request through the existing autoplay policy, and seeks and sets speed only on the newly created player. This happens in a `DisposableEffect(player)` that runs before the recorder attaches, so restoring is never itself recorded.
   - It records on play/pause change, speed change, `STATE_ENDED`, lifecycle `ON_STOP` (STOP comes before any background process death), every 15 s while playing, and disposal. Disposal runs before the shared player is released.
-- `PreviewPlayer.kt`, `MediaPreviewHelper.kt` and `AtomicApp.kt` are unchanged. The store is reached through `VideoResumePreferences.shared(context)`, one instance per Application, as a default argument. Moving it onto the manual `AppContainer` is left for after C003 releases `AtomicApp.kt`.
+- `PreviewPlayer.kt`, `MediaPreviewHelper.kt` and `AtomicApp.kt` are unchanged. The preview's default argument creates its own `VideoResumePreferences(application)`, and tests inject their own store. Moving it onto the manual `AppContainer` is left for after C003 releases `AtomicApp.kt`.
 - The stored play/pause follows the accepted STOP policy. STOP pauses the preview, so a preview recovered after a background kill opens paused at its position, and foregrounding still never restarts playback.
 
 ## Validation (local, serialized Gradle)
@@ -87,11 +88,30 @@ The device test generates a 20 s app-private PCM WAV and plays it through `Video
 4. Replaces the file at the same path with 12 s of audio and a newer time, and asserts the replacement plays from the start.
 5. Removes only its own files and resume entries.
 
-PCM is not a video codec, so this is decoded-resume evidence and not codec acceptance. Results are pending on the PR head.
+PCM is not a video codec, so this is decoded-resume evidence and not codec acceptance.
+
+| Head | Run | Result |
+| --- | --- | --- |
+| `017ddbd` | [42340397852](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42340397852) | `video-resume (28)` **success**, `video-resume (34)` **success** |
+
+## Lint fix on the second commit
+
+On head `017ddbd`, hosted Static analysis (run 42340397793) failed Android Lint for both `lintDebug` and `lintRelease`. The error was `VideoPreviewContent.kt:180: remember calls must not return Unit [RememberReturnType]`, caused by the one-time seek/speed side effect inside `remember(player)`.
+
+That side effect now runs in `DisposableEffect(player)`, which still runs once per new player. Behaviour and test counts are unchanged. There is no baseline and no suppression.
+
+The fix was rerun locally under the same lock:
+
+| Command | Result |
+| --- | --- |
+| `./gradlew :app:ktlintCheck :app:detekt :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` with the same four filters as above | BUILD SUCCESSFUL, 79 tests, 0 failed |
+| `./gradlew :app:lintDebug` | LINT_RESULT |
+
+The native workflow reruns on the new head because `VideoPreviewContent.kt` changed.
 
 ## Still open
 
-- Hosted CI and the new native workflow on the PR head, and Codex review.
+- Hosted Static analysis and the native rerun on the lint-fix head, and Codex review.
 - The preview dialog's open state is held in a plain `remember` in Browse, Category, Search and Home, so a real activity rotation still closes the preview. The resume point makes the reopened video continue where it was, but keeping the dialog open across rotation is host-screen work outside this slice.
 - Wiring `VideoResumePreferences` into `AppContainer` is waiting on `AtomicApp.kt`, which is held by C003.
 - PlayerView has no aspect or resize control, so speed is the only viewing mode restored. Subtitle and track selection, PiP and real video-codec fixtures stay under VID-T02 and VID-T04.

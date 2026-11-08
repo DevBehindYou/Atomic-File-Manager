@@ -83,7 +83,7 @@ fun VideoPreviewContent(
 @Composable
 private fun rememberVideoResumeMemory(): VideoResumeMemory {
     val application = LocalContext.current.applicationContext
-    return remember(application) { VideoResumePreferences.shared(application) }
+    return remember(application) { VideoResumePreferences(application) }
 }
 
 /** A prepared source and the resume point read for its exact revision before the player exists. */
@@ -177,11 +177,13 @@ private fun VideoPlayerView(
     val start = session?.start
     val player = rememberPreviewPlayer(media.playbackUri, playWhenReady = start?.playWhenReady ?: true, onRelease = {})
     // Only a newly created player is positioned; recomposing the same preview never seeks again.
-    remember(player) {
+    // This runs before the recorder below attaches, so restoring is never itself recorded.
+    DisposableEffect(player) {
         start?.let {
             player.seekTo(it.positionMs)
             player.setPlaybackSpeed(it.speed)
         }
+        onDispose {}
     }
     if (session != null) RecordVideoResume(player, session)
 

@@ -45,4 +45,4 @@ The Video preview now restores the intentional position, play/pause request and 
 
 State lives in a bounded, private SharedPreferences store (`VideoResumePreferences`, 200 entries, SHA-256 keys, versioned codec). Writes happen on pause/speed/end/STOP/close and at most every 15 s while playing, and seeking alone never writes. The shared player, staging helper and STOP pause policy are unchanged.
 
-The [C012 record](../testing/VIDEO_RESUME_C012.md) has the 2/2 failing base control, 79 passing host cases and the new API 28/34 `video-resume-native.yml` decoded-PCM journey (pending). Rotation still closes the preview dialog in host screens, and AppContainer wiring waits on C003. These are open items, not accepted behavior. Plugin version stays v0.2.
+The [C012 record](../testing/VIDEO_RESUME_C012.md) has the 2/2 failing base control, 79 passing host cases and the new API 28/34 `video-resume-native.yml` decoded-PCM journey, which passed on API 28 and API 34 in run 42340397852 on head `017ddbd`. Rotation still closes the preview dialog in host screens, and AppContainer wiring waits on C003. These are open items, not accepted behavior. Plugin version stays v0.2.

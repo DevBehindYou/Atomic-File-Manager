@@ -17,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28, 34], application = Application::class)
@@ -32,7 +33,7 @@ class VideoResumePreferencesTest {
     ) = VideoResumePreferences(app, io = Dispatchers.Unconfined, clock = clock, maxEntries = max)
 
     @Test
-    fun aSavedStateSurvivesIntoTheNextProcessForTheSameRevision() =
+    fun aSavedStateIsReadBackByAnotherInstanceForTheSameRevision() =
         runTest {
             store().save(sftp, VideoResumeState(61_500, playWhenReady = false, speed = 1.25f))
             assertEquals(VideoResumeState(61_500, false, 1.25f), store().read(sftp))
@@ -105,23 +106,41 @@ class VideoResumePreferencesTest {
         }
 
     @Test
-    fun queuedWritesAreReadBackImmediatelyAndCollapseIntoTheLatest() =
+    fun aLoadedStoreWritesInMemoryAtOnceAndEveryInstanceSeesIt() =
         runTest {
             val io = StandardTestDispatcher(testScheduler)
-            val store = VideoResumePreferences(app, io = io)
-            repeat(5) { store.save(sftp, VideoResumeState(10_000L + it * 1_000, true)) }
-            assertFalse(
-                "Nothing has reached SharedPreferences yet",
-                prefs.contains(VideoResumePreferences.keyOf(sftp.source)),
-            )
-            assertEquals(14_000L, store.read(sftp)?.positionMs)
-            store.forget(sftp)
-            assertNull(store.read(sftp))
-            testScheduler.advanceUntilIdle()
+            val viewer = VideoResumePreferences(app, io = io)
+            assertNull("Loading happens on the injected dispatcher", viewer.read(sftp))
+            repeat(5) { viewer.save(sftp, VideoResumeState(10_000L + it * 1_000, true)) }
+            // No dispatch is needed once loaded, so a recreated viewer can never read behind.
+            assertEquals(14_000L, VideoResumePreferences(app, io = io).read(sftp)?.positionMs)
+            viewer.forget(sftp)
+            assertNull(VideoResumePreferences(app, io = io).read(sftp))
             assertTrue(prefs.all.isEmpty())
-            store.save(sftp, VideoResumeState(15_000, false))
+        }
+
+    @Test
+    fun aWriteBeforeAnyReadLoadsTheFileOnTheInjectedDispatcherFirst() =
+        runTest {
+            val io = StandardTestDispatcher(testScheduler)
+            val early = VideoResumePreferences(app, io = io)
+            early.save(sftp, VideoResumeState(15_000, false))
+            assertFalse("Nothing ran on the caller thread", prefs.contains(VideoResumePreferences.keyOf(sftp.source)))
             testScheduler.advanceUntilIdle()
             assertEquals(VideoResumeState(15_000, false), VideoResumePreferences(app, io = io).read(sftp))
+        }
+
+    @Test
+    fun appliedEntriesReachTheFileOnDiskWithoutTheSourceName() =
+        runTest {
+            store().save(sftp, VideoResumeState(61_500, playWhenReady = false, speed = 1.25f))
+            val file = File(app.dataDir, "shared_prefs/${VideoResumePreferences.FILE_NAME}.xml")
+            val deadline = System.nanoTime() + 5_000_000_000
+            while (!(file.isFile && file.readText().contains(VideoResumePreferences.keyOf(sftp.source)))) {
+                assertTrue("apply() must reach disk", System.nanoTime() < deadline)
+                Thread.sleep(10)
+            }
+            assertFalse(file.readText().contains("nas"))
         }
 
     @Test

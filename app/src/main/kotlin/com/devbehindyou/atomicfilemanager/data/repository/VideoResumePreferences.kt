@@ -10,8 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 
@@ -19,32 +17,41 @@ import java.security.MessageDigest
  * Video resume points in a small private SharedPreferences file, following [FolderSortPreferences]:
  * one entry per source, keyed by a SHA-256 of the source id so no path or account name is stored,
  * holding the revision it was saved for. Capped at [maxEntries]; past that the least recently
- * written entries are evicted. Writes are queued off the caller's thread; a queued value is
- * visible to [read] at once, so a recreated viewer never reads behind its predecessor's last save.
+ * written entries are evicted.
+ *
+ * The file is loaded by [read] on [io]. Once loaded, [save] and [forget] only edit the
+ * framework's in-memory map and `apply()` it, which writes to disk asynchronously, so they are
+ * safe on the main thread. Every instance in a process shares the framework's one map for this
+ * file, so a recreated viewer never reads behind its predecessor's last save, and nothing here
+ * is process-wide state of its own.
  */
 class VideoResumePreferences(
-    context: Context,
+    private val context: Context,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
     private val maxEntries: Int = MAX_ENTRIES,
 ) : VideoResumeMemory {
-    private val prefs: SharedPreferences by lazy { context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE) }
-    private val access = Mutex()
-    private val writes = CoroutineScope(SupervisorJob() + io)
+    @Volatile private var loaded: SharedPreferences? = null
 
-    /** Hashed key to encoded value ([REMOVED] for a removal) not yet handed to SharedPreferences. */
-    private val pending = HashMap<String, String>()
+    /** Only for a write that arrives before any read has loaded the file. */
+    private val lateLoad by lazy { CoroutineScope(SupervisorJob() + io) }
+
+    private suspend fun prefs(): SharedPreferences =
+        loaded ?: withContext(io) {
+            context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE).also {
+                it.contains(FILE_NAME) // Blocks until the file is loaded, here on IO.
+                loaded = it
+            }
+        }
 
     override suspend fun read(revision: VideoRevision): VideoResumeState? {
+        val prefs = prefs()
         val key = keyOf(revision.source)
-        val raw =
-            synchronized(pending) { pending[key] }
-                ?: access.withLock { withContext(io) { prefs.getString(key, null) } }
-        if (raw == null || raw == REMOVED) return null
+        val raw = prefs.getString(key, null) ?: return null
         val entry = VideoResumeCodec.decode(raw)
         if (entry == null || entry.modifiedAt != revision.modifiedAt || entry.size != revision.size) {
             // Corrupt, or saved for a file that has since been replaced: never resume into it.
-            removeIfStill(key, raw)
+            synchronized(this) { if (prefs.getString(key, null) == raw) prefs.edit().remove(key).apply() }
             return null
         }
         return entry.state
@@ -55,51 +62,33 @@ class VideoResumePreferences(
         state: VideoResumeState,
     ) {
         if (!VideoResumeCodec.isValid(state)) return forget(revision)
-        val entry = VideoResumeEntry(revision.modifiedAt, revision.size, state, clock())
-        enqueue(keyOf(revision.source), VideoResumeCodec.encode(entry))
+        val value = VideoResumeCodec.encode(VideoResumeEntry(revision.modifiedAt, revision.size, state, clock()))
+        edit { prefs ->
+            val key = keyOf(revision.source)
+            val editor = prefs.edit()
+            if (!prefs.contains(key)) evictForOneMore(prefs, editor)
+            editor.putString(key, value).apply()
+        }
     }
 
-    override fun forget(revision: VideoRevision) = enqueue(keyOf(revision.source), REMOVED)
+    override fun forget(revision: VideoRevision) = edit { it.edit().remove(keyOf(revision.source)).apply() }
 
-    private fun enqueue(
-        key: String,
-        value: String,
-    ) {
-        synchronized(pending) { pending[key] = value }
-        writes.launch { flush(key) }
-    }
-
-    /** A save queued after [stale] was read belongs to the current revision and wins. */
-    private fun removeIfStill(
-        key: String,
-        stale: String,
-    ) {
-        val replaced =
-            synchronized(pending) {
-                val queued = pending[key]
-                (queued == null || queued == stale).also { if (it) pending[key] = REMOVED }
-            }
-        if (replaced) writes.launch { flush(key) }
-    }
-
-    /** Several queued values for one key collapse into a single SharedPreferences edit. */
-    private suspend fun flush(key: String) =
-        access.withLock {
-            withContext(io) {
-                val value = synchronized(pending) { pending[key] } ?: return@withContext
-                val editor = prefs.edit()
-                if (value == REMOVED) {
-                    editor.remove(key)
-                } else {
-                    if (!prefs.contains(key)) evictForOneMore(editor)
-                    editor.putString(key, value)
-                }
-                editor.apply()
-                synchronized(pending) { if (pending[key] === value) pending.remove(key) }
+    private fun edit(change: (SharedPreferences) -> Unit) {
+        val prefs = loaded
+        if (prefs != null) {
+            synchronized(this) { change(prefs) }
+        } else {
+            lateLoad.launch {
+                val late = prefs()
+                synchronized(this@VideoResumePreferences) { change(late) }
             }
         }
+    }
 
-    private fun evictForOneMore(editor: SharedPreferences.Editor) {
+    private fun evictForOneMore(
+        prefs: SharedPreferences,
+        editor: SharedPreferences.Editor,
+    ) {
         val all = prefs.all
         val excess = all.size - maxEntries + 1
         if (excess <= 0) return
@@ -112,25 +101,6 @@ class VideoResumePreferences(
     companion object {
         const val FILE_NAME = "atomic_video_resume"
         const val MAX_ENTRIES = 200
-        private const val REMOVED = ""
-
-        private var shared: VideoResumePreferences? = null
-        private var sharedOwner: Context? = null
-
-        /**
-         * The one store for this process until the manual AppContainer exposes it, so every
-         * viewer shares a single write queue. A new Application (tests) gets a new store.
-         */
-        fun shared(context: Context): VideoResumePreferences {
-            val application = context.applicationContext
-            return synchronized(this) {
-                shared?.takeIf { sharedOwner === application }
-                    ?: VideoResumePreferences(application).also {
-                        shared = it
-                        sharedOwner = application
-                    }
-            }
-        }
 
         internal fun keyOf(source: String): String =
             MessageDigest.getInstance("SHA-256")

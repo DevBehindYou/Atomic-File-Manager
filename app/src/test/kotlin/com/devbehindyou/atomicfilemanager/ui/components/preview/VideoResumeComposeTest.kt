@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -225,9 +226,9 @@ class VideoResumeComposeTest {
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         compose.waitForIdle()
         assertEquals(1, memory.saves)
-        // A new store over the same file stands in for the next process: nothing is held in memory.
-        val nextProcess = VideoResumePreferences(app, io = Dispatchers.Unconfined)
-        val restored = runBlocking { nextProcess.read(revision()) }
+        // The next viewer's own store instance reads what STOP recorded (disk is covered by the store test).
+        val nextViewer = VideoResumePreferences(app, io = Dispatchers.Unconfined)
+        val restored = runBlocking { nextViewer.read(revision()) }
         assertNotNull(restored)
         assertEquals(33_000.0, restored!!.positionMs.toDouble(), TOLERANCE_MS)
         assertFalse("The recovered preview opens paused", restored.playWhenReady)
@@ -306,10 +307,31 @@ class VideoResumeComposeTest {
 
     private fun awaitPlayer(accept: (Player) -> Boolean = { true }): Player {
         var found: Player? = null
-        compose.waitUntil(10_000) {
-            shadowOf(Looper.getMainLooper()).idle()
-            found = playerView(compose.activity.window.decorView)?.player?.takeIf(accept)
-            found != null
+        try {
+            compose.waitUntil(10_000) {
+                shadowOf(Looper.getMainLooper()).idle()
+                val views = playerViews(compose.activity.window.decorView)
+                if (views.size > 1) {
+                    println(
+                        "DIAG c012 views=" + views.map { "a=${it.isAttachedToWindow} p=${it.player}" },
+                    )
+                }
+                found = views.firstNotNullOfOrNull { it.player?.takeIf(accept) }
+                found != null
+            }
+        } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+            val views = playerViews(compose.activity.window.decorView)
+            val preparing = compose.onAllNodesWithText(app.getString(R.string.video_preview_preparing))
+            val retry = compose.onAllNodesWithContentDescription(app.getString(R.string.action_retry))
+            val described = views.map { "attached=${it.isAttachedToWindow} player=${it.player}" }
+            Thread.getAllStackTraces().forEach { (thread, stack) ->
+                println("DIAG c012 thread ${thread.name} ${thread.state} " + stack.take(6).joinToString(" < "))
+            }
+            throw AssertionError(
+                "No accepted player. views=$described preparing=${preparing.fetchSemanticsNodes().size} " +
+                    "retry=${retry.fetchSemanticsNodes().size}",
+                timeout,
+            )
         }
         return found!!
     }
@@ -323,10 +345,12 @@ class VideoResumeComposeTest {
             }
         }
 
-    private fun playerView(view: View): PlayerView? =
-        view as? PlayerView ?: (view as? ViewGroup)?.let { group ->
-            (0 until group.childCount).firstNotNullOfOrNull { playerView(group.getChildAt(it)) }
-        }
+    private fun playerView(view: View): PlayerView? = playerViews(view).firstOrNull()
+
+    private fun playerViews(view: View): List<PlayerView> =
+        (view as? PlayerView)?.let(::listOf) ?: (view as? ViewGroup)?.let { group ->
+            (0 until group.childCount).flatMap { playerViews(group.getChildAt(it)) }
+        }.orEmpty()
 
     /** The real store, counting what the preview asks of it after the fixture was seeded. */
     private class CountingMemory(private val store: VideoResumePreferences) : VideoResumeMemory {
