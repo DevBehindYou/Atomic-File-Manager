@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class StorageUsageLastResultTest {
+    private val root = File("storage-usage-last-result").absolutePath
     private val plans = AtomicInteger()
     private val listings = AtomicInteger()
     private val block = AtomicBoolean(false)
@@ -121,6 +122,4 @@ class StorageUsageLastResultTest {
     ) = StorageVolumeInfo(
         id, id, StorageType.INTERNAL_SHARED, 1_000, 100, false, true, FileNodeId.file(File(root, id).path), requiresGrant,
     )
-
-    private val root = File("storage-usage-last-result").absolutePath
 }
