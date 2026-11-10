@@ -62,3 +62,5 @@ All runs are local Robolectric (SDK 36) or plain JVM, under the shared Gradle lo
 ## 10 November 2026 — persistence failure handling
 
 The scan can finish in memory when preferences reject a commit or the store throws. Analysis shows that the history could not be saved. The warning follows the matching storage selection and survives an in-process cache hit. A successful refresh clears it. A restored interrupted marker means there is no saved final result, since a completed scan can also fail to save. The existing tests model process restart without touching user storage. New checks exercise rejected writes, throwing writes and recovery on retry.
+
+The Windows run found existing fake paths built with Unix separators, which caused the scanner to skip synthetic files and report partial results. Both stacked PRs now construct the same fixture paths with the host separator. Production path handling and the assertions are unchanged.

@@ -21,11 +21,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Each new [StorageUsageRepository] over the same [store] stands for a new process. */
 class StorageUsagePersistenceTest {
+    private val root = File("storage-usage-persistence").absolutePath
     private val store = MemoryStore()
     private val volumes = listOf(volume("primary", requiresGrant = false))
 
@@ -186,7 +188,7 @@ class StorageUsagePersistenceTest {
                 object : StorageUsageSource {
                     override suspend fun plan(volumes: List<StorageVolumeInfo>): StorageUsagePlan {
                         plans.incrementAndGet()
-                        return StorageUsagePlan("primary", listOf(ROOT), StorageCapacity(1_000, 100, 1), 0)
+                        return StorageUsagePlan("primary", listOf(root), StorageCapacity(1_000, 100, 1), 0)
                     }
 
                     override fun list(directory: String) =
@@ -196,7 +198,7 @@ class StorageUsagePersistenceTest {
                                 blocked.complete(Unit)
                                 awaitCancellation()
                             }
-                            val entry = StorageUsageEntry("$ROOT/a.pdf", "a.pdf", 600, false, false)
+                            val entry = StorageUsageEntry(File(root, "a.pdf").path, "a.pdf", 600, false, false)
                             emit(FileResult.Success(listOf(entry)))
                         }
                 },
@@ -229,10 +231,6 @@ class StorageUsagePersistenceTest {
         id: String,
         requiresGrant: Boolean,
     ) = StorageVolumeInfo(
-        id, id, StorageType.INTERNAL_SHARED, 1_000, 100, false, true, FileNodeId.file("$ROOT/$id"), requiresGrant,
+        id, id, StorageType.INTERNAL_SHARED, 1_000, 100, false, true, FileNodeId.file(File(root, id).path), requiresGrant,
     )
-
-    private companion object {
-        const val ROOT = "/storage/usage-persistence"
-    }
 }
