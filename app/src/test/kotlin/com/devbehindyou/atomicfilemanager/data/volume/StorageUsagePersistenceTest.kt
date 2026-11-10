@@ -105,7 +105,29 @@ class StorageUsagePersistenceTest {
             assertNull(process.repository.restore(volumes))
             val final = process.repository.scan(volumes, refresh = true).toList().last()
             assertEquals(StorageUsagePhase.COMPLETE, final.phase)
+            assertTrue(final.persistenceFailed)
             assertEquals(final.current, process.repository.lastResult(volumes)?.lastGood)
+            assertTrue(checkNotNull(process.repository.lastResult(volumes)).persistenceFailed)
+        }
+
+    @Test
+    fun aRejectedCommitKeepsTheResultInMemoryAndASuccessfulRefreshClearsTheWarning() =
+        runBlocking {
+            val process = Process()
+            store.rejectWrites.set(true)
+            val result = process.repository.scan(volumes, refresh = true).toList().last()
+            assertEquals(StorageUsagePhase.COMPLETE, result.phase)
+            assertTrue(result.persistenceFailed)
+            assertNull(Process().repository.restore(volumes))
+
+            val cached = process.repository.scan(volumes).toList().last()
+            assertTrue(cached.cached)
+            assertTrue(cached.persistenceFailed)
+
+            store.rejectWrites.set(false)
+            val retried = process.repository.scan(volumes, refresh = true).toList().last()
+            assertFalse(retried.persistenceFailed)
+            assertEquals(retried.current, Process().repository.restore(volumes)?.lastGood)
         }
 
     @Test
@@ -187,16 +209,19 @@ class StorageUsagePersistenceTest {
         @Volatile var value: String? = null
         val writes = AtomicInteger()
         val fail = AtomicBoolean(false)
+        val rejectWrites = AtomicBoolean(false)
 
         override fun read(): StoredStorageUsage? {
             if (fail.get()) error("Unreadable preferences")
             return value?.let(StorageUsageCodec::decode)
         }
 
-        override fun write(value: StoredStorageUsage) {
+        override fun write(value: StoredStorageUsage): Boolean {
             writes.incrementAndGet()
             if (fail.get()) error("Disk full")
+            if (rejectWrites.get()) return false
             this.value = StorageUsageCodec.encode(value)
+            return true
         }
     }
 

@@ -58,3 +58,7 @@ All runs are local Robolectric (SDK 36) or plain JVM, under the shared Gradle lo
 - Search index: `retryRequired` after an interrupted rebuild is still in memory only. That needs a durable generation or checkpoint after Codex reconciles legacy #47 (`SearchIndexDao`).
 - Revoked-root and delete/rename staleness show as "previous … may be stale" until the user refreshes. No automatic revalidation, by design (Storage stays lightweight).
 - No device process-kill run.
+
+## 10 November 2026 — persistence failure handling
+
+The scan can finish in memory when preferences reject a commit or the store throws. Analysis shows that the history could not be saved. The warning follows the matching storage selection and survives an in-process cache hit. A successful refresh clears it. A restored interrupted marker means there is no saved final result, since a completed scan can also fail to save. The existing tests model process restart without touching user storage. New checks exercise rejected writes, throwing writes and recovery on retry.

@@ -35,6 +35,7 @@ data class StorageUsageUpdate(
     val previousObserved: StorageUsageSnapshot? = null,
     /** Restored on entry: the last walk for this storage stopped before publishing a result. */
     val interrupted: Boolean = false,
+    val persistenceFailed: Boolean = false,
 )
 
 data class StorageUsageLimits(
@@ -77,6 +78,8 @@ class StorageUsageRepository(
     /** Input key of a walk that started but published no final result: the user left or it was cancelled. */
     @Volatile private var interrupted: String? = null
 
+    @Volatile private var unsavedInputKey: String? = null
+
     private val loadLock = Any()
 
     @Volatile private var loaded = store == null
@@ -104,6 +107,7 @@ class StorageUsageRepository(
             lastGood = good,
             previousObserved = seen,
             interrupted = stopped,
+            persistenceFailed = unsavedInputKey == inputKey,
         )
     }
 
@@ -122,6 +126,8 @@ class StorageUsageRepository(
             val stored =
                 try {
                     store?.read()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (_: Exception) {
                     // Unreadable preferences only lose the previous evidence; the next scan replaces them.
                     null
@@ -135,13 +141,17 @@ class StorageUsageRepository(
             loaded = true
         }
 
-    private fun persist() {
+    private fun persist(inputKey: String) {
         val target = store ?: return
-        try {
-            target.write(StoredStorageUsage(cache?.stored(), observed?.stored(), interrupted))
-        } catch (_: Exception) {
-            // A failed write keeps this process's evidence; a later process just shows less.
-        }
+        val saved =
+            try {
+                target.write(StoredStorageUsage(cache?.stored(), observed?.stored(), interrupted))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+        unsavedInputKey = if (saved) null else inputKey
     }
 
     private fun StoredStorageUsageResult.restored() = Cache(inputKey, planKey, snapshot, 0, RESTORED_REVISION)
@@ -176,6 +186,7 @@ class StorageUsageRepository(
                             StorageUsagePhase.FAILED,
                             lastGood = previous?.snapshot,
                             previousObserved = priorObserved?.snapshot,
+                            persistenceFailed = unsavedInputKey == inputKey,
                         ),
                     )
                     return@withLock
@@ -194,12 +205,13 @@ class StorageUsageRepository(
                             hit.snapshot.copy(capacity = plan.capacity),
                             hit.snapshot,
                             cached = true,
+                            persistenceFailed = unsavedInputKey == inputKey,
                         ),
                     )
                 } else {
                     interrupted = inputKey
-                    // Durable before any listing, so a walk ended by process death is reported next time.
-                    persist()
+                    // A saved marker lets the next process detect a walk interrupted before publication.
+                    persist(inputKey)
                     walk(plan, hit?.snapshot, requestedRevision) { update ->
                         currentCoroutineContext().ensureActive()
                         if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
@@ -216,9 +228,14 @@ class StorageUsageRepository(
                         }
                         if (update.phase != StorageUsagePhase.SCANNING) {
                             interrupted = null
-                            persist()
+                            persist(inputKey)
                         }
-                        emit(update.copy(previousObserved = observedHit?.snapshot))
+                        emit(
+                            update.copy(
+                                previousObserved = observedHit?.snapshot,
+                                persistenceFailed = unsavedInputKey == inputKey,
+                            ),
+                        )
                     }
                 }
             }

@@ -164,6 +164,9 @@ internal fun StorageUsagePanel(
         }
         AtomicSectionLabel("Readable shared files")
         AtomicText(usageStatus(update), AtomicTextRole.BodySecondary, Modifier.testTag("storage_usage_status"))
+        if (update.persistenceFailed) {
+            AtomicText("Scan history could not be saved for next time.", AtomicTextRole.BodySecondary)
+        }
         if (previous != null) {
             val coverage = if (previous.complete) "complete" else "partial"
             val scannedAt = FileUtils.formatDate(previous.scannedAtMillis)
@@ -313,7 +316,7 @@ internal fun usageStatus(update: StorageUsageUpdate): String {
     return when (update.phase) {
         StorageUsagePhase.IDLE ->
             if (update.interrupted) {
-                "The last file type scan stopped before it finished. Analyze file types again when ready."
+                "The last file type scan has no saved result. Analyze file types again when ready."
             } else {
                 "Analyze file types when you need a breakdown."
             }

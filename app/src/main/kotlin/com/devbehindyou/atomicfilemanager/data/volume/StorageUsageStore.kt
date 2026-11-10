@@ -29,7 +29,7 @@ data class StoredStorageUsage(
 interface StorageUsageStore {
     fun read(): StoredStorageUsage?
 
-    fun write(value: StoredStorageUsage)
+    fun write(value: StoredStorageUsage): Boolean
 }
 
 /** Private app preferences; backups are disabled for the app, so nothing leaves the device. */
@@ -40,10 +40,9 @@ class SharedPreferencesStorageUsageStore(context: Context) : StorageUsageStore {
 
     override fun read(): StoredStorageUsage? = prefs.getString(KEY, null)?.let(StorageUsageCodec::decode)
 
-    // Commit, not apply: the walk marker must already be on disk if the process dies during the walk.
-    override fun write(value: StoredStorageUsage) {
+    // Commit reports whether the evidence reached disk before the scan continues.
+    override fun write(value: StoredStorageUsage): Boolean =
         prefs.edit().putString(KEY, StorageUsageCodec.encode(value)).commit()
-    }
 
     private companion object {
         const val KEY = "file_types_v1"

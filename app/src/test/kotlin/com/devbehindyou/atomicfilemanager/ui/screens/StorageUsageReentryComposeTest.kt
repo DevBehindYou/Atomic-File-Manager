@@ -83,7 +83,7 @@ class StorageUsageReentryComposeTest {
             compose.waitUntil(5_000) { fixture.active.get() == 0 }
             compose.onNodeWithTag("storage_usage_status")
                 .assertTextEquals(
-                    "The last file type scan stopped before it finished. Analyze file types again when ready.",
+                    "The last file type scan has no saved result. Analyze file types again when ready.",
                 )
             compose.onNodeWithContentDescription("Analyze file types").assertExists()
             compose.onNodeWithText("Showing the previous complete file breakdown from", substring = true)
