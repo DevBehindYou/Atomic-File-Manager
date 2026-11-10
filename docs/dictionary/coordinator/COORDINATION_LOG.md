@@ -148,3 +148,11 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - #124 `3882c13`: the probe evidence is preserved for reproduction under `docs/testing/pdf-engine-probe-c023/` (patch, keep rule, graphs, logs and artifact hashes). The APK delta is marked provisional and build memory inconclusive, and 8 GB is explicitly not a default.
 - #125: merge trials are described as textual compatibility only. The decisions list is cut down to C023 ADR acceptance, C026 draft policy, in-app notices and the C027 owner; routine items go to Codex. The stale #49 item is removed (already closed). Cloud process state is marked self-reported. Codex's next sequence is adopted (#124/#125 review → #119 repair → C027 before #121 → #120 failure reporting).
 - No implementation resumed. Progress is still 1/50 accepted.
+
+## 10 November 2026 — Codex resumes implementation
+
+- The corrected PDF decision #124 and paused handoff #125 merged into feature integration as ac08231 and 09870d4. The scoped EXIF/details repair #108 then merged as e10effe after its current normal and applicable native checks passed.
+- C005 #120 now reports failed history saves and keeps current results visible. #118 was refreshed on integration and needs fresh CI before #120 can land.
+- C012 #119 restores the position in a player effect and strengthens the reopen fixture. The unverified preference store rewrite stays on the saved WIP branch.
+- C027 #126 adds the known recovered-revision Save guard on top of #121. The draft and publication prerequisites remain open.
+- Hosted Actions run in parallel. A local offline Analysis build failed at configuration because the Gradle plugin was absent from cache. The online retry is serialized under host-gradle. No new whole-task, feature or plugin acceptance credit.
