@@ -194,7 +194,7 @@ internal fun TextEditorSessionDialog(
                 AtomicButton(
                     stringResource(if (state.saving) R.string.editor_saving else R.string.editor_save),
                     onClick = { session.save() },
-                    enabled = state.dirty && !state.saving && state.format != null,
+                    enabled = state.canSave,
                     variant = AtomicButtonVariant.Solid,
                     modifier = Modifier.testTag("text_editor_save"),
                 )
@@ -213,6 +213,13 @@ internal fun TextEditorSessionDialog(
                         )
                     }
                 state.format != null -> {
+                    if (state.recoveredOverChangedSource) {
+                        AtomicText(
+                            stringResource(R.string.editor_recovered_source_conflict),
+                            AtomicTextRole.Body,
+                            Modifier.padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
+                        )
+                    }
                     state.draftOffer?.let { offer ->
                         DraftOfferBar(
                             offer,

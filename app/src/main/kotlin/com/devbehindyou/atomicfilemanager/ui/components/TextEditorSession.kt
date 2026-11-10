@@ -66,11 +66,12 @@ internal data class TextEditorSessionState(
     val saveUnconfirmed: Boolean = false,
     val acknowledgement: EditorSaveAcknowledgement? = null,
     val draftOffer: EditorDraftOffer? = null,
-    /** The text came from a draft whose source has changed since; Save would replace the current file. */
+    /** The recovered text came from an older source revision and cannot replace the current file. */
     val recoveredOverChangedSource: Boolean = false,
     val draftNotice: EditorDraftNotice? = null,
 ) {
     val dirty: Boolean get() = format != null && value.text != savedText
+    val canSave: Boolean get() = dirty && !saving && draftOffer == null && !recoveredOverChangedSource
 }
 
 /**
@@ -320,7 +321,7 @@ internal class TextEditorSession(
         val snapshot = state.value
         val format = snapshot.format ?: return false
         val current = snapshot.current ?: return false
-        if (closed || !snapshot.dirty || snapshot.saving) return false
+        if (closed || !snapshot.canSave) return false
         val accepted = ++revision
         mutableState.value = snapshot.copy(saving = true, saveError = null, saveUnconfirmed = false)
         scope.launch(start = CoroutineStart.UNDISPATCHED) {

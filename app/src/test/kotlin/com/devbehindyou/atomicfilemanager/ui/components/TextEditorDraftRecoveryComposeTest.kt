@@ -111,12 +111,24 @@ class TextEditorDraftRecoveryComposeTest {
         }
 
     @Test
+    fun recoveringAnOlderDraftShowsTheConflictAndDisablesSave() =
+        withOfferedDraft(draftRevisionOf = "an older version") { session, store ->
+            compose.onNodeWithTag("text_editor_draft_recover").performClick()
+            compose.onNodeWithTag("text_editor_save").assertIsNotEnabled()
+            compose.onNodeWithText(
+                "Save is disabled because the file has changed. " +
+                    "Copy your recovered edits into a separate file to keep them.",
+            ).assertIsDisplayed()
+            assertEquals("kept edits", session.state.value.value.text)
+            assertEquals(1, store.drafts.size)
+        }
+
+    @Test
     fun aDraftOverAChangedSourceSaysSoAndDiscardRemovesIt() =
         withOfferedDraft(draftRevisionOf = "an older version") { session, store ->
             compose
                 .onNodeWithText(
-                    "Unsaved edits were kept, but the file has changed since. " +
-                        "Recovering puts them in the editor; saving would replace the current file.",
+                    "The file has changed since these edits were drafted. Recover the edits to view or copy them.",
                 ).assertIsDisplayed()
             compose.onNodeWithTag("text_editor_draft_discard").performClick()
             compose.waitForIdle()
