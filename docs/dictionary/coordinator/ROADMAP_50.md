@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 7. Updated: 2026-11-10.
+Branch: codex/claude-c005-analysis-freshness. PR: #118 and #120 integrated; search checkpoint slice pending. Evidence records: 8. Updated: 2026-11-10.
 
 ## B — Image
 
@@ -210,7 +210,7 @@ Source areas: `ui/components/preview/PreviewPlayer.kt`, `Video native tests`.
 
 **Validation.** Native pause/resume/close/source-switch tests with actual Media3. Calls/Bluetooth require available authorized hardware; record those separately. Keep player releases and sentinel integrity asserted.
 
-Branch: codex/claude-c011-native-focus-interruptions. PR: #109 (into codex/feature-upgrade-base). Evidence records: 3. Updated: 2026-11-07.
+Branch: codex/claude-c011-native-focus-interruptions. PR: #109 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
 
 ### C012 — Persist revision-aware video resume and display state
 
@@ -228,7 +228,7 @@ Source areas: `ui/components/preview/VideoPreviewContent.kt`, `data/repository`.
 
 **Validation.** Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.
 
-Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 7. Updated: 2026-11-10.
+Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 8. Updated: 2026-11-10.
 
 ### C013 — Complete accessible transport and fullscreen controls
 
