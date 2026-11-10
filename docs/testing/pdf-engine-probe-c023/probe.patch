@@ -1,0 +1,33 @@
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 5e6b22e..c03850f 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -127,6 +127,7 @@ dependencies {
+     implementation(libs.tukaani.xz)
+     implementation(libs.media3.exoplayer)
+     implementation(libs.media3.ui)
++    implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-beta01") // C023 PROBE ONLY, never committed
+     implementation(libs.androidx.exifinterface)
+     implementation(libs.tink.android)
+ 
+diff --git a/app/proguard-rules.pro b/app/proguard-rules.pro
+index 7754672..3eb7ad5 100644
+--- a/app/proguard-rules.pro
++++ b/app/proguard-rules.pro
+@@ -69,3 +69,4 @@
+ # --- Shizuku (ALL_IN_ONE_PLAN.md 4.3) ---
+ # Shizuku starts the user service by class name, with its no-argument constructor.
+ -keep class com.devbehindyou.atomicfilemanager.data.backend.shizuku.ShizukuFileService { <init>(); }
++-keep class androidx.pdf.viewer.fragment.PdfViewerFragment { *; } # C023 PROBE ONLY
+diff --git a/build-logic/convention/src/main/kotlin/atomic.android.application.gradle.kts b/build-logic/convention/src/main/kotlin/atomic.android.application.gradle.kts
+index 50b040e..d7fa566 100644
+--- a/build-logic/convention/src/main/kotlin/atomic.android.application.gradle.kts
++++ b/build-logic/convention/src/main/kotlin/atomic.android.application.gradle.kts
+@@ -16,6 +16,7 @@ plugins {
+ 
+ extensions.configure<ApplicationExtension> {
+     compileSdk = 36
++    compileSdkExtension = 19 // C023 PROBE ONLY, never committed
+ 
+     defaultConfig {
+         minSdk = 28
