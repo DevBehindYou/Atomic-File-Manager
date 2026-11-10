@@ -120,6 +120,14 @@ class StorageUsageLastResultTest {
         id: String,
         requiresGrant: Boolean,
     ) = StorageVolumeInfo(
-        id, id, StorageType.INTERNAL_SHARED, 1_000, 100, false, true, FileNodeId.file(File(root, id).path), requiresGrant,
+        id,
+        id,
+        StorageType.INTERNAL_SHARED,
+        1_000,
+        100,
+        false,
+        true,
+        FileNodeId.file(File(root, id).path),
+        requiresGrant,
     )
 }
