@@ -73,13 +73,14 @@
         "Failing controls on unchanged logic: EXIF cancellation cleanup removed 1/5 fail; old produceState keys 3/3 fail.",
         "Record: docs/testing/PREVIEW_DETAILS_CANCELLATION_C002.md; IMAGE_VIEWER.md section.",
         "Hosted on #108 head 5793d04: CI run 42296477121 (Static analysis; Unit tests and APK packaging) success; DOCX preview native run 42296477126 success on API28 and API34. mergeStateStatus CLEAN.",
-        "8 Nov: merged base 40c39dd into #108 as 70f8864 (no force-push) to resolve the append-only IMAGE_VIEWER.md conflict with #103, keeping both dated sections; hosted checks re-run on that head."
+        "8 Nov: merged base 40c39dd into #108 as 70f8864 (no force-push) to resolve the append-only IMAGE_VIEWER.md conflict with #103, keeping both dated sections; hosted checks re-run on that head.",
+        "#108 at 70f8864 passed normal CI 42502005156 plus DOCX and WAV native checks on API28/34. Scoped EXIF cancellation and revision-keyed details merged as e10effe after a fresh guarded trial."
       ],
       "remaining": [
         "Codex review, integration of #106/#107, clean current-target trial.",
         "MediaPreviewHelper blocking retriever: no defect reproduced; CompareSheet/DeleteSheet unkeyed produceState recorded for later."
       ],
-      "last_updated": "2026-11-08"
+      "last_updated": "2026-11-10"
     },
     {
       "id": "C003",
@@ -173,7 +174,7 @@
       "title": "Persist analysis freshness and interrupted scan state",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "host_verified",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C002"
@@ -198,15 +199,16 @@
         "Failing control: StorageUsageReentryComposeTest fails 2/3 on base (no previous breakdown on re-entry; mid-scan exit indistinguishable from no scan); access-change guard passes on base. Test-only commit 8108bc6.",
         "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md.",
         "Hosted on #118 head 8f0c1e9: CI run 42339778799 success.",
-        "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md."
+        "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md.",
+        "Codex updated #120 at ad04694 to report rejected/throwing persistence while preserving live results. CI 42810259523 began. #118 was refreshed on e10effe as d325a48 for combined CI.",
+        "The first Analysis repair head ad04694 passed hosted CI 42810259523. A Windows run found five fixture failures because Unix separators made fake paths appear outside their root. The final combined head 4ee5898 passes all 16 focused Windows cases, including parent fixtures, with no failures/errors/skips. The same command then stopped at offline ktlint dependency resolution. Current hosted runs are 42812156234 (#118, 5c1817f) and 42812164784 (#120, 4ee5898)."
       ],
       "remaining": [
-        "R3 (#120): SharedPreferencesStorageUsageStore.write ignores commit(); persist() swallows failures. Proposed: best-effort durability, honestly reported (write returns success, degraded flag, false-commit and throwing-store restart regressions). Not started (paused).",
-        "Codex review of #118, then #120 (retargets to base after #118 merges); hosted CI on #120.",
-        "Search index retryRequired after an interrupted rebuild is in-memory only; needs a durable generation/checkpoint after Codex reconciles legacy #47 (SearchIndexDao).",
-        "Revoked-root/delete/rename staleness shown as 'previous ... may be stale' until the user refreshes (no automatic revalidation by design). No device process-kill run."
+        "Integrate #118 first after its current checks and guarded trial, then verify #120 on the resulting target.",
+        "Legacy #47 is closed as equivalent to integrated commit 5000c8b. Durable search-index retry/checkpoint remains open.",
+        "Physical process-loss and provider acceptance remain open."
       ],
-      "last_updated": "2026-11-08"
+      "last_updated": "2026-11-10"
     },
     {
       "id": "C006",
@@ -439,16 +441,15 @@
         "Failing control: VideoResumeComposeTest fails 2/2 on base (recreation and reopen start at 0); mutation checks (STOP->DESTROY, revision check removed) failed the matching tests.",
         "Local: 79/79 focused tests (VideoResumeCompose 20, VideoResumePreferences 14, VideoResumeSession 9, existing video/player/helper 36); ktlint/detekt pass. Original bytes and lastModified unchanged in every compose case.",
         "Hosted on #119 head 017ddbd: video-resume-native 42340397852 success on API28 and API34. CI 42340397793 FAILED: Static analysis (Lint RememberReturnType at VideoPreviewContent.kt:180) and Unit tests (1376 run, 7 failed: VideoResumeComposeTest x6 ComposeTimeoutException in the full suite, SettingsStartupLoaderTest x1); sub-agent fixing with new commits.",
-        "8 Nov: Codex review R1 confirms #119 (017ddbd) is not mergeable. An unverified repair is preserved on codex/claude-c012-video-resume-wip (41bf245, not a PR head) after the usage-limit pause."
+        "8 Nov: Codex review R1 confirms #119 (017ddbd) is not mergeable. An unverified repair is preserved on codex/claude-c012-video-resume-wip (41bf245, not a PR head) after the usage-limit pause.",
+        "Codex updated #119 at d4e0051. Player restoration moves from remember into DisposableEffect. Reopen tests wait for the previous attached view to leave. The shared preference writer remains. Full CI 42810753421 and native CI 42810753359 started.",
+        "At d4e0051, static analysis and native API28/34 passed. Full CI ran 1,390 cases with six reopen timeouts; the startup test passed. Head 0a2cec2 remounts the real preview with a composition key and injects the fixture IO dispatcher. Current full and native runs are 42812466651 and 42812466373."
       ],
       "remaining": [
-        "R1: repair Lint RememberReturnType and the 7 full-suite failures (6 VideoResumeComposeTest, 1 SettingsStartupLoaderTest) with root cause, then full CI and the native resume suite; see docs/dictionary/coordinator/CLAUDE_REVIEW_RESPONSE_2026-11-08.md.",
-        "Fix the Lint RememberReturnType error on #119 and re-run hosted checks; Codex review.",
-        "Move VideoResumePreferences into AppContainer (currently VideoResumePreferences.shared(context) default) once AtomicApp.kt is free.",
-        "Rotation still closes the preview dialog (nodeForPreview/preview are plain remember in Browse/Category/Search/Home); video resumes on reopen.",
-        "Real video-codec fixtures, aspect/resize, subtitles/tracks and PiP remain VID-T02/T04. Trial merges with #109/#115 conflict only in VIDEO_PLAYER.md appends (keep both)."
+        "Verify current-head static, full host and API28/34 native results. Diagnose the separate startup test if it recurs.",
+        "Integrate applicable C011 evidence before merging. Activity rotation, real video-codec coverage and container wiring remain open."
       ],
-      "last_updated": "2026-11-08"
+      "last_updated": "2026-11-10"
     },
     {
       "id": "C013",
@@ -799,14 +800,14 @@
         "Decision record refresh in docs/plugins/modernization/PDF_ENGINE_EVALUATION.md (head 59f6e1e on 40c39dd), from official sources checked 7-8 Nov 2026: AndroidX PDF still 1.0.0-beta01 (26 Aug 2026); its view, fragment, core and document-service AARs declare minSdk 28, minCompileSdk 36, minCompileSdkExtension 19 (pdf-compose compileSdk 37); PdfRendererPreV/LoadParams are API 35 or S Extensions 13; PdfViewerFragment requires Theme.AppCompat; MuPDF latest tag 1.28.6 (Maven host blocked); PdfBox-Android last release 2.0.27.0 (2 Jan 2023).",
         "Uncommitted isolated probe on 89140e3: checkReleaseAarMetadata fails with compileSdk 36 and passes with compileSdkExtension 19; release graph 205 -> 213 modules (Material 1.13.0, beta viewpager2 transitive; documentfile and 3 others no longer resolved); R8 APK +1,194,528 B (+7.9%) with a keep rule standing in for use; R8 OOM under the repo's 1.5 GB heap.",
         "Proposed: keep raster plus platform adapters (password entry first, then read-only search, selection and links); defer AndroidX PDF and bundled parsers.",
-        "8 Nov, after Codex's analysis (head 3882c13): the reproducible probe bundle docs/testing/pdf-engine-probe-c023/ holds the patch (dependency, extension 19, keep rule), raw and normalized graphs, AAR-metadata logs, the 1.5 GB OOM excerpt, the 8 GB pass, and SHA-256 for both APKs and all five AARs. The APK delta is provisional (one keep-rule probe). Build memory is inconclusive (only 1.5 GB fail and 8 GB pass tried; practical heap untested); 8 GB is not proposed as a default."
+        "8 Nov, after Codex's analysis (head 3882c13): the reproducible probe bundle docs/testing/pdf-engine-probe-c023/ holds the patch (dependency, extension 19, keep rule), raw and normalized graphs, AAR-metadata logs, the 1.5 GB OOM excerpt, the 8 GB pass, and SHA-256 for both APKs and all five AARs. The APK delta is provisional (one keep-rule probe). Build memory is inconclusive (only 1.5 GB fail and 8 GB pass tried; practical heap untested); 8 GB is not proposed as a default.",
+        "Corrected PDF ADR and reproducible probe evidence #124 at 3882c13 passed required checks and merged as ac08231. The platform-first decision is recorded. Device/API capability validation remains open."
       ],
       "remaining": [
-        "Re-measure the APK delta in a real integration, and test a practical serialized build heap (e.g. 3 GB) before any AndroidX PDF adoption.",
-        "Codex or owner review of the ADR (#124); research-only, so it doesn't close any PDF capability.",
-        "MuPDF 1.28.6 artifact/ABI/size/advisories unverified; S-extension behaviour on real API 31-34 devices unverified (device checks owner-deferred)."
+        "Verify the password adapter and raster fallback on the applicable API/extension matrix.",
+        "Re-measure the provisional size and memory estimates only if AndroidX PDF adoption is reconsidered."
       ],
-      "last_updated": "2026-11-08"
+      "last_updated": "2026-11-10"
     },
     {
       "id": "C024",
@@ -920,7 +921,7 @@
       "title": "Strengthen revision-aware editor publication",
       "owner": "Claude Code",
       "reviewer": "Codex",
-      "status": "assigned",
+      "status": "implementing",
       "dependencies": [
         "C001",
         "C026"
@@ -940,13 +941,17 @@
       "expected_outcome": "Actionable conflicts and safe retry/recovery across supported providers.",
       "validation": "Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.",
       "external_gate": null,
-      "branch": null,
-      "pr": null,
-      "evidence": [],
-      "remaining": [
-        "Claim released 8 Nov without any implementation (Claude paused). Codex to choose the owner. Planned slice in docs/dictionary/coordinator/CLAUDE_REVIEW_RESPONSE_2026-11-08.md: loaded-revision capture, revalidation before publication, conflict refusal with Save as or explicit overwrite, recover-A/source-B/Save and change-after-load regressions."
+      "branch": "codex/c027-recovered-draft-save-guard",
+      "pr": "#126 (stacked on #121)",
+      "evidence": [
+        "Codex claimed the released task and published draft #126 at c6533c5 stacked on #121. The first slice refuses normal Save after recovering a known older revision and exposes the reason in the editor. Regression coverage checks both the button and publication callback. CI 42810559550 started.",
+        "Draft guard head c6533c5 passed both required CI jobs in 42810559550. It covers a known stale draft and is held with #121 until the broader revision-aware publication gate is resolved."
       ],
-      "last_updated": "2026-11-08"
+      "remaining": [
+        "Keep #121 held while revision-aware publication and conflict recovery are incomplete.",
+        "Revalidate the source immediately before backend publication and provide a separate Save as path. Test changes after load, denied writes and source integrity."
+      ],
+      "last_updated": "2026-11-10"
     },
     {
       "id": "C028",
