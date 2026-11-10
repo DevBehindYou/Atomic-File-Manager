@@ -1,0 +1,42 @@
+name: Coordinator validation
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'docs/dictionary/**'
+      - 'scripts/coordination/**'
+      - '.github/workflows/coordinator.yml'
+  push:
+    branches: [main, codex/feature-upgrade-base]
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'docs/dictionary/**'
+      - 'scripts/coordination/**'
+      - '.github/workflows/coordinator.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coordinator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coordinator:
+    name: Coordinator dictionary and lease checks
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check queue and generated documentation
+        run: python -B scripts/coordination/validate.py
+      - name: Test claims in disposable repositories
+        run: python -B scripts/coordination/smoke_test.py
+      - name: Check whitespace
+        run: git diff --check

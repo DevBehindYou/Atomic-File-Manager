@@ -1,7 +1,10 @@
 package com.devbehindyou.atomicfilemanager.data.preview
 
 import androidx.exifinterface.media.ExifInterface
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
@@ -10,9 +13,11 @@ import java.io.IOException
  * Reads EXIF from local images and writes clean copies (ALL_IN_ONE_PLAN.md 4.2). The original is
  * never changed: a clean copy is written, re-read and checked before it is handed back.
  */
-class ExifMetadataReader {
+class ExifMetadataReader(
+    private val io: CoroutineDispatcher = Dispatchers.IO,
+) {
     suspend fun read(file: File): ImageMetadata? =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             try {
                 metadataOf(ExifInterface(file))
             } catch (_: IOException) {
@@ -23,22 +28,35 @@ class ExifMetadataReader {
             }
         }
 
-    /** Copies [source] to [target] without what [strip] removes; the copy is verified, else deleted. */
+    /**
+     * Copies [source] to [target] without what [strip] removes; the copy is verified, else deleted.
+     * A cancelled caller never receives the copy, so it is deleted too rather than left in the cache.
+     */
     suspend fun cleanCopy(
         source: File,
         target: File,
         strip: MetadataStrip,
     ): Result<File> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                target.parentFile?.mkdirs()
-                source.copyTo(target, overwrite = true)
-                val exif = ExifInterface(target)
-                ExifTags.removedBy(strip).forEach { exif.setAttribute(it, null) }
-                exif.saveAttributes()
-                check(ExifTags.isClean(metadataOf(ExifInterface(target)), strip)) { "metadata still present" }
-                target
-            }.onFailure { target.delete() }
+        try {
+            withContext(io) {
+                try {
+                    target.parentFile?.mkdirs()
+                    source.copyTo(target, overwrite = true)
+                    val exif = ExifInterface(target)
+                    ExifTags.removedBy(strip).forEach { exif.setAttribute(it, null) }
+                    exif.saveAttributes()
+                    check(ExifTags.isClean(metadataOf(ExifInterface(target)), strip)) { "metadata still present" }
+                    Result.success(target)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    target.delete()
+                    Result.failure(failure)
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            withContext(NonCancellable + io) { target.delete() }
+            throw cancelled
         }
 
     private fun metadataOf(exif: ExifInterface): ImageMetadata {

@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -28,9 +29,12 @@ data class ApkInfo(
  * Reads an APK on local storage with [PackageManager.getPackageArchiveInfo]. Nothing is installed
  * and the APK's code never runs. Returns null for a damaged or non-APK file.
  */
-class ApkInfoReader(private val context: Context) {
+class ApkInfoReader(
+    private val context: Context,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
+) {
     suspend fun read(path: String): ApkInfo? =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             runCatching {
                 val pm = context.packageManager
                 val info = archiveInfo(pm, path) ?: return@runCatching null
@@ -57,7 +61,7 @@ class ApkInfoReader(private val context: Context) {
      * app is never suggested: the safe direction.
      */
     suspend fun isInstalled(path: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             runCatching {
                 val pm = context.packageManager
                 val name = archiveInfo(pm, path)?.packageName ?: return@runCatching false
