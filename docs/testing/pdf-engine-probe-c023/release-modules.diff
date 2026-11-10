@@ -1,0 +1,49 @@
+4c4
+< androidx.annotation:annotation-experimental:1.4.1
+---
+> androidx.annotation:annotation-experimental:1.5.1
+11c11
+< androidx.autofill:autofill:1.0.0
+---
+> androidx.autofill:autofill:1.3.0
+12a13
+> androidx.cardview:cardview:1.0.0
+55a57,59
+> androidx.constraintlayout:constraintlayout-core:1.0.0
+> androidx.constraintlayout:constraintlayout:2.1.0
+> androidx.coordinatorlayout:coordinatorlayout:1.1.0
+62,65c66,68
+< androidx.customview:customview:1.0.0
+< androidx.documentfile:documentfile:1.0.0
+< androidx.drawerlayout:drawerlayout:1.0.0
+< androidx.dynamicanimation:dynamicanimation:1.0.0
+---
+> androidx.customview:customview:1.2.0
+> androidx.drawerlayout:drawerlayout:1.1.1
+> androidx.dynamicanimation:dynamicanimation:1.1.0
+71a75,76
+> androidx.graphics:graphics-shapes-android:1.0.1
+> androidx.graphics:graphics-shapes:1.0.1
+73d77
+< androidx.legacy:legacy-support-core-utils:1.0.0
+93d96
+< androidx.localbroadcastmanager:localbroadcastmanager:1.0.0
+103c106,109
+< androidx.print:print:1.0.0
+---
+> androidx.pdf:pdf-core:1.0.0-beta01
+> androidx.pdf:pdf-document-service:1.0.0-beta01
+> androidx.pdf:pdf-viewer-fragment:1.0.0-beta01
+> androidx.pdf:pdf-viewer:1.0.0-beta01
+105c111
+< androidx.recyclerview:recyclerview:1.3.0
+---
+> androidx.recyclerview:recyclerview:1.4.0
+126a133
+> androidx.viewpager2:viewpager2:1.1.0-beta02
+132a140
+> com.google.android.material:material:1.13.0
+192c200
+< org.jetbrains.kotlin:kotlin-bom:1.8.0
+---
+> org.jetbrains.kotlin:kotlin-bom:1.8.22
