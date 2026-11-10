@@ -23,7 +23,7 @@ Workflow `.github/workflows/preview-audio-focus-native.yml` runs the test on hos
 ## Local evidence
 
 - `./gradlew ktlintFormat :app:compileDebugAndroidTestKotlin ktlintCheck detekt`: BUILD SUCCESSFUL in 4m (`host-gradle` lease held). Compiled only; no local device or emulator run.
-- Native results: pending on the PR's hosted run. Nothing passed is claimed until that run completes.
+- Hosted workflow [42297379230](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/42297379230) passed all three native cases on API 28 and all three on API 34, with zero failures, errors or skips. The artifacts record PR head `fb11f2e0ba12031db4585b1b6fdbf72ce045480b`, tested merge source `ceaed791da5cd1f949e043ba2e67ece24eba6e24`, app tree `427bfd321bffcf665dc121bbcfb56d29aed335ab` and both APK hashes per API. Fresh checks are required when the integration source changes.
 
 ## Blocked or remaining
 
