@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 6. Updated: 2026-11-10.
+Branch: codex/claude-c005-analysis-freshness. PR: #118 slice 1, #120 slice 2 (stacked on #118). Evidence records: 7. Updated: 2026-11-10.
 
 ## B — Image
 
@@ -228,7 +228,7 @@ Source areas: `ui/components/preview/VideoPreviewContent.kt`, `data/repository`.
 
 **Validation.** Position tolerance, paused restore, changed revision, failed seek, rotation, source loss and repeated navigation tests. Assert write counts and original integrity. Run native fixtures on lowest/current supported test APIs.
 
-Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 6. Updated: 2026-11-10.
+Branch: codex/claude-c012-video-resume. PR: #119 (into codex/feature-upgrade-base). Evidence records: 7. Updated: 2026-11-10.
 
 ### C013 — Complete accessible transport and fullscreen controls
 
@@ -508,7 +508,7 @@ Source areas: `domain/usecase/TextEditing.kt`, `data/backend`, `editor UI`.
 
 **Validation.** Fault every publish boundary; denied writes, low space, concurrent change, disconnect/cancellation and process restart. Compare original/output/sentinel bytes; test actual conflict and Save as UI.
 
-Branch: codex/c027-recovered-draft-save-guard. PR: #126 (stacked on #121). Evidence records: 1. Updated: 2026-11-10.
+Branch: codex/c027-recovered-draft-save-guard. PR: #126 (stacked on #121). Evidence records: 2. Updated: 2026-11-10.
 
 ### C028 — Add a bounded large-text read-only path
 

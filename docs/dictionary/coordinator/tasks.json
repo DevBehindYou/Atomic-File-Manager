@@ -200,11 +200,12 @@
         "Local Robolectric: 87/87 Storage usage/analysis/cleanup tests pass; re-entry adds 0 plan and 0 list calls; ktlint/detekt pass. Record: docs/testing/ANALYSIS_REENTRY_C005.md.",
         "Hosted on #118 head 8f0c1e9: CI run 42339778799 success.",
         "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md.",
-        "Codex updated #120 at ad04694 to report rejected/throwing persistence while preserving live results. CI 42810259523 began. #118 was refreshed on e10effe as d325a48 for combined CI."
+        "Codex updated #120 at ad04694 to report rejected/throwing persistence while preserving live results. CI 42810259523 began. #118 was refreshed on e10effe as d325a48 for combined CI.",
+        "The first Analysis repair head ad04694 passed hosted CI 42810259523. A Windows run found five fixture failures because Unix separators made fake paths appear outside their root. The final combined head 4ee5898 passes all 16 focused Windows cases, including parent fixtures, with no failures/errors/skips. The same command then stopped at offline ktlint dependency resolution. Current hosted runs are 42812156234 (#118, 5c1817f) and 42812164784 (#120, 4ee5898)."
       ],
       "remaining": [
-        "Integrate #118 first after current checks and review, then verify #120 on the resulting base.",
-        "Search index retry state is still in memory. Reconcile #47 before the durable generation/checkpoint slice.",
+        "Integrate #118 first after its current checks and guarded trial, then verify #120 on the resulting target.",
+        "Legacy #47 is closed as equivalent to integrated commit 5000c8b. Durable search-index retry/checkpoint remains open.",
         "Physical process-loss and provider acceptance remain open."
       ],
       "last_updated": "2026-11-10"
@@ -441,7 +442,8 @@
         "Local: 79/79 focused tests (VideoResumeCompose 20, VideoResumePreferences 14, VideoResumeSession 9, existing video/player/helper 36); ktlint/detekt pass. Original bytes and lastModified unchanged in every compose case.",
         "Hosted on #119 head 017ddbd: video-resume-native 42340397852 success on API28 and API34. CI 42340397793 FAILED: Static analysis (Lint RememberReturnType at VideoPreviewContent.kt:180) and Unit tests (1376 run, 7 failed: VideoResumeComposeTest x6 ComposeTimeoutException in the full suite, SettingsStartupLoaderTest x1); sub-agent fixing with new commits.",
         "8 Nov: Codex review R1 confirms #119 (017ddbd) is not mergeable. An unverified repair is preserved on codex/claude-c012-video-resume-wip (41bf245, not a PR head) after the usage-limit pause.",
-        "Codex updated #119 at d4e0051. Player restoration moves from remember into DisposableEffect. Reopen tests wait for the previous attached view to leave. The shared preference writer remains. Full CI 42810753421 and native CI 42810753359 started."
+        "Codex updated #119 at d4e0051. Player restoration moves from remember into DisposableEffect. Reopen tests wait for the previous attached view to leave. The shared preference writer remains. Full CI 42810753421 and native CI 42810753359 started.",
+        "At d4e0051, static analysis and native API28/34 passed. Full CI ran 1,390 cases with six reopen timeouts; the startup test passed. Head 0a2cec2 remounts the real preview with a composition key and injects the fixture IO dispatcher. Current full and native runs are 42812466651 and 42812466373."
       ],
       "remaining": [
         "Verify current-head static, full host and API28/34 native results. Diagnose the separate startup test if it recurs.",
@@ -942,7 +944,8 @@
       "branch": "codex/c027-recovered-draft-save-guard",
       "pr": "#126 (stacked on #121)",
       "evidence": [
-        "Codex claimed the released task and published draft #126 at c6533c5 stacked on #121. The first slice refuses normal Save after recovering a known older revision and exposes the reason in the editor. Regression coverage checks both the button and publication callback. CI 42810559550 started."
+        "Codex claimed the released task and published draft #126 at c6533c5 stacked on #121. The first slice refuses normal Save after recovering a known older revision and exposes the reason in the editor. Regression coverage checks both the button and publication callback. CI 42810559550 started.",
+        "Draft guard head c6533c5 passed both required CI jobs in 42810559550. It covers a known stale draft and is held with #121 until the broader revision-aware publication gate is resolved."
       ],
       "remaining": [
         "Keep #121 held while revision-aware publication and conflict recovery are incomplete.",

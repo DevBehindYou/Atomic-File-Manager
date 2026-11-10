@@ -156,3 +156,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - C012 #119 restores the position in a player effect and strengthens the reopen fixture. The unverified preference store rewrite stays on the saved WIP branch.
 - C027 #126 adds the known recovered-revision Save guard on top of #121. The draft and publication prerequisites remain open.
 - Hosted Actions run in parallel. A local offline Analysis build failed at configuration because the Gradle plugin was absent from cache. The online retry is serialized under host-gradle. No new whole-task, feature or plugin acceptance credit.
+
+### Validation follow-up
+
+- #47 was closed after verifying that its source and assertions already land through integrated 5000c8b. Two test formatting differences explained the patch mismatch.
+- The Analysis stack now uses host-native fixture paths. All 16 local focused tests pass at 4ee5898 after the initial Windows run reported five failures. Offline static tasks lacked cached ktlint artifacts, so their online run is separate. The hosted combined stack is running on its current heads.
+- #126 passes hosted static/unit/APK checks. #119's Lint repair and native journeys pass on d4e0051, while six host reopen timeouts remain on that head. Its next fixture candidate is 0a2cec2.
