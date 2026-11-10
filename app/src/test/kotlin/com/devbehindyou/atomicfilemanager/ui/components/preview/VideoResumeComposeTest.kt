@@ -284,7 +284,11 @@ class VideoResumeComposeTest {
 
     private fun reopen() {
         compose.runOnIdle { render.value = false }
-        compose.waitForIdle()
+        // Confirm the first view has left the hierarchy before requesting the next preview.
+        compose.waitUntil(10_000) {
+            shadowOf(Looper.getMainLooper()).idle()
+            playerView(compose.activity.window.decorView) == null
+        }
         compose.runOnIdle { render.value = true }
     }
 
@@ -308,7 +312,10 @@ class VideoResumeComposeTest {
         var found: Player? = null
         compose.waitUntil(10_000) {
             shadowOf(Looper.getMainLooper()).idle()
-            found = playerView(compose.activity.window.decorView)?.player?.takeIf(accept)
+            found =
+                attachedPlayerViews(compose.activity.window.decorView)
+                    .mapNotNull { it.player }
+                    .firstOrNull(accept)
             found != null
         }
         return found!!
@@ -323,9 +330,13 @@ class VideoResumeComposeTest {
             }
         }
 
-    private fun playerView(view: View): PlayerView? =
-        view as? PlayerView ?: (view as? ViewGroup)?.let { group ->
-            (0 until group.childCount).firstNotNullOfOrNull { playerView(group.getChildAt(it)) }
+    private fun playerView(view: View): PlayerView? = attachedPlayerViews(view).firstOrNull()
+
+    private fun attachedPlayerViews(view: View): Sequence<PlayerView> =
+        when (view) {
+            is PlayerView -> if (view.isAttachedToWindow) sequenceOf(view) else emptySequence()
+            is ViewGroup -> (0 until view.childCount).asSequence().flatMap { attachedPlayerViews(view.getChildAt(it)) }
+            else -> emptySequence()
         }
 
     /** The real store, counting what the preview asks of it after the fixture was seeded. */

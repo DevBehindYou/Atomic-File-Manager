@@ -96,3 +96,7 @@ PCM is not a video codec, so this is decoded-resume evidence and not codec accep
 - Wiring `VideoResumePreferences` into `AppContainer` is waiting on `AtomicApp.kt`, which is held by C003.
 - PlayerView has no aspect or resize control, so speed is the only viewing mode restored. Subtitle and track selection, PiP and real video-codec fixtures stay under VID-T02 and VID-T04.
 - The Audio preview does not use this store.
+
+## 10 November 2026 — repair candidate
+
+The integration branch is included in the candidate. Restore seek and speed in the player effect, before attaching the recorder. The Compose fixture waits for the previous attached player view to leave before reopening and looks for the requested player among attached views. The original position, pause, write count and unknown revision assertions remain. The saved WIP's per-view preference store was left on its branch so this repair keeps the shared writer and its ordering guarantees. Full CI must establish whether the six Video timeouts are resolved. The separate Settings startup failure needs independent evidence if it recurs.
