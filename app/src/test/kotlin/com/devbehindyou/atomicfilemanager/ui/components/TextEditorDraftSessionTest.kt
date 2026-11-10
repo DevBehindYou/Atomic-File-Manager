@@ -170,6 +170,9 @@ class TextEditorDraftSessionTest {
             second.session.recoverDraft()
             assertEquals("my edit", second.session.state.value.value.text)
             assertTrue(second.session.state.value.recoveredOverChangedSource)
+            assertFalse(second.session.save())
+            testScheduler.runCurrent()
+            assertEquals(0, second.saves)
             assertEquals(changedHash, sourceHash())
             // A crash after recovering keeps the draft tied to the revision it came from.
             second.session.edit(TextFieldValue("my edit, continued"))
