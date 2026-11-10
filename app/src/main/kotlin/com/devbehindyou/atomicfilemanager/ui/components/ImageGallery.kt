@@ -3,19 +3,24 @@ package com.devbehindyou.atomicfilemanager.ui.components
 import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +29,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -43,7 +49,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -105,7 +113,7 @@ internal fun ZoomableImage(
             if (Gallery.isGif(node)) {
                 AnimatedGifImage(node, helper, isActive, onZoomChange, onRetry = { attempt++ })
             } else {
-                ZoomableImageAttempt(node, helper, onZoomChange, onRetry = { attempt++ })
+                ZoomableImageAttempt(node, helper, onZoomChange, isActive, onRetry = { attempt++ })
             }
         }
     }
@@ -116,6 +124,7 @@ private fun ZoomableImageAttempt(
     node: FileNode,
     helper: ImagePreviewHelper,
     onZoomChange: (Boolean) -> Unit,
+    isActive: Boolean,
     onRetry: () -> Unit,
 ) {
     val decoded by produceState<FileResult<Bitmap>?>(null) {
@@ -135,7 +144,12 @@ private fun ZoomableImageAttempt(
             is FileResult.Success -> result.value
         }
 
-    ZoomableImageSurface(node, Size(bitmap.width.toFloat(), bitmap.height.toFloat()), onZoomChange) { modifier ->
+    ZoomableStillImageSurface(
+        node,
+        Size(bitmap.width.toFloat(), bitmap.height.toFloat()),
+        onZoomChange,
+        isActive,
+    ) { modifier ->
         Image(bitmap.asImageBitmap(), node.name, modifier = modifier, contentScale = ContentScale.Fit)
     }
 }
@@ -149,37 +163,97 @@ internal fun ZoomableImageSurface(
 ) {
     var transform by remember { mutableStateOf(ImageTransform()) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
+    ImageGestureSurface(
+        node,
+        transform,
+        currentTransform = { transform },
+        onViewportChange = { size ->
+            viewport = size
+            transform =
+                transform.copy(
+                    offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
+                )
+        },
+        onTransform = { value, focus, pan ->
+            transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
+            onZoomChange(transform.scale > 1f)
+        },
+        content = content,
+    )
+}
 
-    fun transformTo(
-        value: Float,
-        focus: Offset,
-        pan: Offset = Offset.Zero,
-    ) {
-        transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
-        onZoomChange(transform.scale > 1f)
+@Composable
+private fun ZoomableStillImageSurface(
+    node: FileNode,
+    imageSize: Size,
+    onZoomChange: (Boolean) -> Unit,
+    isActive: Boolean,
+    content: @Composable (Modifier) -> Unit,
+) {
+    var view by rememberSaveable(stateSaver = ImageViewModes.Saver) { mutableStateOf(ImageViewState()) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+
+    fun currentTransform(): ImageTransform = ImageViewModes.transform(view, imageSize, viewport.toSize())
+
+    val transform = currentTransform()
+    LaunchedEffect(isActive, transform.scale) {
+        if (isActive) onZoomChange(transform.scale > 1f)
     }
+    Box(Modifier.fillMaxSize().clipToBounds()) {
+        ImageGestureSurface(
+            node,
+            transform,
+            currentTransform = ::currentTransform,
+            onViewportChange = { viewport = it },
+            onTransform = { value, focus, pan ->
+                val viewportSize = viewport.toSize()
+                val updated =
+                    ImageTransformGeometry.update(
+                        currentTransform(),
+                        value,
+                        focus,
+                        pan,
+                        imageSize,
+                        viewportSize,
+                        minimumScale = ImageViewModes.minimumScale(imageSize, viewportSize),
+                    )
+                view = ImageViewModes.custom(updated, imageSize, viewportSize)
+                onZoomChange(updated.scale > 1f)
+            },
+            content = content,
+        )
+        // A sibling above the image pointer target keeps control gestures separate from image pan.
+        ImageViewControls(
+            view,
+            imageSize,
+            viewport.toSize(),
+            onSelect = { mode ->
+                view = ImageViewState(mode)
+                onZoomChange((ImageViewModes.scale(mode, imageSize, viewport.toSize()) ?: 1f) > 1f)
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}
 
+@Composable
+private fun ImageGestureSurface(
+    node: FileNode,
+    transform: ImageTransform,
+    currentTransform: () -> ImageTransform,
+    onViewportChange: (IntSize) -> Unit,
+    onTransform: (Float, Offset, Offset) -> Unit,
+    content: @Composable (Modifier) -> Unit,
+) {
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
                 .clipToBounds()
-                .onSizeChanged { size ->
-                    viewport = size
-                    transform =
-                        transform.copy(
-                            offset =
-                                ImageTransformGeometry.clamp(
-                                    transform.offset,
-                                    transform.scale,
-                                    imageSize,
-                                    size.toSize(),
-                                ),
-                        )
-                }
+                .onSizeChanged(onViewportChange)
                 .pointerInput(node.id) {
                     detectTapGestures(onDoubleTap = { tap ->
-                        transformTo(if (transform.scale > 1f) 1f else DOUBLE_TAP_ZOOM, tap)
+                        onTransform(if (currentTransform().scale > 1f) 1f else DOUBLE_TAP_ZOOM, tap, Offset.Zero)
                     })
                 }
                 .pointerInput(node.id) {
@@ -188,10 +262,11 @@ internal fun ZoomableImageSurface(
                         do {
                             val event = awaitPointerEvent()
                             val fingers = event.changes.count { it.pressed }
-                            // One finger on an unzoomed image is left to the pager, so it turns the page.
-                            if (fingers > 1 || (fingers == 1 && transform.scale > 1f)) {
-                                transformTo(
-                                    transform.scale * event.calculateZoom(),
+                            // Leave one finger on a fitted or smaller image to the pager.
+                            val scale = currentTransform().scale
+                            if (fingers > 1 || (fingers == 1 && scale > 1f)) {
+                                onTransform(
+                                    scale * event.calculateZoom(),
                                     event.calculateCentroid(useCurrent = false),
                                     event.calculatePan(),
                                 )
@@ -210,6 +285,58 @@ internal fun ZoomableImageSurface(
                 translationY = transform.offset.y,
             ),
         )
+    }
+}
+
+@Composable
+private fun ImageViewControls(
+    state: ImageViewState,
+    image: Size,
+    viewport: Size,
+    onSelect: (ImageViewMode) -> Unit,
+    modifier: Modifier,
+) {
+    val widthAvailable = ImageViewModes.scale(ImageViewMode.FIT_WIDTH, image, viewport) != null
+    val pixelsAvailable = ImageViewModes.scale(ImageViewMode.PREVIEW_PIXELS, image, viewport) != null
+    val shownMode =
+        if (state.mode != ImageViewMode.CUSTOM && ImageViewModes.scale(state.mode, image, viewport) == null) {
+            ImageViewMode.FIT_SCREEN
+        } else {
+            state.mode
+        }
+    Column(modifier.fillMaxWidth().background(Atomic.colors.background.copy(alpha = 0.94f))) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = AtomicSpacing.s8),
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        ) {
+            AtomicChip(
+                stringResource(R.string.image_view_fit),
+                shownMode == ImageViewMode.FIT_SCREEN,
+                onSelectedChange = { onSelect(ImageViewMode.FIT_SCREEN) },
+                modifier = Modifier.testTag("image_mode_fit"),
+            )
+            AtomicChip(
+                stringResource(R.string.image_view_width),
+                shownMode == ImageViewMode.FIT_WIDTH,
+                onSelectedChange = { onSelect(ImageViewMode.FIT_WIDTH) },
+                enabled = widthAvailable,
+                modifier = Modifier.testTag("image_mode_width"),
+            )
+            AtomicChip(
+                stringResource(R.string.image_view_pixels),
+                shownMode == ImageViewMode.PREVIEW_PIXELS,
+                onSelectedChange = { onSelect(ImageViewMode.PREVIEW_PIXELS) },
+                enabled = pixelsAvailable,
+                modifier = Modifier.testTag("image_mode_pixels"),
+            )
+        }
+        if ((!widthAvailable || !pixelsAvailable) && viewport.width > 0f && viewport.height > 0f) {
+            AtomicText(
+                stringResource(R.string.image_view_zoom_limit),
+                AtomicTextRole.BodySecondary,
+                modifier = Modifier.padding(AtomicSpacing.s8).testTag("image_mode_limit"),
+            )
+        }
     }
 }
 
