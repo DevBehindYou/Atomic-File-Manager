@@ -5,6 +5,8 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -61,6 +63,7 @@ class VideoResumeComposeTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
     private val render = mutableStateOf(true)
     private val shown = mutableStateOf<FileNode?>(null)
+    private val previewInstance = mutableIntStateOf(0)
     private val bytes = ByteArray(64) { it.toByte() }
     private lateinit var clip: File
     private lateinit var memory: CountingMemory
@@ -277,19 +280,18 @@ class VideoResumeComposeTest {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 val current = shown.value
-                if (render.value && current != null) VideoPreviewContent(current, container, resumeMemory = memory)
+                if (render.value && current != null) {
+                    key(previewInstance.intValue) {
+                        VideoPreviewContent(current, container, resumeMemory = memory)
+                    }
+                }
             }
         }
     }
 
     private fun reopen() {
-        compose.runOnIdle { render.value = false }
-        // Confirm the first view has left the hierarchy before requesting the next preview.
-        compose.waitUntil(10_000) {
-            shadowOf(Looper.getMainLooper()).idle()
-            playerView(compose.activity.window.decorView) == null
-        }
-        compose.runOnIdle { render.value = true }
+        // Replace the preview composition in one change, so two visibility writes cannot collapse.
+        compose.runOnIdle { previewInstance.intValue++ }
     }
 
     private fun node() =
@@ -303,7 +305,7 @@ class VideoResumeComposeTest {
     private fun container(): AppContainer =
         object : AppContainer by DefaultAppContainer(app) {
             override val mediaPreviewHelper =
-                MediaPreviewHelper(app, metadataReader = {
+                MediaPreviewHelper(app, io = Dispatchers.Unconfined, metadataReader = {
                     MediaMetadata(null, null, null, DURATION_MS, 0, 0, null, null)
                 }) { InMemoryBackend() }
         }
