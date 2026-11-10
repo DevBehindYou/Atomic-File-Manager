@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicLong
 
@@ -32,6 +33,9 @@ data class StorageUsageUpdate(
     val cached: Boolean = false,
     val changedDuringScan: Boolean = false,
     val previousObserved: StorageUsageSnapshot? = null,
+    /** Restored on entry: the last walk for this storage stopped before publishing a result. */
+    val interrupted: Boolean = false,
+    val persistenceFailed: Boolean = false,
 )
 
 data class StorageUsageLimits(
@@ -53,6 +57,8 @@ class StorageUsageRepository(
     private val nanoTime: () -> Long = System::nanoTime,
     private val wallTime: () -> Long = System::currentTimeMillis,
     private val ttlNanos: Long = 120_000_000_000,
+    /** Optional durable copy for a later process; null keeps evidence in memory only. */
+    private val store: StorageUsageStore? = null,
 ) {
     private data class Cache(
         val inputKey: String,
@@ -66,12 +72,91 @@ class StorageUsageRepository(
     private val revision = AtomicLong()
 
     @Volatile private var cache: Cache? = null
-    private var observed: Cache? = null
+
+    @Volatile private var observed: Cache? = null
+
+    /** Input key of a walk that started but published no final result: the user left or it was cancelled. */
+    @Volatile private var interrupted: String? = null
+
+    @Volatile private var unsavedInputKey: String? = null
+
+    private val loadLock = Any()
+
+    @Volatile private var loaded = store == null
 
     /** Mark stale without destroying the last successful evidence shown during refresh/failure. */
     fun invalidate() {
         revision.incrementAndGet()
     }
+
+    /**
+     * What this repository already knows for exactly these [volumes], without planning or listing anything.
+     * Entry stays lightweight: the result is shown as previous and possibly stale until the user refreshes.
+     * Different storage, mounts or grants share nothing. Null when nothing is known.
+     */
+    fun lastResult(volumes: List<StorageVolumeInfo>): StorageUsageUpdate? {
+        val inputKey = inputKeyOf(volumes)
+        val good = cache?.takeIf { it.inputKey == inputKey }?.snapshot
+        val seen = observed?.takeIf { it.inputKey == inputKey }?.snapshot
+        val stopped = interrupted == inputKey
+        if (good == null && seen == null && !stopped) return null
+        // Always IDLE: a restored entry offers the same explicit action as a fresh one.
+        return StorageUsageUpdate(
+            phase = StorageUsagePhase.IDLE,
+            current = null,
+            lastGood = good,
+            previousObserved = seen,
+            interrupted = stopped,
+            persistenceFailed = unsavedInputKey == inputKey,
+        )
+    }
+
+    /**
+     * Like [lastResult], after loading once (on IO) what an earlier process stored. Restored results are only
+     * ever previous evidence: they can never satisfy a cached hit, so the next request always walks again.
+     */
+    suspend fun restore(volumes: List<StorageVolumeInfo>): StorageUsageUpdate? {
+        if (!loaded) withContext(io) { load() }
+        return lastResult(volumes)
+    }
+
+    private fun load() =
+        synchronized(loadLock) {
+            if (loaded) return@synchronized
+            val stored =
+                try {
+                    store?.read()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    // Unreadable preferences only lose the previous evidence; the next scan replaces them.
+                    null
+                }
+            if (stored != null) {
+                // This process's own evidence is newer than anything a previous process stored.
+                if (cache == null) cache = stored.lastGood?.restored()
+                if (observed == null) observed = stored.observed?.restored()
+                if (interrupted == null) interrupted = stored.interruptedInputKey
+            }
+            loaded = true
+        }
+
+    private fun persist(inputKey: String) {
+        val target = store ?: return
+        val saved =
+            try {
+                target.write(StoredStorageUsage(cache?.stored(), observed?.stored(), interrupted))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+        unsavedInputKey = if (saved) null else inputKey
+    }
+
+    private fun StoredStorageUsageResult.restored() = Cache(inputKey, planKey, snapshot, 0, RESTORED_REVISION)
+
+    private fun Cache.stored() = StoredStorageUsageResult(inputKey, planKey, snapshot)
 
     fun scan(
         volumes: List<StorageVolumeInfo>,
@@ -79,11 +164,9 @@ class StorageUsageRepository(
     ): Flow<StorageUsageUpdate> =
         flow {
             writer.withLock {
+                if (!loaded) load()
                 if (refresh) invalidate()
-                val inputKey =
-                    volumes.map {
-                        "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}"
-                    }.sorted().joinToString("\n")
+                val inputKey = inputKeyOf(volumes)
                 if (cache?.let { it.inputKey != inputKey } == true) invalidate()
                 val previous = cache?.takeIf { it.inputKey == inputKey }
                 val priorObserved = observed?.takeIf { it.inputKey == inputKey }
@@ -103,6 +186,7 @@ class StorageUsageRepository(
                             StorageUsagePhase.FAILED,
                             lastGood = previous?.snapshot,
                             previousObserved = priorObserved?.snapshot,
+                            persistenceFailed = unsavedInputKey == inputKey,
                         ),
                     )
                     return@withLock
@@ -121,9 +205,13 @@ class StorageUsageRepository(
                             hit.snapshot.copy(capacity = plan.capacity),
                             hit.snapshot,
                             cached = true,
+                            persistenceFailed = unsavedInputKey == inputKey,
                         ),
                     )
                 } else {
+                    interrupted = inputKey
+                    // A saved marker lets the next process detect a walk interrupted before publication.
+                    persist(inputKey)
                     walk(plan, hit?.snapshot, requestedRevision) { update ->
                         currentCoroutineContext().ensureActive()
                         if (update.phase == StorageUsagePhase.COMPLETE && requestedRevision == revision.get()) {
@@ -138,7 +226,16 @@ class StorageUsageRepository(
                                     inputKey, plan.key, checkNotNull(update.current), nanoTime(), requestedRevision,
                                 )
                         }
-                        emit(update.copy(previousObserved = observedHit?.snapshot))
+                        if (update.phase != StorageUsagePhase.SCANNING) {
+                            interrupted = null
+                            persist(inputKey)
+                        }
+                        emit(
+                            update.copy(
+                                previousObserved = observedHit?.snapshot,
+                                persistenceFailed = unsavedInputKey == inputKey,
+                            ),
+                        )
                     }
                 }
             }
@@ -256,4 +353,14 @@ class StorageUsageRepository(
     }
 
     private class ScanLimitReached : RuntimeException()
+
+    private companion object {
+        /** Never equal to a live revision (they start at 0), so restored results are never cached hits. */
+        const val RESTORED_REVISION = -1L
+    }
 }
+
+private fun inputKeyOf(volumes: List<StorageVolumeInfo>): String =
+    volumes.map {
+        "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}"
+    }.sorted().joinToString("\n")

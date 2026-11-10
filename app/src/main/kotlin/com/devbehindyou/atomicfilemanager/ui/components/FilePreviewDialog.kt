@@ -646,11 +646,22 @@ internal fun GenericFileExternalAction(
  * read as an app. Installing is left to "Open with" so Atomic File Manager needs no install permission.
  */
 @Composable
-private fun ApkSummary(node: FileNode) {
-    val context = LocalContext.current
-    val reader = remember { ApkInfoReader(context.applicationContext) }
+internal fun ApkSummary(
+    node: FileNode,
+    reader: ApkInfoReader =
+        LocalContext.current.applicationContext.let { context -> remember(context) { ApkInfoReader(context) } },
+) {
+    // A replaced APK starts from "Reading…", never from the previous file's details or verdict.
+    key(node.id, node.modifiedAt, node.size) { ApkSummaryRevision(node, reader) }
+}
+
+@Composable
+private fun ApkSummaryRevision(
+    node: FileNode,
+    reader: ApkInfoReader,
+) {
     // First: finished reading; second: what was read (null when it isn't a readable app).
-    val read by produceState<Pair<Boolean, ApkInfo?>>(false to null, node.id) {
+    val read by produceState<Pair<Boolean, ApkInfo?>>(false to null) {
         value = true to reader.read(node.id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme))
     }
     val (done, apk) = read

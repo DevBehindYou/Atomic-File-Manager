@@ -83,9 +83,17 @@ internal fun rememberStorageUsageAnalysis(
     val owner = LocalLifecycleOwner.current
     val scopeKey = volumes.map { "${it.id}|${it.isMounted}|${it.rootNodeId?.raw}|${it.requiresGrant}" }.sorted()
     var update by remember(repository, scopeKey, analysisKey) {
-        mutableStateOf(StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
+        // Re-entry shows what this process already knows for this storage; it never starts work by itself.
+        mutableStateOf(repository.lastResult(volumes) ?: StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
     }
     var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
+    LaunchedEffect(repository, scopeKey, analysisKey) {
+        // An earlier process's evidence is read on IO; it only fills an entry nothing has replaced yet.
+        val restored = repository.restore(volumes)
+        if (restored != null && !requested && update.phase == StorageUsagePhase.IDLE && update.current == null) {
+            update = restored
+        }
+    }
     // Keep an old session's cancellation callback tied to its own owner after a root change.
     val notifyRunning = remember(repository, scopeKey, analysisKey) { mutableStateOf(onRunningChange) }
     notifyRunning.value = onRunningChange
@@ -133,7 +141,8 @@ internal fun StorageUsagePanel(
     val previous =
         update.lastGood.takeIf { update.phase != StorageUsagePhase.COMPLETE }
             ?: update.previousObserved.takeIf {
-                update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED
+                update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED ||
+                    (current == null && update.phase == StorageUsagePhase.IDLE)
             }
     val files = previous ?: current
     val capacity = current?.capacity ?: previous?.capacity
@@ -155,6 +164,9 @@ internal fun StorageUsagePanel(
         }
         AtomicSectionLabel("Readable shared files")
         AtomicText(usageStatus(update), AtomicTextRole.BodySecondary, Modifier.testTag("storage_usage_status"))
+        if (update.persistenceFailed) {
+            AtomicText("Scan history could not be saved for next time.", AtomicTextRole.BodySecondary)
+        }
         if (previous != null) {
             val coverage = if (previous.complete) "complete" else "partial"
             val scannedAt = FileUtils.formatDate(previous.scannedAtMillis)
@@ -302,7 +314,12 @@ private fun UsageCategoryRow(
 internal fun usageStatus(update: StorageUsageUpdate): String {
     val current = update.current
     return when (update.phase) {
-        StorageUsagePhase.IDLE -> "Analyze file types when you need a breakdown."
+        StorageUsagePhase.IDLE ->
+            if (update.interrupted) {
+                "The last file type scan has no saved result. Analyze file types again when ready."
+            } else {
+                "Analyze file types when you need a breakdown."
+            }
         StorageUsagePhase.SCANNING -> "Scanning files · ${current?.scannedFiles ?: 0} files found."
         StorageUsagePhase.COMPLETE ->
             "Readable-folder scan complete. System and private app data are outside this breakdown."
