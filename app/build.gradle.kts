@@ -127,6 +127,10 @@ dependencies {
     implementation(libs.tukaani.xz)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    constraints {
+        // Media3 brings Guava 33.3.1-android; 33.7.2 fixes GHSA-xxph-c9ww-hj94 / CVE-2026-102554.
+        implementation(libs.guava) { because("GHSA-xxph-c9ww-hj94: Guava before 33.7.2") }
+    }
     implementation(libs.androidx.exifinterface)
     implementation(libs.tink.android)
 

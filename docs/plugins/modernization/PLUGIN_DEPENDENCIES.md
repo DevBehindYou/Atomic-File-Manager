@@ -14,3 +14,6 @@ Observed26 October 2026, base `4d7157f`. No dependency changed. Online current A
 | Office/RTF/EPUB, grammar/tag engines | No engine selected. Flutter/Dart leads are desired capabilities, not native selections. | Compare maintained native/JVM API 27 feature/security/license/size costs before addition. |
 
 APK/installed-size/RAM/CPU/battery not measured. Next Image geometry adds no dependency.
+### Guava advisory constraint — 7 November 2026 (C047 slice 2)
+
+Transitive Guava (via Media3 1.8.0) is constrained from 33.3.1-android to 33.7.2-android for GHSA-xxph-c9ww-hj94 / CVE-2026-102554. Three resolved versions changed: Guava, failureaccess 1.0.3 and jspecify 1.0.1. The R8 release APK is 0 B larger. Evidence: [Guava advisory record](../../testing/GUAVA_ADVISORY_C047.md).
