@@ -203,7 +203,8 @@
         "Codex updated #120 at ad04694 to report rejected/throwing persistence while preserving live results. CI 42810259523 began. #118 was refreshed on e10effe as d325a48 for combined CI.",
         "The first Analysis repair head ad04694 passed hosted CI 42810259523. A Windows run found five fixture failures because Unix separators made fake paths appear outside their root. The final combined head 4ee5898 passes all 16 focused Windows cases, including parent fixtures, with no failures/errors/skips. The same command then stopped at offline ktlint dependency resolution. Current hosted runs are 42812156234 (#118, 5c1817f) and 42812164784 (#120, 4ee5898).",
         "Exact-head CI 42813099841 (7e549d1) and 42813109718 (5d28553) passed static, unit and APK gates. Review and fresh clean trials preceded feature-integration merges 6fb11c5 and 20d2286 in that order. Search generation/retry durability and wider physical/provider acceptance remain open.",
-        "12 November: Codex claims the durable Search rebuild checkpoint slice on 84eccc8. Scope is RoomSearchIndex, its existing preferences adapter and focused tests."
+        "12 November: Codex claims the durable Search rebuild checkpoint slice on 84eccc8. Scope is RoomSearchIndex, its existing preferences adapter and focused tests.",
+        "The Search checkpoint candidate commits build_pending before changing index rows and clears it in the same preferences commit as the successful timestamp. Regression coverage models cancellation, retry after a fresh index instance, and rejected preference writes."
       ],
       "remaining": [
         "Integrate #118 first after its current checks and guarded trial, then verify #120 on the resulting target.",

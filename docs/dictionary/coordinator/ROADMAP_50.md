@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/c005-search-checkpoint. PR: #118 and #120 integrated; search checkpoint slice pending. Evidence records: 9. Updated: 2026-11-10.
+Branch: codex/c005-search-checkpoint. PR: #118 and #120 integrated; search checkpoint slice pending. Evidence records: 10. Updated: 2026-11-10.
 
 ## B — Image
 

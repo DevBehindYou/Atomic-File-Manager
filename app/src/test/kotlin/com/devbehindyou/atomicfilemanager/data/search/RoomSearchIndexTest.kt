@@ -96,8 +96,23 @@ class RoomSearchIndexTest {
 
         override fun get() = value
 
-        override fun set(value: Long) {
-            this.value = value
+        var pending = false
+        var acceptStart = true
+        var acceptFinish = true
+
+        override fun isBuildPending() = pending
+
+        override fun markBuildPending(): Boolean {
+            if (!acceptStart) return false
+            pending = true
+            return true
+        }
+
+        override fun finishBuild(builtAt: Long): Boolean {
+            if (!acceptFinish) return false
+            value = builtAt
+            pending = false
+            return true
         }
     }
 
@@ -178,6 +193,72 @@ class RoomSearchIndexTest {
             index.refreshIfStale(listOf(backend.rootId))
             runCurrent()
             assertEquals(20_000L, stamp.value)
+        }
+
+    @Test
+    fun `a cancelled rebuild is retried after restart despite a recent successful stamp`() =
+        runTest {
+            val removed = backend.putFile(backend.rootId, "removed.txt", byteArrayOf(1))
+            index().build(listOf(backend.rootId))
+            backend.delete(removed)
+            backend.putFile(backend.rootId, "replacement.txt", byteArrayOf(2))
+            now = 2_000L
+
+            val interrupted = index { flow { awaitCancellation() } }
+            val rebuild = launch { interrupted.build(listOf(backend.rootId)) }
+            runCurrent()
+            assertTrue(stamp.pending)
+            rebuild.cancelAndJoin()
+            assertEquals(1_000L, stamp.value)
+            assertEquals(listOf("removed.txt"), interrupted.search("removed", 10).map { it.name })
+
+            val restarted = index()
+            restarted.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+
+            assertFalse(stamp.pending)
+            assertEquals(2_000L, restarted.state.value.builtAt)
+            assertEquals(listOf("replacement.txt"), restarted.search("replacement", 10).map { it.name })
+            assertTrue(restarted.search("removed", 10).isEmpty())
+        }
+
+    @Test
+    fun `a rejected retry marker leaves the index untouched`() =
+        runTest {
+            stamp.acceptStart = false
+            var listings = 0
+            val index =
+                index {
+                    listings++
+                    backend.listChildren(it)
+                }
+
+            index.build(listOf(backend.rootId))
+
+            assertEquals(0, listings)
+            assertTrue(dao.rows.isEmpty())
+            assertEquals(null, index.state.value.builtAt)
+        }
+
+    @Test
+    fun `a rejected completion keeps the earlier freshness stamp and retries after restart`() =
+        runTest {
+            index().build(listOf(backend.rootId))
+            stamp.acceptFinish = false
+            now = 2_000L
+
+            val index = index()
+            index.build(listOf(backend.rootId))
+            assertEquals(1_000L, index.state.value.builtAt)
+            assertTrue(stamp.pending)
+
+            stamp.acceptFinish = true
+            val restarted = index()
+            restarted.refreshIfStale(listOf(backend.rootId))
+            runCurrent()
+
+            assertEquals(2_000L, restarted.state.value.builtAt)
+            assertFalse(stamp.pending)
         }
 
     @Test
