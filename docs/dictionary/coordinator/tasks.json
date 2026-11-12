@@ -157,7 +157,8 @@
         "Head 800a5b5 on 89140e3 (parallel sub-agent): FolderThumbnailReader peeks now take one of 2 process-wide Semaphore permits after a pure eligibility check; a row cancelled while queued never opens a directory. Per-peek bounds (64 examined, 4 previews, 128 ancestors) unchanged. Coordinator reviewed the diff.",
         "Failing control: base plus only the constant MAX_CONCURRENT_PEEKS: 30 run, 1 failed ('A peek beyond the bound started'); video-thumbnail and cache-key coverage passed on base (no defect there).",
         "Local: 40/40 pass three times (FolderThumbnailReader, ProviderVideoThumbnailReader, ThumbnailSource, FileThumbnailCompose, FileThumbnail); ktlint/detekt pass. Fixture counts: folder 12 requests, max 2 concurrent, 8 opened, 4 cancelled-while-queued opened nothing; video 8 requests, max 2, 5 loaded; real Coil loader 12 requests, 9 fetches, 9 distinct keys, 3 memory hits, no stale hit after replacement.",
-        "Hosted on #116: CI run 42339001426 success. Record: docs/testing/THUMBNAIL_BOUNDS_C004.md; FILE_THUMBNAILS_VALIDATION.md section."
+        "Hosted on #116: CI run 42339001426 success. Record: docs/testing/THUMBNAIL_BOUNDS_C004.md; FILE_THUMBNAILS_VALIDATION.md section.",
+        "12 November: current head cbf90c3 passed CI 43272445054. Review and a clean trial preceded feature-integration merge f5f6b74. No device performance measurements were taken."
       ],
       "remaining": [
         "Codex review and clean trial.",
@@ -193,7 +194,7 @@
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
       "branch": "codex/c005-search-checkpoint",
-      "pr": "#118 and #120 integrated; search checkpoint slice pending",
+      "pr": "#118 and #120 integrated; #129 durable Search rebuild retry",
       "evidence": [
         "Slice 1 head 8f0c1e9 on 89140e3: StorageUsageRepository.lastResult(volumes) returns lastGood/previousObserved/interrupted for the exact same volumes/mounts/grants with no plan, list or IO; rememberStorageUsageAnalysis seeds an IDLE state from it (entry still requires an explicit action). Codex's root-change test unchanged.",
         "Failing control: StorageUsageReentryComposeTest fails 2/3 on base (no previous breakdown on re-entry; mid-scan exit indistinguishable from no scan); access-change guard passes on base. Test-only commit 8108bc6.",
@@ -204,7 +205,8 @@
         "The first Analysis repair head ad04694 passed hosted CI 42810259523. A Windows run found five fixture failures because Unix separators made fake paths appear outside their root. The final combined head 4ee5898 passes all 16 focused Windows cases, including parent fixtures, with no failures/errors/skips. The same command then stopped at offline ktlint dependency resolution. Current hosted runs are 42812156234 (#118, 5c1817f) and 42812164784 (#120, 4ee5898).",
         "Exact-head CI 42813099841 (7e549d1) and 42813109718 (5d28553) passed static, unit and APK gates. Review and fresh clean trials preceded feature-integration merges 6fb11c5 and 20d2286 in that order. Search generation/retry durability and wider physical/provider acceptance remain open.",
         "12 November: Codex claims the durable Search rebuild checkpoint slice on 84eccc8. Scope is RoomSearchIndex, its existing preferences adapter and focused tests.",
-        "The Search checkpoint candidate commits build_pending before changing index rows and clears it in the same preferences commit as the successful timestamp. Regression coverage models cancellation, retry after a fresh index instance, and rejected preference writes."
+        "The Search checkpoint candidate commits build_pending before changing index rows and clears it in the same preferences commit as the successful timestamp. Regression coverage models cancellation, retry after a fresh index instance, and rejected preference writes.",
+        "Search candidate fe3e962 passed 24 focused Windows cases, ktlint and hosted run 43272817133. PR #129 was synchronized with the thumbnail integration for fresh combined checks."
       ],
       "remaining": [
         "Integrate #118 first after its current checks and guarded trial, then verify #120 on the resulting target.",

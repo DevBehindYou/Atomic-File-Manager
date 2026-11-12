@@ -218,3 +218,5 @@ C005 search-index restart, revoked-root and wider physical/provider evidence rem
 ## Search rebuild recovery — 12 November
 
 C005 adds a durable retry marker to Search so it can retry an interrupted rebuild after restart while preserving the previous successful timestamp. Hosted and device acceptance are tracked separately. Feature credit remains **2/13 host verified (15%) and 1/13 fully accepted (8%)**.
+
+[PR #116](https://github.com/DevBehindYou/Atomic-File-Manager/pull/116) bounds simultaneous folder-thumbnail peeks to two and cancels queued off-screen work before it opens a directory. Review and a clean trial followed successful hosted checks at `cbf90c3` in `43272445054`, then the change merged into feature integration as `f5f6b74`. [PR #129](https://github.com/DevBehindYou/Atomic-File-Manager/pull/129) passed 24 focused Windows Search tests, ktlint and hosted CI on `fe3e962`. Combined validation follows the thumbnail merge. Whole-feature credit remains unchanged.

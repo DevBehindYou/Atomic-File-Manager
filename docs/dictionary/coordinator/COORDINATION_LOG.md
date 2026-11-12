@@ -172,3 +172,5 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 ## 12 November 2026 — C005 search checkpoint claim
 
 Codex resumed C005 on integration `84eccc8` via `codex/c005-search-checkpoint`. The scope covers the Search rebuild marker, the existing preference adapter and regression tests. Acquired `task-C005`, `area-index-analysis`, `area-opening` and `area-schema` for the slice.
+
+- Search [#129](https://github.com/DevBehindYou/Atomic-File-Manager/pull/129) passed 24 focused Windows cases, ktlint and hosted CI `43272817133` at `fe3e962`. Thumbnail concurrency [#116](https://github.com/DevBehindYou/Atomic-File-Manager/pull/116) passed current CI `43272445054` at `cbf90c3` and merged as `f5f6b74` after review and a clean trial. Search was refreshed on that integration commit.
