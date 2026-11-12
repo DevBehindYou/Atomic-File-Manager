@@ -1,0 +1,88 @@
+
+Welcome to Gradle 9.3.1!
+
+Here are the highlights of this release:
+ - Test reporting improvements
+ - Error and warning improvements
+ - Build authoring improvements
+
+For more details see https://docs.gradle.org/9.3.1/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:generateExternalPluginSpecBuilders UP-TO-DATE
+> Task :build-logic:convention:extractPrecompiledScriptPluginPlugins UP-TO-DATE
+> Task :build-logic:convention:compilePluginsBlocks UP-TO-DATE
+> Task :build-logic:convention:generatePrecompiledScriptPluginAccessors UP-TO-DATE
+> Task :build-logic:convention:generateScriptPluginAdapters UP-TO-DATE
+> Task :build-logic:convention:compileKotlin UP-TO-DATE
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:pluginDescriptors UP-TO-DATE
+> Task :build-logic:convention:processResources UP-TO-DATE
+> Task :build-logic:convention:classes UP-TO-DATE
+> Task :build-logic:convention:jar UP-TO-DATE
+
+> Configure project :app
+WARNING: The option setting 'android.disallowKotlinSourceSets=false' is experimental.
+The current default is 'true'.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+
+> Task :app:checkReleaseAarMetadata
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+> Task :app:checkReleaseAarMetadata FAILED
+
+[Incubating] Problems report is available at: file://<worktree>/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkReleaseAarMetadata'.
+> A failure occurred while executing com.android.build.gradle.internal.tasks.CheckAarMetadataWorkAction
+   > 4 issues were found when checking AAR metadata:
+     
+       1.  Dependency 'androidx.pdf:pdf-core:1.0.0-beta01' requires libraries and applications that
+           depend on it to compile against an SDK with an extension level of
+           19 or higher.
+     
+           Recommended action: Update this project to use a compileSdkExtension
+           value of at least 19.
+     
+       2.  Dependency 'androidx.pdf:pdf-viewer:1.0.0-beta01' requires libraries and applications that
+           depend on it to compile against an SDK with an extension level of
+           19 or higher.
+     
+           Recommended action: Update this project to use a compileSdkExtension
+           value of at least 19.
+     
+       3.  Dependency 'androidx.pdf:pdf-document-service:1.0.0-beta01' requires libraries and applications that
+           depend on it to compile against an SDK with an extension level of
+           19 or higher.
+     
+           Recommended action: Update this project to use a compileSdkExtension
+           value of at least 19.
+     
+       4.  Dependency 'androidx.pdf:pdf-viewer-fragment:1.0.0-beta01' requires libraries and applications that
+           depend on it to compile against an SDK with an extension level of
+           19 or higher.
+     
+           Recommended action: Update this project to use a compileSdkExtension
+           value of at least 19.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 14s
+10 actionable tasks: 1 executed, 9 up-to-date

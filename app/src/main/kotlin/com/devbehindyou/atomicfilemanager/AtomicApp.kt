@@ -47,6 +47,7 @@ import com.devbehindyou.atomicfilemanager.data.vault.VaultFiles
 import com.devbehindyou.atomicfilemanager.data.vault.VaultKeys
 import com.devbehindyou.atomicfilemanager.data.volume.LocalStorageUsageSource
 import com.devbehindyou.atomicfilemanager.data.volume.PhoneFileIndex
+import com.devbehindyou.atomicfilemanager.data.volume.SharedPreferencesStorageUsageStore
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
 import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
@@ -150,6 +151,7 @@ class DefaultAppContainer(private val application: Application) : AppContainer {
                 volumesNow = { StorageVolumes.enumerate(application) },
                 primaryPath = { application.filesDir.absolutePath },
             ),
+            store = SharedPreferencesStorageUsageStore(application),
         )
     }
 
