@@ -192,7 +192,7 @@
       "expected_outcome": "Recoverable scan state and honestly marked cached/partial/denied results.",
       "validation": "Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.",
       "external_gate": null,
-      "branch": "codex/claude-c005-analysis-freshness",
+      "branch": "codex/c005-search-checkpoint",
       "pr": "#118 and #120 integrated; search checkpoint slice pending",
       "evidence": [
         "Slice 1 head 8f0c1e9 on 89140e3: StorageUsageRepository.lastResult(volumes) returns lastGood/previousObserved/interrupted for the exact same volumes/mounts/grants with no plan, list or IO; rememberStorageUsageAnalysis seeds an IDLE state from it (entry still requires an explicit action). Codex's root-change test unchanged.",
@@ -202,7 +202,8 @@
         "Slice 2 #120 head 8273cec (stacked on #118): versioned CRC32-checked StorageUsageStore in private preferences (backups disabled) mirrors last-good/observed results and the walk marker; loaded once on IO; restored results carry revision -1 so they never satisfy a cached hit; 2 writes per walk, 0 on entry. Control: StorageUsagePersistenceTest with persist() disabled (slice-1 behaviour) fails 4/7; guards pass. Local 94/94 storage tests and ktlint/detekt pass. Record: docs/testing/ANALYSIS_PERSISTENCE_C005.md.",
         "Codex updated #120 at ad04694 to report rejected/throwing persistence while preserving live results. CI 42810259523 began. #118 was refreshed on e10effe as d325a48 for combined CI.",
         "The first Analysis repair head ad04694 passed hosted CI 42810259523. A Windows run found five fixture failures because Unix separators made fake paths appear outside their root. The final combined head 4ee5898 passes all 16 focused Windows cases, including parent fixtures, with no failures/errors/skips. The same command then stopped at offline ktlint dependency resolution. Current hosted runs are 42812156234 (#118, 5c1817f) and 42812164784 (#120, 4ee5898).",
-        "Exact-head CI 42813099841 (7e549d1) and 42813109718 (5d28553) passed static, unit and APK gates. Review and fresh clean trials preceded feature-integration merges 6fb11c5 and 20d2286 in that order. Search generation/retry durability and wider physical/provider acceptance remain open."
+        "Exact-head CI 42813099841 (7e549d1) and 42813109718 (5d28553) passed static, unit and APK gates. Review and fresh clean trials preceded feature-integration merges 6fb11c5 and 20d2286 in that order. Search generation/retry durability and wider physical/provider acceptance remain open.",
+        "12 November: Codex claims the durable Search rebuild checkpoint slice on 84eccc8. Scope is RoomSearchIndex, its existing preferences adapter and focused tests."
       ],
       "remaining": [
         "Integrate #118 first after its current checks and guarded trial, then verify #120 on the resulting target.",
