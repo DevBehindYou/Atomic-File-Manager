@@ -34,3 +34,9 @@ Feature integration reached `76eff0c34822885fd18e945e39f04b818a83b4bf` after fou
 | DOCX source sessions and preview routing | `e8e61b6` | `76eff0c` | 1,315 host cases and one FILE routing and Find case on each API 28 and 34 emulator. [PR #93](https://github.com/DevBehindYou/Atomic-File-Manager/pull/93) · [Validation](../../testing/DOCUMENT_SOURCE_SESSION_CANDIDATE.md) |
 
 The fixed counts remain **0/42 host-complete groups, 0/42 accepted groups and 0/8 fully modernized plugins**. Feature-plan credit remains **2/13 host verified (15%) and 1/13 fully accepted (8%)**. Wider capability, provider and release gates remain open.
+
+## 10 November scoped work
+
+The [EXIF and Details revision fix](https://github.com/DevBehindYou/Atomic-File-Manager/pull/108) merged into feature integration as `e10effe` after focused host and current hosted checks. The [Editor stale-recovery guard](https://github.com/DevBehindYou/Atomic-File-Manager/pull/126) passed hosted checks on `c6533c5`. Editor recovery and revision-aware publication remain a stack pending save-conflict acceptance. [Video resume](https://github.com/DevBehindYou/Atomic-File-Manager/pull/119) passed hosted native API 28/34 and static checks on `0a2cec2`, with two unknown-revision reopen timeouts in its full host suite. The [Audio focus journey](https://github.com/DevBehindYou/Atomic-File-Manager/pull/109) has six original native passes and awaits checks on its refreshed integration candidate.
+
+Fixed plugin credit remains **0/42 host-complete groups, 0/42 accepted groups and 0/8 fully modernized plugins**. Stable v0.2.1 acceptance is open.

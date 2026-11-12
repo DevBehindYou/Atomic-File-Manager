@@ -1,5 +1,7 @@
 # AI Development Guide
 
+**Current coordination:** Claude Code and Codex use the [Coordinator Dictionary](dictionary/coordinator/README.md) for ownership, execution order and review. The owner-approved current minimum is **API28**; older API27 instructions below are historical and do not override the current source baseline. Current accepted architecture and safe implementation gates remain authoritative.
+
 **For Google AI Studio, Gemini, Claude, or any AI agent implementing this project.**
 Read this file and `README.md` before writing a single line of code.
 

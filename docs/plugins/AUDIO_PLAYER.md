@@ -45,3 +45,7 @@ The [focused candidate validation](../testing/MEDIA_PREVIEW_AUDIO_POLICY_VALIDAT
 The focused source follows the accepted Video preparation ownership pattern while preserving Audio's paused start: a source/revision/helper key owns a separate retry-attempt key, returned FileError, loading state, prepared URI and player state. Recoverable acquisition failures expose explicit Retry without a loop; new attempts clear prior failure/prepared state. Preparation labels now use resources. Cancellation keeps the existing withMedia cleanup and512MiB remote staging cap; no backend or shared player source changes are included.
 
 The [dedicated validation record](../testing/AUDIO_PREPARATION_RECOVERY_VALIDATION.md) owns test-first3ad2987, five actual Compose consumers, expected unchanged-source regressions versus preservation controls, and pending evidence. No Gradle/device/CI/review result is claimed by this candidate. Shared focus-policy94703bb remains a separate focused slice; neither one establishes actual Audio formats, audible output, background lifetime, tag editing or a complete modernized Audio plugin. Version remainsv0.2.
+
+## WAV playback acceptance candidate
+
+AUD-T02 now has an Android fixture for an owned PCM WAV through the built-in preview. It exercises real playback progress, Pause, rewind, natural completion, Close and source integrity. API 28 and API 34 execution is pending. Other formats, audible output, provider loss and focus or lifecycle interruption tests remain open. [WAV validation record](../testing/AUDIO_WAV_NATIVE_CANDIDATE.md)
