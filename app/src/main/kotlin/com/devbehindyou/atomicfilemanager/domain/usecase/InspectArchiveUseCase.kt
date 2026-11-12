@@ -103,6 +103,8 @@ class InspectArchiveUseCase
                     FileResult.Failure(FileError.UnsupportedFormat(WRONG_PASSWORD))
                 } catch (_: ArchivePasswordRequired) {
                     FileResult.Failure(FileError.UnsupportedFormat(PASSWORD_PROTECTED))
+                } catch (unsupported: ArchiveUnsupportedVariant) {
+                    FileResult.Failure(FileError.UnsupportedFormat(unsupported.variant))
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (e: Exception) {
