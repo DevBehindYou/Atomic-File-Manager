@@ -11,8 +11,10 @@ import android.os.CancellationSignal
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -25,9 +27,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
@@ -82,6 +86,52 @@ class ProviderVideoThumbnailReaderTest {
                     request.cancelAndJoin()
                     assertTrue(checkNotNull(late.get()).isRecycled)
                 }
+            }
+        }
+
+    @Test
+    fun slowProvidersAdmitTwoFramesAndRowsScrolledAwayBeforeStartingNeverLoad() =
+        runBlocking {
+            val release = CountDownLatch(1)
+            val boundReached = CountDownLatch(VIDEO_BOUND)
+            val beyondBound = CountDownLatch(VIDEO_BOUND + 1)
+            val active = AtomicInteger()
+            val maxActive = AtomicInteger()
+            val loaded = ConcurrentLinkedQueue<Any>()
+            try {
+                Executors.newFixedThreadPool(ROWS).asCoroutineDispatcher().use { io ->
+                    val reader =
+                        ProviderVideoThumbnailReader(RuntimeEnvironment.getApplication(), io) { source, edge, _ ->
+                            maxActive.accumulateAndGet(active.incrementAndGet(), ::maxOf)
+                            loaded += source
+                            boundReached.countDown()
+                            beyondBound.countDown()
+                            try {
+                                check(release.await(5, TimeUnit.SECONDS)) { "Slow provider was never released" }
+                                Bitmap.createBitmap(edge, edge, Bitmap.Config.ARGB_8888)
+                            } finally {
+                                active.decrementAndGet()
+                            }
+                        }
+                    val rows = (0 until ROWS).map { row -> async { reader.read(row, 40) } }
+                    yield()
+                    assertTrue(boundReached.await(5, TimeUnit.SECONDS))
+                    assertFalse("A frame beyond the bound started", beyondBound.await(300, TimeUnit.MILLISECONDS))
+                    val scrolledAway = rows.takeLast(SCROLLED_AWAY)
+                    scrolledAway.forEach { it.cancel() }
+                    release.countDown()
+                    val frames = rows.dropLast(SCROLLED_AWAY).awaitAll()
+                    scrolledAway.forEach { it.join() }
+                    try {
+                        assertEquals(VIDEO_BOUND, maxActive.get())
+                        assertEquals((0 until ROWS - SCROLLED_AWAY).toList(), loaded.map { it as Int }.sorted())
+                        assertEquals(ROWS - SCROLLED_AWAY, frames.distinct().size)
+                    } finally {
+                        frames.forEach(Bitmap::recycle)
+                    }
+                }
+            } finally {
+                release.countDown()
             }
         }
 
@@ -163,5 +213,11 @@ class ProviderVideoThumbnailReaderTest {
         assertThrows(IOException::class.java) { runBlocking { ProviderVideoThumbnailReader(context).read(file, 40) } }
         assertEquals(1, queries)
         assertTrue(closed)
+    }
+
+    private companion object {
+        const val VIDEO_BOUND = 2
+        const val ROWS = 8
+        const val SCROLLED_AWAY = 3
     }
 }

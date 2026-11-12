@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.nio.file.DirectoryIteratorException
@@ -19,37 +21,46 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 
-/** Direct local children only: never recursively walk a folder or materialize a full listing. */
+/**
+ * Direct local children only: never recursively walk a folder or materialize a full listing.
+ * Every row owns a reader, so the in-flight bound is process-wide: at most
+ * [MAX_CONCURRENT_PEEKS] peeks touch the filesystem at once, and a row that leaves
+ * composition before its turn is dropped from the queue without opening anything.
+ */
 internal class FolderThumbnailReader(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val openDirectory: (Path) -> DirectoryStream<Path> = { Files.newDirectoryStream(it) },
 ) {
-    suspend fun read(folder: FileNode): List<ThumbnailSource> =
-        withContext(io) {
-            currentCoroutineContext().ensureActive()
-            if (!folder.isDirectory || folder.isHidden || !folder.access.readable ||
-                folder.id.prefix != FileNodeId.Prefix.FILE
-            ) {
-                return@withContext emptyList()
-            }
-            val id = FileNodeId.parse(folder.id.raw) ?: return@withContext emptyList()
-            try {
-                val directory =
-                    Paths.get(
-                        id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme),
-                    ).toAbsolutePath().normalize()
-                if (!allowsMiniature(directory)) return@withContext emptyList()
-                scan(directory)
-            } catch (_: IOException) {
-                emptyList()
-            } catch (_: DirectoryIteratorException) {
-                emptyList()
-            } catch (_: IllegalArgumentException) {
-                emptyList()
-            } catch (_: SecurityException) {
-                emptyList()
-            }
+    suspend fun read(folder: FileNode): List<ThumbnailSource> {
+        currentCoroutineContext().ensureActive()
+        // Pure eligibility first, so remote, hidden or unreadable rows never wait for a permit.
+        if (!folder.isDirectory || folder.isHidden || !folder.access.readable ||
+            folder.id.prefix != FileNodeId.Prefix.FILE
+        ) {
+            return emptyList()
         }
+        val id = FileNodeId.parse(folder.id.raw) ?: return emptyList()
+        return peeks.withPermit { withContext(io) { peek(id) } }
+    }
+
+    private suspend fun peek(id: FileNodeId): List<ThumbnailSource> {
+        currentCoroutineContext().ensureActive()
+        return try {
+            val directory =
+                Paths.get(
+                    id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme),
+                ).toAbsolutePath().normalize()
+            if (allowsMiniature(directory)) scan(directory) else emptyList()
+        } catch (_: IOException) {
+            emptyList()
+        } catch (_: DirectoryIteratorException) {
+            emptyList()
+        } catch (_: IllegalArgumentException) {
+            emptyList()
+        } catch (_: SecurityException) {
+            emptyList()
+        }
+    }
 
     private suspend fun allowsMiniature(directory: Path): Boolean {
         val ancestors = boundedThumbnailAncestors(directory) ?: return false
@@ -113,6 +124,8 @@ internal class FolderThumbnailReader(
         const val MAX_EXAMINED = 64
         const val MAX_PREVIEWS = 4
         const val MAX_ANCESTORS = 128
+        const val MAX_CONCURRENT_PEEKS = 2
+        private val peeks = Semaphore(MAX_CONCURRENT_PEEKS)
     }
 }
 

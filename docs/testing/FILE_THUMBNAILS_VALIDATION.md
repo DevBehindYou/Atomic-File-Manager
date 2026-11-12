@@ -55,3 +55,7 @@ regressions. These regressions pass in the integrated 917-case host suite, and g
 Checks describe point-in-time metadata; concurrent external filesystem changes are not locked.
 
 The menu/icon refinement adds distinct theme-aware fallback colours and shapes for 15 file families, with metadata-only classification and retained photo/video pixels and folder-privacy checks. See [latest validation](MENU_REFINEMENT_VALIDATION.md).
+
+## Folder peek in-flight bound — 7 November 2026 (C004)
+
+Folder miniature peeks now share a process-wide limit of two concurrent filesystem peeks across all rows. Rows that scroll away while queued never open their directory. The per-peek bounds (64/4/128) are unchanged, and so are the image/video thumbnail bounds and cache keys. Coverage now asserts revision, volume, provider and kind isolation through a real Coil loader. See [the C004 record](THUMBNAIL_BOUNDS_C004.md).
