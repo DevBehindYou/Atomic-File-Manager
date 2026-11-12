@@ -78,7 +78,7 @@ Source areas: `ui/components/FileThumbnail.kt`, `data/preview/FolderThumbnailRea
 
 **Validation.** Use fake slow providers and rapid row reuse; assert maximum concurrency, cancellation, isolation and deterministic cache invalidation. Record request/allocation counts. Device latency claims wait for authorized measurements.
 
-Branch: codex/claude-c004-thumbnail-bounds. PR: #116 (into codex/feature-upgrade-base). Evidence records: 4. Updated: 2026-11-07.
+Branch: codex/claude-c004-thumbnail-bounds. PR: #116 (into codex/feature-upgrade-base). Evidence records: 5. Updated: 2026-11-07.
 
 ### C005 — Persist analysis freshness and interrupted scan state
 
@@ -96,7 +96,7 @@ Source areas: `data/search/RoomSearchIndex.kt`, `data/volume/StorageUsageReposit
 
 **Validation.** Migration from shipped schema, cancelled/restarted scan, revoked root, delete/rename and stale completion tests. Verify Storage entry/recreation causes no recursive scan. Quantify query count and retained rows.
 
-Branch: codex/claude-c005-analysis-freshness. PR: #118 and #120 integrated; search checkpoint slice pending. Evidence records: 8. Updated: 2026-11-10.
+Branch: codex/c005-search-checkpoint. PR: #118 and #120 integrated; #129 durable Search rebuild retry. Evidence records: 11. Updated: 2026-11-10.
 
 ## B — Image
 

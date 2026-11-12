@@ -41,11 +41,15 @@ class RoomSearchIndex(
     private val clock: () -> Long = System::currentTimeMillis,
     private val freshForMillis: Long = DEFAULT_FRESH_MILLIS,
 ) : SearchIndex {
-    /** Where the time of the last finished build is kept between runs. */
+    /** Durable rebuild progress and the last successfully published build time. */
     interface BuiltAtStore {
         fun get(): Long?
 
-        fun set(value: Long)
+        fun isBuildPending(): Boolean
+
+        fun markBuildPending(): Boolean
+
+        fun finishBuild(builtAt: Long): Boolean
     }
 
     private val _state = MutableStateFlow(SearchIndexState(builtAt = builtAtStore.get()))
@@ -54,7 +58,7 @@ class RoomSearchIndex(
     private val writerMutex = Mutex()
 
     @Volatile
-    private var retryRequired = false
+    private var retryRequired = builtAtStore.isBuildPending()
 
     @Volatile
     private var job: Job? = null
@@ -132,7 +136,7 @@ class RoomSearchIndex(
                     throw e
                 } catch (_: Exception) {
                     retryRequired = true
-                    // Already flushed rows remain mixed evidence; failure never reaches pruning/freshness.
+                    // Keep retrying if the walk or final publication fails.
                 } finally {
                     _state.update { it.copy(building = false) }
                 }
@@ -172,6 +176,10 @@ class RoomSearchIndex(
                 _state.update { it.copy(unreadable = 1) }
                 return@withLock
             }
+            retryRequired = true
+            // A rebuild may flush partial batches. Persist the retry marker before changing any rows.
+            if (!builtAtStore.markBuildPending()) return@withLock
+
             val generation = clock()
             val canonicalRoots = roots.mapNotNull(canonicalPath)
             val pending = ArrayDeque(roots)
@@ -218,17 +226,17 @@ class RoomSearchIndex(
                 return@withLock
             }
             dao.deleteOlderThan(generation)
+            val indexedCount = dao.count()
+            currentCoroutineContext().ensureActive()
             val finished = clock()
-            builtAtStore.set(finished)
+            retryRequired = !builtAtStore.finishBuild(finished)
             _state.update {
-                SearchIndexState(
-                    indexedCount = dao.count(),
-                    building = true,
-                    builtAt = finished,
-                    unreadable = unreadable,
+                it.copy(
+                    indexedCount = indexedCount,
+                    builtAt = if (retryRequired) it.builtAt else finished,
+                    unreadable = 0,
                 )
             }
-            retryRequired = false
         }
 
     private fun isInside(

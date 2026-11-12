@@ -209,7 +209,12 @@ class DefaultAppContainer(private val application: Application) : AppContainer {
                 object : RoomSearchIndex.BuiltAtStore {
                     override fun get(): Long? = prefs.getLong("built_at", 0L).takeIf { it > 0 }
 
-                    override fun set(value: Long) = prefs.edit().putLong("built_at", value).apply()
+                    override fun isBuildPending(): Boolean = prefs.getBoolean("build_pending", false)
+
+                    override fun markBuildPending(): Boolean = prefs.edit().putBoolean("build_pending", true).commit()
+
+                    override fun finishBuild(builtAt: Long): Boolean =
+                        prefs.edit().putLong("built_at", builtAt).remove("build_pending").commit()
                 },
         )
     }

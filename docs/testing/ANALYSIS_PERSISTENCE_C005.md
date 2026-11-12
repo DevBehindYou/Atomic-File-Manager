@@ -64,3 +64,9 @@ All runs are local Robolectric (SDK 36) or plain JVM, under the shared Gradle lo
 The scan can finish in memory when preferences reject a commit or the store throws. Analysis shows that the history could not be saved. The warning follows the matching storage selection and survives an in-process cache hit. A successful refresh clears it. A restored interrupted marker means there is no saved final result, since a completed scan can also fail to save. The existing tests model process restart without touching user storage. New checks exercise rejected writes, throwing writes and recovery on retry.
 
 The Windows run found existing fake paths built with Unix separators, which caused the scanner to skip synthetic files and report partial results. Both stacked PRs now construct the same fixture paths with the host separator. Production path handling and the assertions are unchanged.
+
+## 12 November 2026 — Search index retry checkpoint
+
+Search writes a pending marker to its existing private preferences before starting a full rebuild. If that commit fails, the rebuild leaves the index rows alone. A cancelled, failed or partial rebuild retains the marker and the last successful timestamp. The next Search visit retries even when that timestamp is still recent. A completed rebuild clears the marker and saves the new timestamp in one preferences commit. The existing timestamp is read as before, and an older installation has no pending marker until its first new rebuild. There is no Room schema change.
+
+The regression suite models a process restart with a new index instance and the same retained state. It covers cancellation, a rejected pending-marker write and a rejected completion write. This slice retries the whole walk from the existing roots. Durable per-folder checkpoints, clock-based row generations and physical provider acceptance remain follow-up work.

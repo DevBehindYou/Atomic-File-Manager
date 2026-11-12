@@ -214,3 +214,9 @@ Markdown baseline9c67f84 has five reproduced failures/two passing cancellation c
 Analysis [#118](https://github.com/DevBehindYou/Atomic-File-Manager/pull/118) restores existing results when revisiting the screen. [#120](https://github.com/DevBehindYou/Atomic-File-Manager/pull/120) retains scan history across process restarts and shows when the current result could not be saved. Entry remains explicit and the Storage tab still avoids recursive scans. Sixteen focused Windows cases passed after the fixture paths were made portable. The final PR heads `7e549d1` and `5d28553` passed hosted static, unit and APK checks in `42813099841` and `42813109718`. Review and clean trials preceded integration merges `6fb11c5` and `20d2286`.
 
 C005 search-index restart, revoked-root and wider physical/provider evidence remain open. Feature credit remains **2/13 host verified (15%) and 1/13 fully accepted (8%)**. These are feature-integration merges.
+
+## Search rebuild recovery — 12 November
+
+C005 adds a durable retry marker to Search so it can retry an interrupted rebuild after restart while preserving the previous successful timestamp. Hosted and device acceptance are tracked separately. Feature credit remains **2/13 host verified (15%) and 1/13 fully accepted (8%)**.
+
+[PR #116](https://github.com/DevBehindYou/Atomic-File-Manager/pull/116) bounds simultaneous folder-thumbnail peeks to two and cancels queued off-screen work before it opens a directory. Review and a clean trial followed successful hosted checks at `cbf90c3` in `43272445054`, then the change merged into feature integration as `f5f6b74`. [PR #129](https://github.com/DevBehindYou/Atomic-File-Manager/pull/129) passed 24 focused Windows Search tests, ktlint and hosted CI on `fe3e962`. Combined validation follows the thumbnail merge. Whole-feature credit remains unchanged.
