@@ -19,6 +19,9 @@ on:
 permissions:
   contents: read
 
+# Third-party actions are pinned to full commit SHAs, because a tag can be moved to other code
+# (docs/testing/DEPENDENCY_PROVENANCE_C047.md). The comment names the release each SHA was.
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -45,7 +48,7 @@ jobs:
           java-version: "21"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3 = v4 tag on 2026-11-07
 
       # The checked-in gradle.properties is sized for the low-memory dev machine. A Compose build of
       # this size crashed the Kotlin daemon with OutOfMemoryError there, so give CI a larger heap.
@@ -104,7 +107,7 @@ jobs:
           java-version: "21"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3 = v4 tag on 2026-11-07
 
       # The checked-in gradle.properties is sized for the low-memory dev machine. A Compose build of
       # this size crashed the Kotlin daemon with OutOfMemoryError there, so give CI a larger heap.
@@ -181,7 +184,7 @@ jobs:
           java-version: "21"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3 = v4 tag on 2026-11-07
 
       # The checked-in gradle.properties is sized for the low-memory dev machine. A Compose build of
       # this size crashed the Kotlin daemon with OutOfMemoryError there, so give CI a larger heap.
@@ -200,7 +203,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run connected tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 = v2 tag on 2026-11-07
         with:
           api-level: 34
           arch: x86_64
@@ -262,7 +265,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Smoke the exact dedicated-key R8 beta in a disposable emulator
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 = v2 tag on 2026-11-07
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64

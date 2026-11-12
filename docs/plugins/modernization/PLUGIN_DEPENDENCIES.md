@@ -14,3 +14,7 @@ Observed26 October 2026, base `4d7157f`. No dependency changed. Online current A
 | Office/RTF/EPUB, grammar/tag engines | No engine selected. Flutter/Dart leads are desired capabilities, not native selections. | Compare maintained native/JVM API 27 feature/security/license/size costs before addition. |
 
 APK/installed-size/RAM/CPU/battery not measured. Next Image geometry adds no dependency.
+
+## 7 November 2026 — C047 resolved-graph audit
+
+[DEPENDENCY_PROVENANCE_C047.md](../../testing/DEPENDENCY_PROVENANCE_C047.md) records the exact resolved release runtime graph for the libraries above: 205 module versions with POM licences, and an OSV advisory match. Commons Compress 1.28.0, XZ 1.10, zip4j 2.11.6, junrar 8.1.1, Coil 3.3.0, ExifInterface 1.4.1 and Media3 1.8.0 have no matching advisory, except Media3's transitive Guava 33.3.1-android (GHSA-xxph-c9ww-hj94, fixed in 33.7.2; decision C047-D1). junrar is under the UnRar License and XZ under 0BSD. The notices decision is C047-D3. No dependency changed.
