@@ -41,6 +41,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextFiel
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
+import com.devbehindyou.atomicfilemanager.data.preview.PDF_PASSWORD_PROTECTED
 import com.devbehindyou.atomicfilemanager.data.preview.PdfPreviewHelper
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
@@ -59,6 +60,17 @@ fun PdfPreviewContent(
     // A known revision/helper owns pages, failures and retries before any old raster can draw.
     key(node.id, node.modifiedAt, node.size, helper) { PdfReader(node, helper, modifier) }
 }
+
+/** Retrying cannot unlock a password, so only that open failure omits Retry. */
+internal fun FileError.isPdfPasswordProtected(): Boolean =
+    this is FileError.UnsupportedFormat && mimeType == PDF_PASSWORD_PROTECTED
+
+internal fun pdfOpenErrorText(error: FileError): Int =
+    when {
+        error is FileError.FileTooLarge -> R.string.pdf_too_large
+        error.isPdfPasswordProtected() -> R.string.pdf_password_protected
+        else -> R.string.pdf_open_error
+    }
 
 private data class PdfPageRequest(val index: Int, val retry: Int = 0)
 
@@ -107,17 +119,11 @@ private fun PdfReader(
                 opening -> ViewerState(loading = true, error = null)
                 openError != null ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        AtomicText(
-                            stringResource(
-                                if (openError is FileError.FileTooLarge) {
-                                    R.string.pdf_too_large
-                                } else {
-                                    R.string.pdf_open_error
-                                },
-                            ),
-                            AtomicTextRole.Body,
-                        )
-                        AtomicButton(stringResource(R.string.pdf_retry), onClick = { reopen++ })
+                        val error = checkNotNull(openError)
+                        AtomicText(stringResource(pdfOpenErrorText(error)), AtomicTextRole.Body)
+                        if (!error.isPdfPasswordProtected()) {
+                            AtomicButton(stringResource(R.string.pdf_retry), onClick = { reopen++ })
+                        }
                     }
                 state.loading -> ViewerState(loading = true, error = null)
                 state.failed ->
