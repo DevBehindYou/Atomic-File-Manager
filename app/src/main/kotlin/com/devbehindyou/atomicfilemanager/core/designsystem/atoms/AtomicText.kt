@@ -15,24 +15,24 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicTyp
 
 /** Atomic type roles (ATOMIC_UI_PLAN.md §4.2). */
 enum class AtomicTextRole(
-    internal val uppercase: Boolean,
+    internal val label: Boolean,
     internal val secondary: Boolean,
 ) {
-    DisplayHero(uppercase = false, secondary = false),
-    DisplayTitle(uppercase = false, secondary = false),
-    DisplayPushed(uppercase = false, secondary = false),
-    DisplayCard(uppercase = false, secondary = false),
-    DisplayButton(uppercase = false, secondary = false),
+    DisplayHero(label = true, secondary = false),
+    DisplayTitle(label = true, secondary = false),
+    DisplayPushed(label = true, secondary = false),
+    DisplayCard(label = true, secondary = false),
+    DisplayButton(label = true, secondary = false),
 
     /** File and folder names: always shown exactly as stored. */
-    NameLarge(uppercase = false, secondary = false),
-    Name(uppercase = false, secondary = false),
-    Body(uppercase = false, secondary = false),
-    BodySecondary(uppercase = false, secondary = true),
-    MonoLabel(uppercase = true, secondary = true),
+    NameLarge(label = false, secondary = false),
+    Name(label = false, secondary = false),
+    Body(label = false, secondary = false),
+    BodySecondary(label = false, secondary = true),
+    MonoLabel(label = true, secondary = true),
 
     /** Sizes, ISO dates, paths, hashes: original case. */
-    MonoMeta(uppercase = false, secondary = true),
+    MonoMeta(label = false, secondary = true),
     ;
 
     internal val style: TextStyle
@@ -76,8 +76,8 @@ fun AtomicText(
         }
     // Observed through the configuration so a locale change re-renders the label.
     val locale = LocalConfiguration.current.locales[0]
-    val shown = if (role.uppercase) text.uppercase(locale) else text
-    val semantics = if (role.uppercase) Modifier.clearAndSetSemantics { contentDescription = text } else Modifier
+    val shown = if (role == AtomicTextRole.MonoLabel) text.uppercase(locale) else text
+    val semantics = if (role.label) Modifier.clearAndSetSemantics { contentDescription = text } else Modifier
     Text(
         text = shown,
         modifier = modifier.then(semantics),
