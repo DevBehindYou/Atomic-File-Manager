@@ -32,7 +32,7 @@ class AtomicAtomsComposeTest {
     val compose = createComposeRule()
 
     @Test
-    fun displayTextIsShownUppercaseButReadInOriginalCaseAndNamesKeepTheirCase() {
+    fun displayLabelsRemainAccessibleAndFileNamesKeepTheirCase() {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 Column {

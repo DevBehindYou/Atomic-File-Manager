@@ -15,24 +15,24 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicTyp
 
 /** Atomic type roles (ATOMIC_UI_PLAN.md §4.2). */
 enum class AtomicTextRole(
-    internal val uppercase: Boolean,
+    internal val label: Boolean,
     internal val secondary: Boolean,
 ) {
-    DisplayHero(uppercase = true, secondary = false),
-    DisplayTitle(uppercase = true, secondary = false),
-    DisplayPushed(uppercase = true, secondary = false),
-    DisplayCard(uppercase = true, secondary = false),
-    DisplayButton(uppercase = true, secondary = false),
+    DisplayHero(label = true, secondary = false),
+    DisplayTitle(label = true, secondary = false),
+    DisplayPushed(label = true, secondary = false),
+    DisplayCard(label = true, secondary = false),
+    DisplayButton(label = true, secondary = false),
 
     /** File and folder names: always shown exactly as stored. */
-    NameLarge(uppercase = false, secondary = false),
-    Name(uppercase = false, secondary = false),
-    Body(uppercase = false, secondary = false),
-    BodySecondary(uppercase = false, secondary = true),
-    MonoLabel(uppercase = true, secondary = true),
+    NameLarge(label = false, secondary = false),
+    Name(label = false, secondary = false),
+    Body(label = false, secondary = false),
+    BodySecondary(label = false, secondary = true),
+    MonoLabel(label = true, secondary = true),
 
     /** Sizes, ISO dates, paths, hashes: original case. */
-    MonoMeta(uppercase = false, secondary = true),
+    MonoMeta(label = false, secondary = true),
     ;
 
     internal val style: TextStyle
@@ -53,7 +53,7 @@ enum class AtomicTextRole(
 }
 
 /**
- * Text in an Atomic role. Display and label roles are uppercased at render time from the
+ * Text in an Atomic role. Mono labels are uppercased at render time from the
  * sentence-case string (spec §11.7), and screen readers get the original wording, so
  * "Storage" is read as a word, not spelled out. Never pass user data to an uppercase role.
  */
@@ -76,8 +76,8 @@ fun AtomicText(
         }
     // Observed through the configuration so a locale change re-renders the label.
     val locale = LocalConfiguration.current.locales[0]
-    val shown = if (role.uppercase) text.uppercase(locale) else text
-    val semantics = if (role.uppercase) Modifier.clearAndSetSemantics { contentDescription = text } else Modifier
+    val shown = if (role == AtomicTextRole.MonoLabel) text.uppercase(locale) else text
+    val semantics = if (role.label) Modifier.clearAndSetSemantics { contentDescription = text } else Modifier
     Text(
         text = shown,
         modifier = modifier.then(semantics),

@@ -36,18 +36,17 @@ object AtomicFonts {
 }
 
 /**
- * Atomic type roles (ATOMIC_UI_PLAN.md §4.2). Display roles are rendered uppercase by the
- * Atomic text atom; `name*` roles show file and folder names exactly as stored.
+ * Atomic type roles use the bundled Hanken family for headings, labels and file names.
  */
 object AtomicTypography {
     private val displayBase =
-        TextStyle(fontFamily = AtomicFonts.display, fontWeight = FontWeight.Normal, lineHeight = 0.95.em)
+        TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.Bold, lineHeight = 1.2.em)
 
-    val displayHero = displayBase.copy(fontSize = 46.sp, letterSpacing = 0.5.sp)
-    val displayTitle = displayBase.copy(fontSize = 40.sp, letterSpacing = 0.5.sp)
-    val displayPushed = displayBase.copy(fontSize = 30.sp, letterSpacing = 0.5.sp)
-    val displayCard = displayBase.copy(fontSize = 22.sp, lineHeight = 1.0.em)
-    val displayButton = displayBase.copy(fontSize = 20.sp, lineHeight = 1.0.em, letterSpacing = 0.6.sp)
+    val displayHero = displayBase.copy(fontSize = 36.sp)
+    val displayTitle = displayBase.copy(fontSize = 32.sp)
+    val displayPushed = displayBase.copy(fontSize = 24.sp)
+    val displayCard = displayBase.copy(fontSize = 20.sp)
+    val displayButton = displayBase.copy(fontSize = 16.sp)
 
     val nameLarge =
         TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp)

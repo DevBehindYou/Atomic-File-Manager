@@ -146,9 +146,9 @@ fun SettingsScreen(
                     description =
                         when {
                             !settings.dynamicColor ->
-                                "Use your wallpaper colour as the accent. Signal Blue is used if it's too pale to read."
+                                "Use your wallpaper colour as the accent when it meets contrast requirements."
                             accent.source == AccentSource.WALLPAPER_REJECTED ->
-                                "Your wallpaper colour can't be read clearly here, so Signal Blue is used."
+                                "Atomic Orange is used because your wallpaper colour doesn't suit this theme."
                             else -> "Using your wallpaper colour as the accent."
                         },
                     checked = settings.dynamicColor,

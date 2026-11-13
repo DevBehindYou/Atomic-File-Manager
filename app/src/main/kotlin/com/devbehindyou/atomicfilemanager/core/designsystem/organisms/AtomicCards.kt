@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
@@ -54,46 +53,37 @@ fun AtomicStorageCard(
     modifier: Modifier = Modifier,
     browseLabel: String = "Browse →",
     nearlyFullLabel: String? = null,
+    featured: Boolean = false,
 ) {
     val colors = Atomic.colors
+    val foreground = if (featured) colors.onAccent else colors.content
+    val metadata = if (featured) colors.onAccent else colors.contentSecondary
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .hardShadow(AtomicElevation.level4, colors.shadow, AtomicShape.md)
-                .background(colors.surfaceCard, AtomicShape.md)
-                .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
+                .background(if (featured) colors.accent else colors.surfaceCard, AtomicShape.md)
+                .border(AtomicBorder.hair, colors.borderHair, AtomicShape.md)
                 .clickable(role = Role.Button, onClick = onBrowse)
                 .padding(AtomicSpacing.s16),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-        ) {
-            AtomicText(name, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f), maxLines = 1)
-            AtomicText(
-                usage,
-                AtomicTextRole.MonoMeta,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                textAlign = TextAlign.End,
-            )
-        }
-        AtomicMeter(fraction = fraction, contentDescription = meterDescription)
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        AtomicText(name, AtomicTextRole.DisplayCard, color = foreground)
+        AtomicText(usage, AtomicTextRole.BodySecondary, color = metadata)
+        AtomicMeter(fraction = fraction, contentDescription = meterDescription, onAccentSurface = featured)
+        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
             if (fraction >= METER_HIGH_THRESHOLD && nearlyFullLabel != null) {
                 AtomicText(
                     nearlyFullLabel,
                     AtomicTextRole.MonoLabel,
-                    color = colors.error,
-                    modifier = Modifier.weight(1f),
+                    color = if (featured) colors.onAccent else colors.error,
                 )
-            } else {
-                Row(Modifier.weight(1f)) {}
             }
-            AtomicText(browseLabel, AtomicTextRole.MonoLabel, color = colors.accentText)
+            AtomicText(
+                browseLabel,
+                AtomicTextRole.BodySecondary,
+                color = if (featured) foreground else colors.accentText,
+            )
         }
     }
 }

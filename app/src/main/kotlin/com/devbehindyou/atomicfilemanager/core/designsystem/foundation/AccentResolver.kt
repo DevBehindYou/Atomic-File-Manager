@@ -17,7 +17,7 @@ data class AccentResolution(
  * only the accent changes; it must read on paper and carry white text (light), have a readable
  * variant on ink (dark), and must not look like red, orange or plum, which already mean error,
  * nearly full and low. Darker or lighter tones of the same hue are tried before falling back
- * to Signal Blue.
+ * to Atomic Orange.
  */
 object AccentResolver {
     private const val MIN_TEXT_CONTRAST = 4.5
@@ -57,7 +57,7 @@ object AccentResolver {
         val fill = toneUntil(lightCandidate, AtomicPalette.BLACK) { passesLight(it) }
         val textOnInk =
             toneUntil(darkCandidate, AtomicPalette.WHITE) {
-                ColorMath.contrast(it, AtomicPalette.INK) >= MIN_TEXT_CONTRAST
+                ColorMath.contrast(it, AtomicPalette.STONE) >= MIN_TEXT_CONTRAST
             }
         if (fill == null || textOnInk == null) return rejected(AccentRejection.TOO_LOW_CONTRAST)
 
@@ -74,7 +74,7 @@ object AccentResolver {
 
     fun passesLight(fill: Int): Boolean =
         ColorMath.contrast(AtomicPalette.WHITE, fill) >= MIN_TEXT_CONTRAST &&
-            ColorMath.contrast(fill, AtomicPalette.PAPER) >= MIN_TEXT_CONTRAST
+            ColorMath.contrast(fill, AtomicPalette.SURFACE) >= MIN_TEXT_CONTRAST
 
     private fun rejected(reason: AccentRejection) =
         signal.copy(
