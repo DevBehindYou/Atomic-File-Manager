@@ -79,7 +79,11 @@ fun AtomicStorageCard(
                     color = if (featured) colors.onAccent else colors.error,
                 )
             }
-            AtomicText(browseLabel, AtomicTextRole.BodySecondary, color = if (featured) foreground else colors.accentText)
+            AtomicText(
+                browseLabel,
+                AtomicTextRole.BodySecondary,
+                color = if (featured) foreground else colors.accentText,
+            )
         }
     }
 }

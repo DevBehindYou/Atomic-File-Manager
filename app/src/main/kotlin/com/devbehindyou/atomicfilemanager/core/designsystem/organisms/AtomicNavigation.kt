@@ -69,7 +69,9 @@ fun AtomicBottomBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             destinations.forEach { destination ->
-                DestinationItem(destination, destination.key == selectedKey, Modifier.weight(1f)) { onSelect(destination) }
+                DestinationItem(destination, destination.key == selectedKey, Modifier.weight(1f)) {
+                    onSelect(destination)
+                }
             }
         }
     }
@@ -98,7 +100,9 @@ fun AtomicNavRail(
         ) {
             header?.invoke()
             destinations.forEach { destination ->
-                DestinationItem(destination, destination.key == selectedKey, Modifier.fillMaxWidth()) { onSelect(destination) }
+                DestinationItem(destination, destination.key == selectedKey, Modifier.fillMaxWidth()) {
+                    onSelect(destination)
+                }
             }
         }
         Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(colors.borderHair))
