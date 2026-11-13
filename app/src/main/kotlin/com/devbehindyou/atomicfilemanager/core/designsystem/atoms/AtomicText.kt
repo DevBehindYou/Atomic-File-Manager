@@ -18,11 +18,11 @@ enum class AtomicTextRole(
     internal val uppercase: Boolean,
     internal val secondary: Boolean,
 ) {
-    DisplayHero(uppercase = true, secondary = false),
-    DisplayTitle(uppercase = true, secondary = false),
-    DisplayPushed(uppercase = true, secondary = false),
-    DisplayCard(uppercase = true, secondary = false),
-    DisplayButton(uppercase = true, secondary = false),
+    DisplayHero(uppercase = false, secondary = false),
+    DisplayTitle(uppercase = false, secondary = false),
+    DisplayPushed(uppercase = false, secondary = false),
+    DisplayCard(uppercase = false, secondary = false),
+    DisplayButton(uppercase = false, secondary = false),
 
     /** File and folder names: always shown exactly as stored. */
     NameLarge(uppercase = false, secondary = false),
@@ -53,7 +53,7 @@ enum class AtomicTextRole(
 }
 
 /**
- * Text in an Atomic role. Display and label roles are uppercased at render time from the
+ * Text in an Atomic role. Mono labels are uppercased at render time from the
  * sentence-case string (spec §11.7), and screen readers get the original wording, so
  * "Storage" is read as a word, not spelled out. Never pass user data to an uppercase role.
  */

@@ -30,6 +30,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarn
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStorageCard
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessContent
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
@@ -143,6 +144,7 @@ private fun VolumeCard(
         meterDescription = "${volume.label}, $percent percent used",
         onBrowse = onBrowse,
         nearlyFullLabel = "Nearly full",
+        featured = volume.type == StorageType.INTERNAL_SHARED && volume.isMounted,
         modifier = Modifier.testTag("volume_item_${volume.id}"),
     )
 }

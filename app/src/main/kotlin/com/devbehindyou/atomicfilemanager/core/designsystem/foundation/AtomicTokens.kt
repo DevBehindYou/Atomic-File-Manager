@@ -30,13 +30,13 @@ object AtomicSpacing {
     val screenMargin = s16
 }
 
-/** Corner radii (spec §6.1): nearly square; pills and sheet tops are the only round shapes. */
+/** Rounded corners for controls, cards and sheets. */
 object AtomicShape {
     val radiusXs = 3.dp
-    val radiusSm = 4.dp
-    val radiusMd = 6.dp
-    val radiusLg = 8.dp
-    val sheetTopRadius = 28.dp
+    val radiusSm = 10.dp
+    val radiusMd = 16.dp
+    val radiusLg = 20.dp
+    val sheetTopRadius = 24.dp
 
     val xs = RoundedCornerShape(radiusXs)
     val sm = RoundedCornerShape(radiusSm)
@@ -45,12 +45,12 @@ object AtomicShape {
     val pill = RoundedCornerShape(percent = 50)
     val sheetTop = RoundedCornerShape(topStart = sheetTopRadius, topEnd = sheetTopRadius)
 
-    /** Material shapes for widgets not yet rebuilt: everything 4 dp, sheets 28 dp. */
+    /** Material shapes follow the same control, card and sheet roles. */
     val material =
         Shapes(
             extraSmall = sm,
             small = sm,
-            medium = sm,
+            medium = md,
             large = md,
             extraLarge = RoundedCornerShape(sheetTopRadius),
         )
