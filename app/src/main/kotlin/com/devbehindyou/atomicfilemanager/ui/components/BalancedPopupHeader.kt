@@ -38,9 +38,9 @@ internal fun BalancedPopupHeader(
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             AtomicText(
                 title,
-                AtomicTextRole.MonoLabel,
+                AtomicTextRole.DisplayCard,
                 modifier = Modifier.testTag("${testTagPrefix}_heading"),
-                color = Atomic.colors.accentText,
+                color = Atomic.colors.content,
                 textAlign = TextAlign.Center,
             )
             if (subtitle != null) AtomicText(subtitle, AtomicTextRole.MonoMeta, textAlign = TextAlign.Center)

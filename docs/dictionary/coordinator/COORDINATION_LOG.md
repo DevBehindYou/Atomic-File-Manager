@@ -174,3 +174,9 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - The owner approved the orange-led prototype for native implementation. Codex reserved `area-ui-shell` on `codex/native-revamp-foundation` from integration `f5f6b74`.
 - This slice applies the palette, rounded shapes and Hanken headings to shared Compose components. Navigation retains all four destinations and shows labels for each. The Home internal storage card is featured, with stacked usage text so long volume names can wrap.
 - A standalone Kotlin run verified 158 contrast pairs and wallpaper acceptance/fallback. Android build, layout validation and phone evidence are separate gates. The remaining screen layouts and viewer chrome are later slices. This change adds no U13 or N42 completion credit.
+
+### 14 November - native prototype parity correction
+
+- PR #130 remains the focused draft on `codex/native-revamp-foundation`; no parallel UI implementation or prototype overwrite. The first palette/font pass did not reproduce the approved geometry. This correction replaces old outlines/shadows, adds bundled pinned Tabler vectors, restores the Home hierarchy and updates file rows, storage shortcuts, view controls, menus and navigation selection motion.
+- [Parity audit and validation](../../design/NATIVE_REVAMP_PARITY.md) retain discovered failures, corrections, physical evidence limitations and remaining Storage/Analysis/viewer work. Resource leases serialize Gradle and ADB; root/benchmark deferral remains unchanged.
+- This UI slice earns no additional whole-feature or plugin-group credit: U13 stays 2/13 host verified, 1/13 accepted; N42 stays 0/42 complete groups and 0/8 fully modernized plugins. Draft PR, integration and stable-release states are distinct.

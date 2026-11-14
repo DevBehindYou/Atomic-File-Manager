@@ -49,12 +49,11 @@ fun AtomicHomeHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }) {
-                AtomicText(eyebrow, AtomicTextRole.MonoLabel)
+                if (eyebrow.isNotEmpty()) AtomicText(eyebrow, AtomicTextRole.MonoMeta)
                 AtomicText(title, AtomicTextRole.DisplayPushed)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s4), content = actions)
         }
-        AtomicDivider(strong = true)
     }
 }
 
@@ -100,7 +99,6 @@ fun AtomicPushedHeader(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s4), content = actions)
         }
-        AtomicDivider(strong = true)
     }
 }
 
@@ -142,14 +140,13 @@ fun AtomicSectionLabel(
             Modifier.fillMaxWidth().heightIn(min = AtomicSpacing.s32),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AtomicText(label, AtomicTextRole.MonoLabel, modifier = Modifier.weight(1f).semantics { heading() })
+            AtomicText(label, AtomicTextRole.DisplayCard, modifier = Modifier.weight(1f).semantics { heading() })
             if (actionLabel != null && onAction != null) {
                 AtomicButton(actionLabel, onClick = onAction, variant = AtomicButtonVariant.Text)
             } else if (trailingText != null) {
                 AtomicText(trailingText, AtomicTextRole.MonoMeta)
             }
         }
-        AtomicDivider(strong = true)
     }
 }
 

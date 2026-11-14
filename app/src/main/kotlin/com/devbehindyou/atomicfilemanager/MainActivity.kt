@@ -759,17 +759,11 @@ fun AtomicAppContent(
             if (currentTab != NavigationTab.BROWSE) {
                 val home = currentTab == NavigationTab.HOME
                 AtomicHomeHeader(
-                    eyebrow = if (home) "Atomic" else "Atomic File Manager",
-                    title = if (home) "File manager" else currentTab.title,
+                    eyebrow = if (home) "Everything, in reach" else "",
+                    title = if (home) "Your space" else currentTab.title,
                     modifier = Modifier.background(Atomic.colors.background).statusBarsPadding(),
                     actions = {
                         if (home) {
-                            AtomicIconButton(
-                                icon = AtomicIcons.MoreHorizontal,
-                                contentDescription = "Commands",
-                                onClick = { showPalette = true },
-                                modifier = Modifier.testTag("home_palette_button"),
-                            )
                             AtomicIconButton(
                                 icon = AtomicIcons.Search,
                                 contentDescription = "Search all storage",
@@ -782,6 +776,14 @@ fun AtomicAppContent(
                             transfers = app.container.wifiShare.transfers,
                             onOpenOperations = { push(AtomicRoute.Operations) },
                         )
+                        if (home) {
+                            AtomicIconButton(
+                                icon = AtomicIcons.MoreHorizontal,
+                                contentDescription = "Commands",
+                                onClick = { showPalette = true },
+                                modifier = Modifier.testTag("home_palette_button"),
+                            )
+                        }
                     },
                 )
             }

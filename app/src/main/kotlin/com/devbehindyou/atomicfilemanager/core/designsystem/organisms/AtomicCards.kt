@@ -63,12 +63,18 @@ fun AtomicStorageCard(
             modifier
                 .fillMaxWidth()
                 .background(if (featured) colors.accent else colors.surfaceCard, AtomicShape.md)
-                .border(AtomicBorder.hair, colors.borderHair, AtomicShape.md)
                 .clickable(role = Role.Button, onClick = onBrowse)
                 .padding(AtomicSpacing.s16),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10),
     ) {
-        AtomicText(name, AtomicTextRole.DisplayCard, color = foreground)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+        ) {
+            Icon(AtomicIcons.Storage, null, tint = foreground, modifier = Modifier.size(AtomicSize.icon))
+            AtomicText(name, AtomicTextRole.Name, modifier = Modifier.weight(1f), color = foreground)
+            Icon(AtomicIcons.Forward, null, tint = foreground, modifier = Modifier.size(AtomicSize.iconSmall))
+        }
         AtomicText(usage, AtomicTextRole.BodySecondary, color = metadata)
         AtomicMeter(fraction = fraction, contentDescription = meterDescription, onAccentSurface = featured)
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {

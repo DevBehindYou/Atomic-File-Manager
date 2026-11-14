@@ -4,7 +4,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -53,9 +52,7 @@ enum class AtomicTextRole(
 }
 
 /**
- * Text in an Atomic role. Mono labels are uppercased at render time from the
- * sentence-case string (spec §11.7), and screen readers get the original wording, so
- * "Storage" is read as a word, not spelled out. Never pass user data to an uppercase role.
+ * Sentence-case text in an Atomic role. Stable accessibility labels are preserved.
  */
 @Composable
 fun AtomicText(
@@ -74,9 +71,7 @@ fun AtomicText(
             role.secondary -> colors.contentSecondary
             else -> colors.content
         }
-    // Observed through the configuration so a locale change re-renders the label.
-    val locale = LocalConfiguration.current.locales[0]
-    val shown = if (role == AtomicTextRole.MonoLabel) text.uppercase(locale) else text
+    val shown = text
     val semantics = if (role.label) Modifier.clearAndSetSemantics { contentDescription = text } else Modifier
     Text(
         text = shown,

@@ -1,6 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AccentSource
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicChoiceCard
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
@@ -286,7 +288,8 @@ fun SettingsScreen(
                 body =
                     "Version ${version ?: "unknown"}. Offline-first and private: no account, no ads, no tracking. " +
                         "Fonts: Bebas Neue, Hanken Grotesk and JetBrains Mono, under the SIL Open Font " +
-                        "License 1.1. Icons: Material Icons, Apache License 2.0.",
+                        "License 1.1. Icons: Tabler Icons, MIT (copyright 2020-2026 Paweł Kuna). " +
+                        "Additional Material Icons, Apache License 2.0.",
                 onDismiss = { sheet = null },
             )
         null -> Unit
@@ -300,7 +303,13 @@ private fun SettingsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
         AtomicSectionLabel(label)
-        content()
+        Column(
+            Modifier.fillMaxWidth().background(Atomic.colors.surfaceCard, AtomicShape.md)
+                .padding(AtomicSpacing.s12),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+        ) {
+            content()
+        }
     }
 }
 

@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
@@ -43,12 +46,10 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicSwitch
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicElevation
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.modifiers.hardShadow
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import com.devbehindyou.atomicfilemanager.ui.components.BalancedPopupHeader
 
@@ -119,9 +120,8 @@ internal fun BrowseOptionsButton(
                 Column(
                     Modifier.widthIn(min = minOf(AtomicSize.popupMinWidth, width), max = width)
                         .width(IntrinsicSize.Max).heightIn(max = height)
-                        .hardShadow(AtomicElevation.level3, colors.shadow, AtomicShape.md)
                         .background(colors.surfaceCard, AtomicShape.md)
-                        .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
+                        .border(AtomicBorder.hair, colors.borderHair, AtomicShape.md)
                         .padding(AtomicSpacing.s12).testTag("browse_options_popup"),
                 ) {
                     BalancedPopupHeader(
@@ -137,9 +137,21 @@ internal fun BrowseOptionsButton(
                     Column(Modifier.weight(1f, fill = false).verticalScroll(scroll)) {
                         when (page) {
                             BrowseOptionsPage.MAIN -> {
-                                BrowseOptionRow("View", viewMode.label()) { page = BrowseOptionsPage.VIEW }
-                                BrowseOptionRow("Sort by", sortOption.label) { page = BrowseOptionsPage.SORT }
-                                BrowseOptionRow("Filter", filter.label) { page = BrowseOptionsPage.FILTER }
+                                BrowseOptionRow(
+                                    "View",
+                                    viewMode.label(),
+                                    AtomicIcons.Grid,
+                                ) { page = BrowseOptionsPage.VIEW }
+                                BrowseOptionRow(
+                                    "Sort by",
+                                    sortOption.label,
+                                    AtomicIcons.Sort,
+                                ) { page = BrowseOptionsPage.SORT }
+                                BrowseOptionRow(
+                                    "Filter",
+                                    filter.label,
+                                    AtomicIcons.SelectSameType,
+                                ) { page = BrowseOptionsPage.FILTER }
                                 Row(
                                     Modifier.fillMaxWidth().heightIn(min = AtomicSize.touchTarget)
                                         .toggleable(showHidden, role = Role.Switch, onValueChange = onShowHiddenChange)
@@ -147,14 +159,20 @@ internal fun BrowseOptionsButton(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
                                 ) {
+                                    Icon(
+                                        AtomicIcons.Visible,
+                                        null,
+                                        tint = colors.accentText,
+                                        modifier = Modifier.size(AtomicSize.iconSmall),
+                                    )
                                     AtomicText("Show hidden files", AtomicTextRole.Body, Modifier.weight(1f))
                                     AtomicSwitch(showHidden, onCheckedChange = null)
                                 }
-                                BrowseOptionRow("New folder") {
+                                BrowseOptionRow("New folder", icon = AtomicIcons.NewFolder) {
                                     expanded = false
                                     onNewFolder()
                                 }
-                                BrowseOptionRow("Manage hidden files") {
+                                BrowseOptionRow("Manage hidden files", icon = AtomicIcons.Hidden) {
                                     expanded = false
                                     onShowHiddenFilesScreen()
                                 }
@@ -207,6 +225,7 @@ private fun FileViewMode.label(): String =
 private fun BrowseOptionRow(
     title: String,
     value: String? = null,
+    icon: ImageVector,
     onClick: () -> Unit,
 ) {
     Row(
@@ -215,11 +234,23 @@ private fun BrowseOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
-        Column(Modifier.weight(1f)) {
-            AtomicText(title, AtomicTextRole.Body)
-            if (value != null) AtomicText(value, AtomicTextRole.MonoMeta, maxLines = 1)
+        Icon(icon, null, tint = Atomic.colors.accentText, modifier = Modifier.size(AtomicSize.iconSmall))
+        AtomicText(title, AtomicTextRole.Name, modifier = Modifier.weight(1f))
+        if (value != null) {
+            AtomicText(
+                value,
+                AtomicTextRole.MonoMeta,
+                maxLines = 2,
+                modifier = Modifier.widthIn(max = AtomicSize.popupHelpMaxWidth / 2),
+            )
+        } else {
+            Icon(
+                AtomicIcons.Forward,
+                null,
+                tint = Atomic.colors.accentText,
+                modifier = Modifier.size(AtomicSize.iconSmall),
+            )
         }
-        AtomicText("→", AtomicTextRole.MonoMeta, color = Atomic.colors.accentText)
     }
 }
 

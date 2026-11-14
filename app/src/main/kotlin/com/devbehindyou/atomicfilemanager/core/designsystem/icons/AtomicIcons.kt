@@ -1,164 +1,106 @@
 package com.devbehindyou.atomicfilemanager.core.designsystem.icons
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.automirrored.outlined.Redo
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.automirrored.outlined.TextSnippet
-import androidx.compose.material.icons.automirrored.outlined.Undo
-import androidx.compose.material.icons.automirrored.outlined.WrapText
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AllInbox
-import androidx.compose.material.icons.outlined.Android
-import androidx.compose.material.icons.outlined.AudioFile
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.ContentCut
-import androidx.compose.material.icons.outlined.ContentPaste
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Dns
-import androidx.compose.material.icons.outlined.DriveFileRenameOutline
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FilterAlt
-import androidx.compose.material.icons.outlined.FlipToBack
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.FolderZip
-import androidx.compose.material.icons.outlined.FontDownload
-import androidx.compose.material.icons.outlined.Forward10
-import androidx.compose.material.icons.outlined.HideImage
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Preview
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Replay
-import androidx.compose.material.icons.outlined.Replay10
-import androidx.compose.material.icons.outlined.Restore
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.SelectAll
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Slideshow
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Stop
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.SyncAlt
-import androidx.compose.material.icons.outlined.TableChart
-import androidx.compose.material.icons.outlined.Unarchive
-import androidx.compose.material.icons.outlined.VerticalSplit
-import androidx.compose.material.icons.outlined.Videocam
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
 
-/**
- * The app's one icon set (spec §7.1: outlined only, one style per surface). Screens reference
- * these semantic names, never an icon library directly, so the set can later move to Material
- * Symbols vector drawables in this one file.
- */
+/** Bundled Tabler outline vectors. MIT license and pinned provenance in assets/licenses and docs/design. */
 object AtomicIcons {
-    val Back: ImageVector = Icons.AutoMirrored.Outlined.ArrowBack
-    val Forward: ImageVector = Icons.AutoMirrored.Outlined.ArrowForward
-    val Home: ImageVector = Icons.Outlined.Home
-    val Files: ImageVector = Icons.Outlined.Folder
-    val FolderOpen: ImageVector = Icons.Outlined.FolderOpen
-    val NewFolder: ImageVector = Icons.Outlined.CreateNewFolder
-    val Storage: ImageVector = Icons.Outlined.Storage
-    val Network: ImageVector = Icons.Outlined.Dns
-    val Settings: ImageVector = Icons.Outlined.Settings
-    val Search: ImageVector = Icons.Outlined.Search
-    val More: ImageVector = Icons.Outlined.MoreVert
-    val MoreHorizontal: ImageVector = Icons.Outlined.MoreHoriz
-    val Add: ImageVector = Icons.Outlined.Add
-    val Close: ImageVector = Icons.Outlined.Close
-    val Check: ImageVector = Icons.Outlined.Check
-    val CheckCircle: ImageVector = Icons.Outlined.CheckCircle
-    val Unchecked: ImageVector = Icons.Outlined.RadioButtonUnchecked
-    val SelectAll: ImageVector = Icons.Outlined.SelectAll
-    val Info: ImageVector = Icons.Outlined.Info
-    val Tasks: ImageVector = Icons.Outlined.SyncAlt
-    val Download: ImageVector = Icons.Outlined.FileDownload
-    val Theme: ImageVector = Icons.Outlined.Palette
-    val InvertSelection: ImageVector = Icons.Outlined.FlipToBack
-    val SelectSameType: ImageVector = Icons.Outlined.FilterAlt
-    val Refresh: ImageVector = Icons.Outlined.Refresh
-    val Replay: ImageVector = Icons.Outlined.Replay
-    val Stop: ImageVector = Icons.Outlined.Stop
-    val Restore: ImageVector = Icons.Outlined.Restore
-    val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
-    val Redo: ImageVector = Icons.AutoMirrored.Outlined.Redo
-    val OpenExternally: ImageVector = Icons.AutoMirrored.Outlined.OpenInNew
-    val Preview: ImageVector = Icons.Outlined.Preview
-    val WrapText: ImageVector = Icons.AutoMirrored.Outlined.WrapText
-    val DualPane: ImageVector = Icons.Outlined.VerticalSplit
-    val Sort: ImageVector = Icons.AutoMirrored.Outlined.Sort
+    val Back: ImageVector get() = TablerNavigation.Back
+    val Forward: ImageVector get() = TablerNavigation.Forward
+    val Home: ImageVector get() = TablerNavigation.Home
+    val Files: ImageVector get() = TablerNavigation.Files
+    val FolderOpen: ImageVector get() = TablerNavigation.FolderOpen
+    val NewFolder: ImageVector get() = TablerNavigation.NewFolder
+    val Storage: ImageVector get() = TablerNavigation.Storage
+    val Network: ImageVector get() = TablerNavigation.Network
+    val Settings: ImageVector get() = TablerNavigation.Settings
+    val Search: ImageVector get() = TablerNavigation.Search
+    val More: ImageVector get() = TablerNavigation.More
+    val MoreHorizontal: ImageVector get() = TablerNavigation.MoreHorizontal
+    val Add: ImageVector get() = TablerNavigation.Add
+    val Close: ImageVector get() = TablerNavigation.Close
+    val Check: ImageVector get() = TablerNavigation.Check
+    val CheckCircle: ImageVector get() = TablerNavigation.CheckCircle
+    val Unchecked: ImageVector get() = TablerNavigation.Unchecked
+    val SelectAll: ImageVector get() = TablerNavigation.SelectAll
+    val Info: ImageVector get() = TablerNavigation.Info
+    val Tasks: ImageVector get() = TablerNavigation.Tasks
+    val Download: ImageVector get() = TablerNavigation.Download
+    val Theme: ImageVector get() = TablerNavigation.Theme
+    val InvertSelection: ImageVector get() = TablerNavigation.InvertSelection
+    val SelectSameType: ImageVector get() = TablerNavigation.SelectSameType
+    val Refresh: ImageVector get() = TablerNavigation.Refresh
+    val Replay: ImageVector get() = TablerFiles.Replay
+    val Stop: ImageVector get() = TablerFiles.Stop
+    val Restore: ImageVector get() = TablerFiles.Restore
+    val Undo: ImageVector get() = TablerFiles.Undo
+    val Redo: ImageVector get() = TablerFiles.Redo
+    val OpenExternally: ImageVector get() = TablerFiles.OpenExternally
+    val Preview: ImageVector get() = TablerFiles.Preview
+    val WrapText: ImageVector get() = TablerFiles.WrapText
+    val DualPane: ImageVector get() = TablerFiles.DualPane
+    val Sort: ImageVector get() = TablerFiles.Sort
+    val Copy: ImageVector get() = TablerFiles.Copy
+    val Cut: ImageVector get() = TablerFiles.Cut
+    val Paste: ImageVector get() = TablerFiles.Paste
+    val Move: ImageVector get() = TablerFiles.Move
+    val Rename: ImageVector get() = TablerFiles.Rename
+    val Favourite: ImageVector get() = TablerFiles.Favourite
+    val Extract: ImageVector get() = TablerFiles.Extract
+    val Share: ImageVector get() = TablerFiles.Share
+    val Trash: ImageVector get() = TablerFiles.Trash
+    val Cleanup: ImageVector get() = TablerFiles.Cleanup
+    val Bubble: ImageVector get() = TablerFiles.Bubble
+    val Image: ImageVector get() = TablerFiles.Image
+    val Video: ImageVector get() = TablerFiles.Video
+    val Camera: ImageVector get() = TablerFiles.Camera
+    val Audio: ImageVector get() = TablerFiles.Audio
+    val AudioFile: ImageVector get() = TablerActions.AudioFile
+    val Document: ImageVector get() = TablerActions.Document
+    val Pdf: ImageVector get() = TablerActions.Pdf
+    val Text: ImageVector get() = TablerActions.Text
+    val Ebook: ImageVector get() = TablerActions.Ebook
+    val Font: ImageVector get() = TablerActions.Font
+    val Spreadsheet: ImageVector get() = TablerActions.Spreadsheet
+    val Presentation: ImageVector get() = TablerActions.Presentation
+    val GenericFile: ImageVector get() = TablerActions.GenericFile
+    val Archive: ImageVector get() = TablerActions.Archive
+    val Apk: ImageVector get() = TablerActions.Apk
+    val Lock: ImageVector get() = TablerActions.Lock
+    val Security: ImageVector get() = TablerActions.Security
+    val Hide: ImageVector get() = TablerActions.Hide
+    val Visible: ImageVector get() = TablerActions.Visible
+    val Hidden: ImageVector get() = TablerActions.Hidden
+    val Play: ImageVector get() = TablerActions.Play
+    val Pause: ImageVector get() = TablerActions.Pause
+    val Rewind10: ImageVector get() = TablerActions.Rewind10
+    val Forward10: ImageVector get() = TablerActions.Forward10
+    val Code: ImageVector get() = TablerActions.Code
+    val List: ImageVector get() = TablerActions.List
+    val Grid: ImageVector get() = TablerActions.Grid
+    val TextFile: ImageVector get() = Text
+    val UnknownFile: ImageVector get() = GenericFile
+}
 
-    // File operations
-    val Copy: ImageVector = Icons.Outlined.ContentCopy
-    val Cut: ImageVector = Icons.Outlined.ContentCut
-    val Paste: ImageVector = Icons.Outlined.ContentPaste
-    val Move: ImageVector = Icons.AutoMirrored.Outlined.DriveFileMove
-    val Rename: ImageVector = Icons.Outlined.DriveFileRenameOutline
-    val Favourite: ImageVector = Icons.Outlined.StarBorder
-    val Extract: ImageVector = Icons.Outlined.Unarchive
-    val Share: ImageVector = Icons.Outlined.Share
-    val Trash: ImageVector = Icons.Outlined.Delete
-    val Cleanup: ImageVector = Icons.Outlined.CleaningServices
-    val Bubble: ImageVector = Icons.Outlined.AllInbox
-
-    // File types
-    val Image: ImageVector = Icons.Outlined.Image
-    val Video: ImageVector = Icons.Outlined.Movie
-    val Camera: ImageVector = Icons.Outlined.Videocam
-    val Audio: ImageVector = Icons.Outlined.MusicNote
-    val AudioFile: ImageVector = Icons.Outlined.AudioFile
-    val Document: ImageVector = Icons.Outlined.Description
-    val Pdf: ImageVector = Icons.Outlined.PictureAsPdf
-    val Text: ImageVector = Icons.AutoMirrored.Outlined.TextSnippet
-    val TextFile: ImageVector = Text
-    val Ebook: ImageVector = Icons.AutoMirrored.Outlined.MenuBook
-    val Font: ImageVector = Icons.Outlined.FontDownload
-    val Spreadsheet: ImageVector = Icons.Outlined.TableChart
-    val Presentation: ImageVector = Icons.Outlined.Slideshow
-    val GenericFile: ImageVector = Icons.AutoMirrored.Outlined.InsertDriveFile
-    val UnknownFile: ImageVector = GenericFile
-    val Archive: ImageVector = Icons.Outlined.FolderZip
-    val Apk: ImageVector = Icons.Outlined.Android
-
-    // Privacy
-    val Lock: ImageVector = Icons.Outlined.Lock
-    val Security: ImageVector = Icons.Outlined.Security
-    val Hide: ImageVector = Icons.Outlined.HideImage
-    val Visible: ImageVector = Icons.Outlined.Visibility
-    val Hidden: ImageVector = Icons.Outlined.VisibilityOff
-
-    // Media
-    val Play: ImageVector = Icons.Outlined.PlayArrow
-    val Pause: ImageVector = Icons.Outlined.Pause
-    val Rewind10: ImageVector = Icons.Outlined.Replay10
-    val Forward10: ImageVector = Icons.Outlined.Forward10
-    val Code: ImageVector = Icons.Outlined.Code
+internal fun tabler(
+    name: String,
+    autoMirror: Boolean,
+    vararg paths: String,
+): ImageVector {
+    val builder = ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f, autoMirror = autoMirror)
+    paths.forEach { data ->
+        builder.addPath(
+            pathData = PathParser().parsePathString(data).toNodes(),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+    }
+    return builder.build()
 }

@@ -51,6 +51,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.HideMode
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.components.BatchRenameSheet
+import com.devbehindyou.atomicfilemanager.ui.components.BreadcrumbBar
 import com.devbehindyou.atomicfilemanager.ui.components.CompareSheet
 import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.interaction.bubble.TransferBubbleRail
@@ -340,6 +341,11 @@ fun BrowseScreen(
                 tasksButton = {
                     TasksButton(app.container.operationQueue, app.container.wifiShare.transfers, onOpenOperations)
                 },
+                viewControls = {
+                    BrowseViewControls(settings.fileViewMode) { mode ->
+                        app.container.settingsRepository.update { it.copy(fileViewMode = mode) }
+                    }
+                },
                 optionsButton = {
                     BrowseOptionsButton(
                         viewMode = settings.fileViewMode,
@@ -367,6 +373,13 @@ fun BrowseScreen(
                             !storage.hasAccess -> storage.requestAccess()
                             else -> onNotify("This storage is unavailable. Reconnect it and try again.")
                         }
+                    }
+                    if (!isDualPane && actionState.breadcrumbs.isNotEmpty()) {
+                        BreadcrumbBar(
+                            actionState.breadcrumbs,
+                            actionViewModel::navigateToBreadcrumb,
+                            dragController = dragController,
+                        )
                     }
                 },
             )
@@ -424,7 +437,11 @@ fun BrowseScreen(
                     )
                 } else {
                     FileListContent(
-                        viewMode = settings.fileViewMode,
+                        presentation =
+                            FileListPresentation(
+                                viewMode = settings.fileViewMode,
+                                showBreadcrumbs = isSelectionMode || actionState.isSearching,
+                            ),
                         uiState = uiState,
                         viewModel = viewModel,
                         dragController = dragController,

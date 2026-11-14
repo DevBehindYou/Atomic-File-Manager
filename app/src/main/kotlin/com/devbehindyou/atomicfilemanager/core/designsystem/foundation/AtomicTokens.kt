@@ -27,7 +27,7 @@ object AtomicSpacing {
     val s74 = 74.dp
 
     /** Screen side margin in the app (spec §5.3). */
-    val screenMargin = s16
+    val screenMargin = 20.dp
 }
 
 /** Rounded corners for controls, cards and sheets. */
@@ -82,10 +82,10 @@ object AtomicSize {
     val touchTarget = 48.dp
     val iconSmall = 20.dp
     val icon = 24.dp
-    val iconTile = 40.dp
+    val iconTile = 46.dp
     val backButton = 36.dp
     val chipHeight = 32.dp
-    val buttonPrimary = 52.dp
+    val buttonPrimary = 48.dp
     val buttonSecondary = 44.dp
     val headerContent = 56.dp
     val meterHeight = 8.dp
@@ -123,9 +123,9 @@ object AtomicBreakpoints {
 object AtomicMotion {
     const val PRESS_MS = 120
     const val HOVER_MS = 150
-    const val TOGGLE_MS = 200
-    const val ENTER_MS = 350
-    const val REVEAL_MS = 500
+    const val TOGGLE_MS = 180
+    const val ENTER_MS = 220
+    const val REVEAL_MS = 220
 
     /** CSS `ease`. */
     val Ease = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)

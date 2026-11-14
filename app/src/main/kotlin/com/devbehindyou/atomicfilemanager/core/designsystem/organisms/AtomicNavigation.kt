@@ -1,5 +1,7 @@
 package com.devbehindyou.atomicfilemanager.core.designsystem.organisms
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,8 +20,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -29,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicMotion
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -117,6 +122,11 @@ private fun DestinationItem(
     onClick: () -> Unit,
 ) {
     val colors = Atomic.colors
+    val fill by animateColorAsState(
+        if (selected) colors.accent.copy(alpha = 0.18f) else Color.Transparent,
+        if (Atomic.reducedMotion) snap() else AtomicMotion.toggle(),
+        label = "destinationFill",
+    )
     Column(
         modifier =
             modifier
@@ -132,14 +142,14 @@ private fun DestinationItem(
         Box(
             modifier =
                 Modifier
-                    .then(if (selected) Modifier.background(colors.accent, AtomicShape.pill) else Modifier)
+                    .background(fill, AtomicShape.pill)
                     .padding(horizontal = AtomicSpacing.s12, vertical = AtomicSpacing.s4),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 destination.icon,
                 contentDescription = null,
-                tint = if (selected) colors.onAccent else colors.content,
+                tint = if (selected) colors.accentText else colors.content,
                 modifier = Modifier.size(AtomicSize.icon),
             )
         }
@@ -147,7 +157,7 @@ private fun DestinationItem(
             text = destination.label,
             modifier = Modifier.clearAndSetSemantics {},
             color = if (selected) colors.accentText else colors.contentSecondary,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center,
         )
     }

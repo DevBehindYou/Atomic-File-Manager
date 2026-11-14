@@ -207,12 +207,12 @@ class FileThumbnailComposeTest {
         val folder = thumbnailNode(name = "folder").copy(isDirectory = true)
         val selected = mutableStateOf(false)
         showRow(folder, selected, mutableListOf())
-        compose.onNodeWithText("→").assertExists()
+        compose.onNodeWithTag("folder_navigation_arrow", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag("file_item_menu_${folder.id.raw}").assertDoesNotExist()
         val row = compose.onNodeWithTag("file_item_${folder.id.raw}")
         row.performTouchInput { longClick() }
         row.assertIsSelected()
-        compose.onNodeWithText("→").assertDoesNotExist()
+        compose.onNodeWithTag("folder_navigation_arrow", useUnmergedTree = true).assertDoesNotExist()
     }
 
     private fun showRow(

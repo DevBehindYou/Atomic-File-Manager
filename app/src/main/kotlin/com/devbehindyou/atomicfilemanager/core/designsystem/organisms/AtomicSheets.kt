@@ -66,7 +66,7 @@ fun AtomicSheet(
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
-                AtomicText(label, AtomicTextRole.MonoLabel, color = colors.accentText)
+                AtomicText(label, AtomicTextRole.DisplayCard, color = colors.content)
                 AtomicDivider(strong = true)
             }
             content()
@@ -77,7 +77,7 @@ fun AtomicSheet(
             onDismissRequest = onDismiss,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             shape = AtomicShape.sheetTop,
-            containerColor = colors.background,
+            containerColor = colors.surfaceCard,
             contentColor = colors.content,
             scrimColor = Color.Black.copy(alpha = SCRIM_ALPHA),
             tonalElevation = 0.dp,

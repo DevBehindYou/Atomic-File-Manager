@@ -38,12 +38,10 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicProgress
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicElevation
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.modifiers.hardShadow
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
 import com.devbehindyou.atomicfilemanager.data.share.ShareTransfer
 import com.devbehindyou.atomicfilemanager.data.share.ShareTransferDirection
@@ -148,9 +146,8 @@ internal fun TasksPanel(
     val count = (if (active == null) 0 else 1) + waiting.size + transfers.size
     Column(
         Modifier.testTag("tasks_popup").width(width).heightIn(max = maxHeight)
-            .hardShadow(AtomicElevation.level3, colors.shadow, AtomicShape.md)
             .background(colors.surfaceCard, AtomicShape.md)
-            .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md)
+            .border(AtomicBorder.hair, colors.borderHair, AtomicShape.md)
             .padding(AtomicSpacing.s12),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {

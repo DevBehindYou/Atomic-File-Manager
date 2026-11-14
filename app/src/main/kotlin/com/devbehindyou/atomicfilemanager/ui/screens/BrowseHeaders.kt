@@ -1,8 +1,10 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -13,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -63,11 +67,22 @@ internal fun BrowseTopBar(
     tasksButton: @Composable () -> Unit = {},
     optionsButton: @Composable () -> Unit = {},
     storageSelector: @Composable () -> Unit = {},
+    viewControls: @Composable () -> Unit = {},
 ) {
     when {
         isSelectionMode -> SelectionHeader(uiState, bubbles, onShowAddToBubbleMenu, actions)
         uiState.isSearching -> SearchHeader(uiState, actions)
-        else -> FolderHeader(uiState, isDualPane, dualPaneMode, actions, tasksButton, optionsButton, storageSelector)
+        else ->
+            FolderHeader(
+                uiState,
+                isDualPane,
+                dualPaneMode,
+                actions,
+                tasksButton,
+                optionsButton,
+                storageSelector,
+                viewControls,
+            )
     }
 
     if (showAddToBubbleMenu) {
@@ -202,11 +217,12 @@ internal fun FolderHeader(
     tasksButton: @Composable () -> Unit = {},
     optionsButton: @Composable () -> Unit = {},
     storageSelector: @Composable () -> Unit = {},
+    viewControls: @Composable () -> Unit = {},
 ) {
     Column(Modifier.fillMaxWidth()) {
         AtomicPushedHeader(
             onBack = actions.onNavigateBack,
-            eyebrow = uiState.breadcrumbs.firstOrNull()?.name ?: "Files",
+            title = "Files",
             actions = {
                 AtomicIconButton(
                     AtomicIcons.Search,
@@ -234,6 +250,7 @@ internal fun FolderHeader(
             title = uiState.currentFolderName.ifEmpty { "Files" },
             itemCount = uiState.filteredItems.size,
             sort = uiState.sortOption,
+            viewControls = viewControls,
             modifier = Modifier.padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
         )
     }
@@ -245,25 +262,29 @@ internal fun BrowseFolderTitle(
     itemCount: Int,
     sort: SortOption,
     modifier: Modifier = Modifier,
+    viewControls: @Composable () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
         AtomicText(
             title,
-            AtomicTextRole.Name,
+            AtomicTextRole.NameLarge,
             modifier = Modifier.fillMaxWidth().semantics { heading() }.testTag("browse_folder_title"),
             maxLines = 1,
         )
         Row(
             Modifier.fillMaxWidth().testTag("browse_folder_metadata"),
             horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // AtomicText preserves this full description for screen readers and benchmark selectors.
-            AtomicText(
-                "$itemCount items · ${sort.label}",
-                AtomicTextRole.MonoLabel,
-                modifier = Modifier.testTag("browse_folder_summary"),
-                textAlign = TextAlign.End,
-            )
+            viewControls()
+            Spacer(Modifier.weight(1f))
+            Box(
+                Modifier.testTag("browse_folder_summary").clearAndSetSemantics {
+                    contentDescription = "$itemCount items · ${sort.label}"
+                },
+            ) {
+                AtomicText("$itemCount items\n${sort.label}", AtomicTextRole.MonoMeta, textAlign = TextAlign.End)
+            }
         }
         AtomicDivider(strong = true)
     }

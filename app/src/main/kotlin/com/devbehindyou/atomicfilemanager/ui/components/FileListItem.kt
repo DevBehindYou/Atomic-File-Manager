@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -25,13 +28,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicCheckbox
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicDivider
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
+import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.data.preview.thumbnailKind
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
@@ -107,7 +110,7 @@ fun FileListItem(
     val frame =
         if (isSelected) {
             Modifier
-                .background(colors.surfaceCard, AtomicShape.sm)
+                .background(colors.accent.copy(alpha = 0.12f), AtomicShape.sm)
                 .border(AtomicBorder.selected, colors.accent, AtomicShape.sm)
         } else {
             Modifier
@@ -116,7 +119,8 @@ fun FileListItem(
     val itemModifier =
         modifier
             .fillMaxWidth()
-            .heightIn(min = AtomicSize.touchTarget)
+            .heightIn(min = AtomicSpacing.s74)
+            .clip(AtomicShape.sm)
             .then(frame)
             .combinedClickable(
                 // The caller toggles selection on click; long press can select a range.
@@ -154,7 +158,7 @@ fun FileListItem(
                     .background(colors.surfaceCard, AtomicShape.sm)
                     .border(
                         if (isSelected) AtomicBorder.selected else AtomicBorder.hair,
-                        if (isSelected) colors.accent else colors.borderHair,
+                        if (isSelected) colors.accent else colors.surfaceCard,
                         AtomicShape.sm,
                     ).padding(AtomicSpacing.s12),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -193,10 +197,15 @@ fun FileListItem(
                 }
                 when {
                     isSelectionMode -> AtomicCheckbox(checked = isSelected, onCheckedChange = null)
-                    node.isDirectory -> AtomicText("→", AtomicTextRole.MonoMeta, color = colors.accentText)
+                    node.isDirectory ->
+                        Icon(
+                            AtomicIcons.Forward,
+                            null,
+                            tint = colors.contentSecondary,
+                            modifier = Modifier.size(AtomicSize.iconSmall).testTag("folder_navigation_arrow"),
+                        )
                 }
             }
-            if (!isSelected) AtomicDivider(modifier = Modifier.padding(horizontal = AtomicSpacing.s16))
         }
     }
 }
