@@ -99,6 +99,7 @@ import com.devbehindyou.atomicfilemanager.ui.components.ConflictSheet
 import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
 import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.BrowseEntryRequest
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseStorageAccess
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabStrip
@@ -836,23 +837,16 @@ fun AtomicAppContent(
                     title = if (home) "Your space" else currentTab.title,
                     modifier = Modifier.background(Atomic.colors.background).statusBarsPadding(),
                     actions = {
-                        AtomicIconButton(
-                            icon = AtomicIcons.Search,
-                            contentDescription = "Search all storage",
-                            onClick = { push(AtomicRoute.Search) },
-                            modifier = Modifier.testTag("home_search_button"),
-                        )
-                        TasksButton(
-                            queue = operationQueue,
-                            transfers = app.container.wifiShare.transfers,
-                            onOpenOperations = { push(AtomicRoute.Operations) },
-                        )
-                        AtomicIconButton(
-                            icon = AtomicIcons.MoreHorizontal,
-                            contentDescription = "Commands",
-                            onClick = { showPalette = true },
-                            modifier = Modifier.testTag("home_palette_button"),
-                        )
+                        MainToolbarActions(
+                            onSearch = { push(AtomicRoute.Search) },
+                            onCommands = { showPalette = true },
+                        ) {
+                            TasksButton(
+                                queue = operationQueue,
+                                transfers = app.container.wifiShare.transfers,
+                                onOpenOperations = { push(AtomicRoute.Operations) },
+                            )
+                        }
                     },
                 )
             }
@@ -909,6 +903,27 @@ fun AtomicAppContent(
             onDismiss = { showAboutDialog = false },
         )
     }
+}
+
+@Composable
+private fun MainToolbarActions(
+    onSearch: () -> Unit,
+    onCommands: () -> Unit,
+    tasks: @Composable () -> Unit,
+) {
+    AtomicIconButton(
+        icon = AtomicIcons.Search,
+        contentDescription = "Search all storage",
+        onClick = onSearch,
+        modifier = Modifier.testTag("home_search_button"),
+    )
+    tasks()
+    AtomicIconButton(
+        icon = AtomicIcons.MoreHorizontal,
+        contentDescription = "Commands",
+        onClick = onCommands,
+        modifier = Modifier.testTag("home_palette_button"),
+    )
 }
 
 /** Navigation and feedback callbacks the tab screens share. */
@@ -985,9 +1000,12 @@ private fun MainScreenContent(
                             },
                         ),
                     onNavigateBack = callbacks.onNavigateBack,
-                    openRequest = tab.openRequest,
-                    newFolderRequested = newFolderTabKey == tab.stateKey,
-                    onNewFolderRequestHandled = callbacks.onNewFolderRequestHandled,
+                    entryRequest =
+                        BrowseEntryRequest(
+                            folderRevision = tab.openRequest,
+                            onNewFolderHandled =
+                                callbacks.onNewFolderRequestHandled.takeIf { newFolderTabKey == tab.stateKey },
+                        ),
                     onNotify = callbacks.onNotify,
                     onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
                     tabKey = tab.stateKey,
