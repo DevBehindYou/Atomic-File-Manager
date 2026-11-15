@@ -253,9 +253,12 @@ fun AtomicAppContent(
     // Screens pushed over the tabs (private files, categories, analysis), saved as strings.
     var routeEntries by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val routes = RouteStack.decode(routeEntries)
+    // Only a pending UI action. File creation always requires confirmation in Browse.
+    var newFolderTabKey by remember { mutableStateOf<String?>(null) }
 
     // Read the saved entries, not [routes], so two changes in one callback both apply.
     fun push(route: AtomicRoute) {
+        newFolderTabKey = null
         routeEntries = RouteStack.decode(routeEntries).push(route).encode()
     }
 
@@ -276,7 +279,11 @@ fun AtomicAppContent(
     // This remains composed on Home and above pushed-route early returns; hiding is not closure.
     SideEffect { browseModels.reconcile(browseTabs) }
     val updateBrowseTabs: ((BrowseTabsState) -> BrowseTabsState) -> Unit = { change ->
-        val next = change(BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw))
+        val current = BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw)
+        val next = change(current)
+        if (next.active.stateKey != current.active.stateKey || next.active.openRequest != current.active.openRequest) {
+            newFolderTabKey = null
+        }
         // Observe every replacement, even an A-to-B-to-A sequence before the next composition.
         browseModels.reconcile(next)
         browseTabsSaved = next.encode()
@@ -285,6 +292,7 @@ fun AtomicAppContent(
 
     fun navigateTab(tab: NavigationTab) {
         if (tab != currentTab) {
+            if (tab != NavigationTab.BROWSE) newFolderTabKey = null
             // Keep one entry per tab so repeated tab switching cannot grow the Back stack without bound.
             tabHistory = tabHistory.filterNot { it == tab.name || it == currentTab.name } + currentTab.name
             currentTab = tab
@@ -297,6 +305,7 @@ fun AtomicAppContent(
     }
 
     fun navigateBack() {
+        newFolderTabKey = null
         currentTab = tabHistory.lastOrNull()?.let(NavigationTab::valueOf) ?: NavigationTab.HOME
         tabHistory = tabHistory.dropLast(1)
     }
@@ -524,11 +533,16 @@ fun AtomicAppContent(
     fun runCommand(command: PaletteCommand) {
         showPalette = false
         showInAppPlugins = false
+        newFolderTabKey = null
         // A command starts from the tabs, so Back from what it opens returns there.
         routeEntries = emptyList()
         when (command) {
             PaletteCommand.SEARCH -> push(AtomicRoute.Search)
             PaletteCommand.FILES -> navigateTab(NavigationTab.BROWSE)
+            PaletteCommand.NEW_FOLDER -> {
+                newFolderTabKey = BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw).active.stateKey
+                navigateTab(NavigationTab.BROWSE)
+            }
             PaletteCommand.DOWNLOADS -> openCategory(FileCategory.DOWNLOAD)
             PaletteCommand.IMAGES -> openCategory(FileCategory.IMAGE)
             PaletteCommand.VIDEOS -> openCategory(FileCategory.VIDEO)
@@ -784,12 +798,14 @@ fun AtomicAppContent(
             storageReadiness = storageReadiness,
             onRetryStorage = ::refreshVolumes,
             browseTabs = browseTabs,
+            newFolderTabKey = newFolderTabKey,
             onBrowseTabsChange = updateBrowseTabs,
             settingsRepository = settingsRepository,
             privateLocked = settings.requireAuthForHidden,
             callbacks =
                 ShellCallbacks(
                     onFolderSelected = ::openInBrowse,
+                    onNewFolderRequestHandled = { newFolderTabKey = null },
                     onNavigateBack = ::navigateBack,
                     onRequestStorageAccess = {
                         pendingVolumeId = null
@@ -898,6 +914,7 @@ fun AtomicAppContent(
 /** Navigation and feedback callbacks the tab screens share. */
 private class ShellCallbacks(
     val onFolderSelected: (FileNodeId) -> Unit,
+    val onNewFolderRequestHandled: () -> Unit,
     val onNavigateBack: () -> Unit,
     val onRequestStorageAccess: () -> Unit,
     val onBrowseVolume: (StorageVolumeInfo) -> Unit,
@@ -921,6 +938,7 @@ private fun MainScreenContent(
     storageReadiness: StorageReadinessState,
     onRetryStorage: () -> Unit,
     browseTabs: BrowseTabsState,
+    newFolderTabKey: String?,
     onBrowseTabsChange: ((BrowseTabsState) -> BrowseTabsState) -> Unit,
     settingsRepository: SettingsRepository,
     privateLocked: Boolean,
@@ -968,6 +986,8 @@ private fun MainScreenContent(
                         ),
                     onNavigateBack = callbacks.onNavigateBack,
                     openRequest = tab.openRequest,
+                    newFolderRequested = newFolderTabKey == tab.stateKey,
+                    onNewFolderRequestHandled = callbacks.onNewFolderRequestHandled,
                     onNotify = callbacks.onNotify,
                     onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
                     tabKey = tab.stateKey,

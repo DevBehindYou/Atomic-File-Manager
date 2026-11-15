@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -116,6 +117,21 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithText("Included with Atomic").assertIsDisplayed()
         compose.onNodeWithContentDescription("Close").performClick()
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun newFolderCommandOpensFormOnceAndCanBeCancelled() {
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_new_folder").performScrollTo().performClick()
+
+        compose.onNodeWithTag("new_folder_input").assertIsDisplayed()
+        compose.onNodeWithTag("confirm_create_folder_button").assertIsNotEnabled()
+        compose.onNodeWithTag("cancel_create_folder_button").performClick()
+        compose.onNodeWithTag("new_folder_input").assertDoesNotExist()
+
+        compose.onNodeWithTag("tab_home").performClick()
+        compose.onNodeWithTag("tab_browse").performClick()
+        compose.onNodeWithTag("new_folder_input").assertDoesNotExist()
     }
 
     @Test

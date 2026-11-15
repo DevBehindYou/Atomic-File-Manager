@@ -11,6 +11,7 @@ enum class PaletteCommand(
 ) {
     SEARCH("Search", "Go to", listOf("all storage", "find", "lookup")),
     FILES("Files", "Go to", listOf("browse", "folders", "explorer")),
+    NEW_FOLDER("New folder", "Tools", listOf("create directory", "mkdir")),
     DOWNLOADS("Downloads", "Go to", listOf("download")),
     IMAGES("Images", "Go to", listOf("photos", "pictures", "gallery")),
     VIDEOS("Videos", "Go to", listOf("movies", "clips")),
@@ -83,6 +84,7 @@ fun CommandPaletteSheet(
 private val palettePrimaryCommands =
     listOf(
         PaletteCommand.FILES,
+        PaletteCommand.NEW_FOLDER,
         PaletteCommand.SEARCH,
         PaletteCommand.OPERATIONS,
         PaletteCommand.ANALYSIS,
@@ -102,6 +104,7 @@ internal val PaletteCommand.icon
         when (this) {
             PaletteCommand.SEARCH -> AtomicIcons.Search
             PaletteCommand.FILES -> AtomicIcons.Files
+            PaletteCommand.NEW_FOLDER -> AtomicIcons.NewFolder
             PaletteCommand.DOWNLOADS -> AtomicIcons.Download
             PaletteCommand.IMAGES -> AtomicIcons.Image
             PaletteCommand.VIDEOS -> AtomicIcons.Video

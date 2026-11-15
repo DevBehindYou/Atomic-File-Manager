@@ -78,6 +78,9 @@ fun BrowseScreen(
     modifier: Modifier = Modifier,
     /** Changes each time the caller explicitly opens [initialFolderId]; see [BrowseViewModel.onOpenRequest]. */
     openRequest: Int = 0,
+    /** Opens the existing New folder form once, for this tab. */
+    newFolderRequested: Boolean = false,
+    onNewFolderRequestHandled: () -> Unit = {},
     onOpenFile: ((FileNode) -> Unit)? = null,
     /** Shows feedback in the app snackbar. */
     onNotify: (String) -> Unit = {},
@@ -179,6 +182,13 @@ fun BrowseScreen(
 
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
+    LaunchedEffect(newFolderRequested) {
+        if (newFolderRequested) {
+            showHiddenScreen = false
+            showNewFolderDialog = true
+            onNewFolderRequestHandled()
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val favouriteIds by produceState<Set<FileNodeId>?>(null, app.container) {
         withContext(Dispatchers.IO) { app.container.favouritesRepository }.observe().collect { favourites ->
