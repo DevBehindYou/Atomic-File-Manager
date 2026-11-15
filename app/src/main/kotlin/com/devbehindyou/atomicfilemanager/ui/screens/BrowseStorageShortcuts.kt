@@ -1,7 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,7 +31,6 @@ import androidx.compose.ui.semantics.stateDescription
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -127,8 +125,7 @@ private fun StorageShortcut(
         modifier
             .defaultMinSize(minHeight = AtomicSize.touchTarget)
             .focusRing(focused, colors.accentText, AtomicShape.radiusSm)
-            .background(if (isCurrent) colors.accent else colors.surfaceInset, AtomicShape.sm)
-            .border(AtomicBorder.control, if (isCurrent) colors.accent else colors.borderStrong, AtomicShape.sm)
+            .background(if (isCurrent) colors.accent else colors.surfaceInset, AtomicShape.pill)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onOpen)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Open storage ${volume.label}"

@@ -33,8 +33,8 @@ object AtomicFileTypeColors {
         mapOf(
             AtomicFileType.FOLDER to 0xFF805900.toInt(),
             AtomicFileType.IMAGE to 0xFF006B64.toInt(),
-            AtomicFileType.VIDEO to 0xFF6B3DA6.toInt(),
-            AtomicFileType.AUDIO to 0xFF924065.toInt(),
+            AtomicFileType.VIDEO to 0xFF963D52.toInt(),
+            AtomicFileType.AUDIO to 0xFF974300.toInt(),
             AtomicFileType.PDF to 0xFFB3261E.toInt(),
             AtomicFileType.APK to 0xFF31652B.toInt(),
             AtomicFileType.ARCHIVE to 0xFF914900.toInt(),
@@ -51,8 +51,8 @@ object AtomicFileTypeColors {
         mapOf(
             AtomicFileType.FOLDER to 0xFFE8C568.toInt(),
             AtomicFileType.IMAGE to 0xFF75D7C8.toInt(),
-            AtomicFileType.VIDEO to 0xFFC4A3F4.toInt(),
-            AtomicFileType.AUDIO to 0xFFF0A6CC.toInt(),
+            AtomicFileType.VIDEO to 0xFFF5ADBC.toInt(),
+            AtomicFileType.AUDIO to 0xFFFFB681.toInt(),
             AtomicFileType.PDF to 0xFFFFABA3.toInt(),
             AtomicFileType.APK to 0xFFA1D987.toInt(),
             AtomicFileType.ARCHIVE to 0xFFF7BA77.toInt(),

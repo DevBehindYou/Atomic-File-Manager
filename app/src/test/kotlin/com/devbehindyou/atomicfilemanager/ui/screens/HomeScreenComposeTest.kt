@@ -87,7 +87,7 @@ class HomeScreenComposeTest {
     fun storageCardAndDetailsOpenTheirDestinations() {
         show()
         compose.onNodeWithTag("volume_item_primary").performClick()
-        compose.onNodeWithContentDescription("Details →").performClick()
+        compose.onNodeWithContentDescription("See storage").performScrollTo().performClick()
         assertEquals(listOf("volume:primary", "details"), events)
     }
 

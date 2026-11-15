@@ -35,12 +35,12 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSha
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 
-/** Fraction at which a storage meter turns orange and says "nearly full" (spec §9.8). */
+/** Fraction at which a storage meter uses the high-usage state. */
 const val METER_HIGH_THRESHOLD = 0.8f
 
 /**
  * Storage meter (the spec's energy bar). Below [highThreshold] the fill is the accent; at or above
- * it the fill turns orange. Callers also show a "Nearly full" label, never colour alone.
+ * it the fill uses the high-usage colour. Callers also show a "Nearly full" label.
  */
 @Composable
 fun AtomicMeter(
@@ -48,6 +48,7 @@ fun AtomicMeter(
     contentDescription: String,
     modifier: Modifier = Modifier,
     highThreshold: Float = METER_HIGH_THRESHOLD,
+    onAccentSurface: Boolean = false,
 ) {
     val colors = Atomic.colors
     val target = fraction.coerceIn(0f, 1f)
@@ -62,7 +63,7 @@ fun AtomicMeter(
                 .fillMaxWidth()
                 .height(AtomicSize.meterHeight)
                 .clip(AtomicShape.xs)
-                .background(colors.meterTrack)
+                .background(if (onAccentSurface) colors.onAccent.copy(alpha = 0.25f) else colors.meterTrack)
                 .semantics {
                     this.contentDescription = contentDescription
                     progressBarRangeInfo = ProgressBarRangeInfo(target, 0f..1f)
@@ -72,7 +73,13 @@ fun AtomicMeter(
             Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(shown)
-                .background(if (target >= highThreshold) colors.meterHigh else colors.meterNormal),
+                .background(
+                    when {
+                        onAccentSurface -> colors.onAccent
+                        target >= highThreshold -> colors.meterHigh
+                        else -> colors.meterNormal
+                    },
+                ),
         )
     }
 }

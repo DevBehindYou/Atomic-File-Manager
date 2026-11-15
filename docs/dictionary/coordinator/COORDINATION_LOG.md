@@ -168,3 +168,22 @@ Append concise dated events; preserve previous evidence. Event fields are date/t
 - Analysis [#118](https://github.com/DevBehindYou/Atomic-File-Manager/pull/118) at `7e549d1` and [#120](https://github.com/DevBehindYou/Atomic-File-Manager/pull/120) at `5d28553` passed current hosted checks in runs `42813099841` and `42813109718`. After review and clean trials they merged into feature integration as `6fb11c5` and `20d2286` in that order. C005's durable search-index checkpoint and provider gates remain open.
 - Video [#119](https://github.com/DevBehindYou/Atomic-File-Manager/pull/119) at `0a2cec2` passed native API 28/34 and static checks. Its full run had two host failures in the unknown-revision case, both at the second attached-player wait. The PR stays open. Audio focus [#109](https://github.com/DevBehindYou/Atomic-File-Manager/pull/109) was refreshed to `a821b1c` on `20d2286` and its normal and native jobs started.
 - The owner-approved next slices are the C005 durable retry/checkpoint, C012 reopen diagnosis after C011 validation, and C027 backend publication checks before the draft recovery stack ships. Codex retains these PR reservations through the repository handoff. The fixed counts remain 1/50 accepted tasks, 2/13 host-verified features, 1/13 accepted features and 0/42 completed plugin groups.
+
+## 14 November 2026 — native revamp foundation
+
+- The owner approved the orange-led prototype for native implementation. Codex reserved `area-ui-shell` on `codex/native-revamp-foundation` from integration `f5f6b74`.
+- This slice applies the palette, rounded shapes and Hanken headings to shared Compose components. Navigation retains all four destinations and shows labels for each. The Home internal storage card is featured, with stacked usage text so long volume names can wrap.
+- A standalone Kotlin run verified 158 contrast pairs and wallpaper acceptance/fallback. Android build, layout validation and phone evidence are separate gates. The remaining screen layouts and viewer chrome are later slices. This change adds no U13 or N42 completion credit.
+
+### 14 November - native prototype parity correction
+
+- PR #130 remains the focused draft on `codex/native-revamp-foundation`; no parallel UI implementation or prototype overwrite. The first palette/font pass did not reproduce the approved geometry. This correction replaces old outlines/shadows, adds bundled pinned Tabler vectors, restores the Home hierarchy and updates file rows, storage shortcuts, view controls, menus and navigation selection motion.
+- [Parity audit and validation](../../design/NATIVE_REVAMP_PARITY.md) retain discovered failures, corrections, physical evidence limitations and remaining Storage/Analysis/viewer work. Resource leases serialize Gradle and ADB; root/benchmark deferral remains unchanged.
+- This UI slice earns no additional whole-feature or plugin-group credit: U13 stays 2/13 host verified, 1/13 accepted; N42 stays 0/42 complete groups and 0/8 fully modernized plugins. Draft PR, integration and stable-release states are distinct.
+
+### 15 November - full prototype implementation contract
+
+- The owner explicitly requires every page/component to follow the approved prototype and rejects retaining old Storage/Settings structures or anchored popup geometry. The completed [32-surface plan](../../../Revamp-UIUX/06-Native-Implementation/PLAN.md) and pinned reference manifest supersede those prior visual exceptions. Plan commit: `64613d4`; source cross-check covers actual native viewer paths and function dependencies.
+- Existing PR130 application head `b5319d1` passed hosted CI (static including Lint, full unit/APK packaging, coordinator). That evidence does not cover the new exact-dialog implementation or future Settings/Storage changes.
+- Codex retains UI integration ownership. `codex/revamp-settings-parity` implements Settings-owned files in isolation; `codex/revamp-storage-parity` implements Storage-owned files with its feature-area lease. They do not edit MainActivity, shared components or each other's files; parent wires routes and serializes all Gradle/device validation. Viewer source audit completed without engine changes.
+- New revamp inventory is 0/32 visually accepted. Existing U13/N42 denominators and release gates are unchanged. Implementation and physical acceptance remain ongoing.

@@ -41,6 +41,8 @@ fun AtomicIconTile(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     inverted: Boolean = false,
+    tint: Color = Color.Unspecified,
+    containerColor: Color = Color.Unspecified,
 ) {
     val colors = Atomic.colors
     val shape = AtomicShape.sm
@@ -48,14 +50,29 @@ fun AtomicIconTile(
         modifier =
             modifier
                 .size(AtomicSize.iconTile)
-                .background(if (inverted) colors.content else colors.background, shape)
-                .border(AtomicBorder.structure, colors.borderStrong, shape),
+                .background(
+                    if (containerColor != Color.Unspecified) {
+                        containerColor
+                    } else if (inverted) {
+                        colors.content
+                    } else {
+                        colors.surfaceInset
+                    },
+                    shape,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = if (inverted) colors.background else colors.content,
+            tint =
+                if (tint != Color.Unspecified) {
+                    tint
+                } else if (inverted) {
+                    colors.background
+                } else {
+                    colors.content
+                },
             modifier = Modifier.size(AtomicSize.iconSmall),
         )
     }

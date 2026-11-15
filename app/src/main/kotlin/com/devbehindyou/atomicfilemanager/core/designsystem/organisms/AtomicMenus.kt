@@ -1,7 +1,6 @@
 package com.devbehindyou.atomicfilemanager.core.designsystem.organisms
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -34,7 +33,6 @@ import androidx.compose.ui.semantics.stateDescription
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -107,11 +105,6 @@ private fun AtomicCommandCard(
             .focusRing(focused, colors.accentText, AtomicShape.radiusSm)
             .alpha(if (action.enabled) 1f else DISABLED_MENU_ALPHA)
             .background(colors.surfaceInset, AtomicShape.sm)
-            .border(
-                AtomicBorder.structure,
-                if (action.destructive) colors.error else colors.borderStrong,
-                AtomicShape.sm,
-            )
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -133,11 +126,7 @@ private fun AtomicCommandCard(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Box(
                 Modifier.size(AtomicSize.menuIconTile)
-                    .border(
-                        AtomicBorder.structure,
-                        if (action.destructive) colors.error else colors.borderStrong,
-                        AtomicShape.xs,
-                    ),
+                    .background(colors.accent.copy(alpha = 0.12f), AtomicShape.sm),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(action.icon, null, tint = tint, modifier = Modifier.size(AtomicSize.iconSmall))

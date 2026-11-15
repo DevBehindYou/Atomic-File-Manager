@@ -9,13 +9,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -150,22 +155,27 @@ fun AtomicCategoryTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     inverted: Boolean = false,
+    tint: Color = Color.Unspecified,
 ) {
     val colors = Atomic.colors
     Column(
         modifier =
             modifier
-                .background(colors.surfaceCard, AtomicShape.sm)
-                .border(AtomicBorder.structure, colors.borderHair, AtomicShape.sm)
+                .clip(AtomicShape.md).background(colors.surfaceCard, AtomicShape.md)
                 .clickable(role = Role.Button, onClick = onClick)
                 .heightIn(min = AtomicSize.touchTarget)
-                .padding(AtomicSpacing.s12),
+                .padding(horizontal = AtomicSpacing.s8, vertical = AtomicSpacing.s16),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
-        AtomicIconTile(icon, inverted = inverted)
-        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s2)) {
-            AtomicText(label, AtomicTextRole.DisplayCard, maxLines = 1)
-            AtomicText(meta, AtomicTextRole.MonoLabel, maxLines = 1)
-        }
+        AtomicIconTile(
+            icon,
+            modifier = Modifier.size(AtomicSpacing.s32 + AtomicSpacing.s8),
+            inverted = inverted,
+            tint = if (inverted) colors.background else tint,
+            containerColor = if (inverted) colors.content else colors.accent.copy(alpha = 0.12f),
+        )
+        AtomicText(label, AtomicTextRole.MonoLabel, color = colors.content, maxLines = 2, textAlign = TextAlign.Center)
+        AtomicText(meta, AtomicTextRole.MonoMeta, maxLines = 1, textAlign = TextAlign.Center)
     }
 }

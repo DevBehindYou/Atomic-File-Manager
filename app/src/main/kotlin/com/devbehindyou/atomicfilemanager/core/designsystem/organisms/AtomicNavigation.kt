@@ -1,5 +1,7 @@
 package com.devbehindyou.atomicfilemanager.core.designsystem.organisms
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,18 +17,23 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicMotion
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -40,10 +47,7 @@ data class AtomicDestination(
     val testTag: String? = null,
 )
 
-/**
- * Bottom bar (spec §9.6): paper, 1 dp rule on top, exactly one active destination drawn as an
- * ink pill with icon and label; the others are icon-only but keep their labels for TalkBack.
- */
+/** Bottom navigation with visible labels and a pill around the selected icon. */
 @Composable
 fun AtomicBottomBar(
     destinations: List<AtomicDestination>,
@@ -57,7 +61,7 @@ fun AtomicBottomBar(
             Modifier.fillMaxWidth().heightIn(
                 min = AtomicBorder.rule,
                 max = AtomicBorder.rule,
-            ).background(colors.borderStrong),
+            ).background(colors.borderHair),
         )
         Row(
             modifier =
@@ -70,7 +74,9 @@ fun AtomicBottomBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             destinations.forEach { destination ->
-                DestinationItem(destination, destination.key == selectedKey, vertical = false) { onSelect(destination) }
+                DestinationItem(destination, destination.key == selectedKey, Modifier.weight(1f)) {
+                    onSelect(destination)
+                }
             }
         }
     }
@@ -99,10 +105,12 @@ fun AtomicNavRail(
         ) {
             header?.invoke()
             destinations.forEach { destination ->
-                DestinationItem(destination, destination.key == selectedKey, vertical = true) { onSelect(destination) }
+                DestinationItem(destination, destination.key == selectedKey, Modifier.fillMaxWidth()) {
+                    onSelect(destination)
+                }
             }
         }
-        Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(colors.borderStrong))
+        Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(colors.borderHair))
     }
 }
 
@@ -110,57 +118,48 @@ fun AtomicNavRail(
 private fun DestinationItem(
     destination: AtomicDestination,
     selected: Boolean,
-    vertical: Boolean,
+    modifier: Modifier,
     onClick: () -> Unit,
 ) {
     val colors = Atomic.colors
-    val base =
-        Modifier
-            .heightIn(min = AtomicSize.touchTarget)
-            .widthIn(min = AtomicSize.touchTarget)
-            .then(if (destination.testTag != null) Modifier.testTag(destination.testTag) else Modifier)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .semantics { contentDescription = destination.label }
-    if (!selected) {
-        Box(base, contentAlignment = Alignment.Center) {
+    val fill by animateColorAsState(
+        if (selected) colors.accent.copy(alpha = 0.18f) else Color.Transparent,
+        if (Atomic.reducedMotion) snap() else AtomicMotion.toggle(),
+        label = "destinationFill",
+    )
+    Column(
+        modifier =
+            modifier
+                .heightIn(min = AtomicSize.touchTarget)
+                .widthIn(min = AtomicSize.touchTarget)
+                .then(if (destination.testTag != null) Modifier.testTag(destination.testTag) else Modifier)
+                .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+                .semantics { contentDescription = destination.label }
+                .padding(vertical = AtomicSpacing.s8),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4, Alignment.CenterVertically),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .background(fill, AtomicShape.pill)
+                    .padding(horizontal = AtomicSpacing.s12, vertical = AtomicSpacing.s4),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 destination.icon,
                 contentDescription = null,
-                tint = colors.content,
+                tint = if (selected) colors.accentText else colors.content,
                 modifier = Modifier.size(AtomicSize.icon),
             )
         }
-        return
-    }
-    val pill =
-        base
-            .background(colors.content, AtomicShape.sm)
-            .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s10)
-    val inner: @Composable () -> Unit = {
-        Icon(
-            destination.icon,
-            contentDescription = null,
-            tint = colors.background,
-            modifier = Modifier.size(AtomicSize.iconSmall),
+        Text(
+            text = destination.label,
+            modifier = Modifier.clearAndSetSemantics {},
+            color = if (selected) colors.accentText else colors.contentSecondary,
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
         )
-        AtomicText(destination.label, AtomicTextRole.MonoLabel, color = colors.background, maxLines = 1)
-    }
-    if (vertical) {
-        Column(
-            pill,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
-        ) {
-            inner()
-        }
-    } else {
-        Row(
-            pill,
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-        ) {
-            inner()
-        }
     }
 }
 

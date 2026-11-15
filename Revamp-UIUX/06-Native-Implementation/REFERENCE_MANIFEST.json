@@ -1,0 +1,14 @@
+{
+  "reference": "C:\\Users\\temp\\Documents\\GitHub\\Atomic-File-Manager\\Revamp-UIUX\\04-Design-Prototypes",
+  "captured": "2026-11-15",
+  "sha256": {
+    "app.js": "7661053e8025fa9815a6512984932da3f5f1de0332317647362e1cf7c4e9197d",
+    "core.js": "9e7b8c6ed9579f3a71871e80c96bd74d85cf0c340f4c963f450664371d5cdf60",
+    "index.html": "d894ca4a11b8a8e944c3d77082f55db414095dceaef1a3c8cf3f651b50701d07",
+    "screens.js": "888404ddfab7c1665a314692c20886fd31fa6ab8580de2f7c3ebd573303db5aa",
+    "styles.css": "772061906c36875cdc1f98fb90316a9e04f62b13b8b9612561a69e25eec96749",
+    "tokens.css": "011242302f567239b87125dafb91a01a240639befc017dd30710a09038c7706e",
+    "viewers.css": "cb90b01123bf382ab098f61d9ec8a9747104032fb445edb3d4c0ebde2901be02",
+    "viewers.js": "7dc9ad6e4a83eb8497d64d31ae9a43953e599880b4e1e903ba2e7b06a06cbe3b"
+  }
+}
