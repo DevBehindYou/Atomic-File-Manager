@@ -75,6 +75,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicNavR
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSnackbarHost
 import com.devbehindyou.atomicfilemanager.core.navigation.AtomicRoute
 import com.devbehindyou.atomicfilemanager.core.navigation.RouteStack
+import com.devbehindyou.atomicfilemanager.core.navigation.StorageToolPage
 import com.devbehindyou.atomicfilemanager.data.operations.PendingConflict
 import com.devbehindyou.atomicfilemanager.data.volume.SharedStorageAccess
 import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
@@ -106,6 +107,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.CategoryScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.CommandPaletteSheet
 import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.InAppPluginsSheet
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
@@ -312,6 +314,7 @@ fun AtomicAppContent(
     val volumes = storageReadiness.snapshot?.volumes.orEmpty()
     val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showInAppPlugins by rememberSaveable { mutableStateOf(false) }
     var showPalette by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -520,6 +523,7 @@ fun AtomicAppContent(
 
     fun runCommand(command: PaletteCommand) {
         showPalette = false
+        showInAppPlugins = false
         // A command starts from the tabs, so Back from what it opens returns there.
         routeEntries = emptyList()
         when (command) {
@@ -538,7 +542,10 @@ fun AtomicAppContent(
             PaletteCommand.OPERATIONS -> push(AtomicRoute.Operations)
             PaletteCommand.APPS -> push(AtomicRoute.Apps)
             PaletteCommand.PRIVATE -> push(AtomicRoute.PrivateFiles)
+            PaletteCommand.FOLDER_COMPARE -> push(AtomicRoute.StorageTool(StorageToolPage.FOLDER_COMPARE))
             PaletteCommand.WIFI_SHARE -> push(AtomicRoute.WifiShare)
+            PaletteCommand.PLUGINS -> showInAppPlugins = true
+            PaletteCommand.CONNECTIONS -> push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))
             PaletteCommand.SETTINGS, PaletteCommand.THEME -> navigateTab(NavigationTab.SETTINGS)
             PaletteCommand.ABOUT -> showAboutDialog = true
         }
@@ -561,6 +568,8 @@ fun AtomicAppContent(
     }
     if (showPalette) {
         CommandPaletteSheet(onRun = ::runCommand, onDismiss = { showPalette = false })
+    } else if (showInAppPlugins) {
+        InAppPluginsSheet(onDismiss = { showInAppPlugins = false })
     }
 
     BackHandler(enabled = !routes.isEmpty) { pop() }

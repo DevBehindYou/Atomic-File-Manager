@@ -96,6 +96,29 @@ class MobileNavigationDeviceTest {
     }
 
     @Test
+    fun commandsReachExistingStorageToolsAndBundledPlugins() {
+        val toolCommands =
+            listOf(
+                "palette_connections" to "Connections",
+                "palette_folder_compare" to "Folder compare",
+            )
+        for ((tag, title) in toolCommands) {
+            compose.onNodeWithTag("home_palette_button").performClick()
+            compose.onNodeWithTag(tag).performScrollTo().performClick()
+            compose.onNodeWithTag("storage_tool_screen").assertIsDisplayed()
+            compose.onNodeWithContentDescription(title).assertIsDisplayed()
+            compose.onNodeWithContentDescription("Back").performClick()
+            compose.onNodeWithTag("home_screen").assertIsDisplayed()
+        }
+
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_plugins").performScrollTo().performClick()
+        compose.onNodeWithText("Included with Atomic").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
     fun systemBackReturnsFromStorageToHome() {
         compose.onNodeWithTag("tab_storage").performClick()
         compose.onNodeWithTag("storage_screen").assertIsDisplayed()

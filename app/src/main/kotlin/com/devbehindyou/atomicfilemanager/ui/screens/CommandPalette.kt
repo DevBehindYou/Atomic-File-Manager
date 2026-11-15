@@ -24,7 +24,10 @@ enum class PaletteCommand(
     OPERATIONS("Tasks", "Tools", listOf("operations", "copy", "move", "progress", "transfers", "queue")),
     APPS("App manager", "Tools", listOf("apps", "uninstall", "backup apk")),
     PRIVATE("Private files", "Tools", listOf("hidden", "vault", "secure", "encrypt")),
+    FOLDER_COMPARE("Folder compare", "Tools", listOf("sync", "differences")),
     WIFI_SHARE("Wi-Fi Share", "Tools", listOf("send to computer", "pc", "browser", "transfer", "wifi")),
+    PLUGINS("In-app plugins", "Tools", listOf("built-in viewers", "bundled tools")),
+    CONNECTIONS("Connections", "Tools", listOf("linked folders", "network locations")),
     SETTINGS("Settings", "Settings", listOf("preferences", "options")),
     THEME("Theme", "Settings", listOf("dark mode", "light mode", "colours", "colors", "appearance")),
     ABOUT("About Atomic File Manager", "Settings", listOf("version", "privacy")),
@@ -85,8 +88,11 @@ private val palettePrimaryCommands =
         PaletteCommand.ANALYSIS,
         PaletteCommand.TRASH,
         PaletteCommand.PRIVATE,
+        PaletteCommand.FOLDER_COMPARE,
         PaletteCommand.APPS,
         PaletteCommand.WIFI_SHARE,
+        PaletteCommand.PLUGINS,
+        PaletteCommand.CONNECTIONS,
     )
 
 internal val paletteBrowseOrder = palettePrimaryCommands + (PaletteCommand.entries - palettePrimaryCommands.toSet())
@@ -108,7 +114,10 @@ internal val PaletteCommand.icon
             PaletteCommand.TRASH -> AtomicIcons.Trash
             PaletteCommand.OPERATIONS -> AtomicIcons.Tasks
             PaletteCommand.PRIVATE -> AtomicIcons.Lock
+            PaletteCommand.FOLDER_COMPARE -> AtomicIcons.DualPane
             PaletteCommand.WIFI_SHARE -> AtomicIcons.Network
+            PaletteCommand.PLUGINS -> AtomicIcons.Plug
+            PaletteCommand.CONNECTIONS -> AtomicIcons.Cloud
             PaletteCommand.SETTINGS -> AtomicIcons.Settings
             PaletteCommand.THEME -> AtomicIcons.Theme
             PaletteCommand.ABOUT -> AtomicIcons.Info
