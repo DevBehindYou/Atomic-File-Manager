@@ -3,9 +3,11 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -13,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -51,16 +54,18 @@ class BrowseOptionsComposeTest {
     }
 
     @Test
-    fun popupWrapsItsOptionsAndShrinksForTheShortViewPage() {
-        // Large text makes the main page exceed the minimum width even with host font metrics.
+    fun popupCentersAtReferenceWidthAndOnlyItsHeightShrinksOnSubpages() {
+        // The approved modal has a consistent width; content determines the height.
         show(fontScale = 1.5f)
         open()
         val main = compose.onNodeWithTag("browse_options_popup").getUnclippedBoundsInRoot()
         val mainWidth = main.right - main.left
-        assertTrue("Main options should not fill a phone window", mainWidth < 320.dp)
+        val overlay = compose.onNodeWithTag("browse_options_popup_overlay").getUnclippedBoundsInRoot()
+        assertEquals(minOf(420.dp, overlay.right - overlay.left - 32.dp).value, mainWidth.value, 1f)
+        assertEquals(((overlay.left + overlay.right) / 2).value, ((main.left + main.right) / 2).value, 1f)
         compose.onNodeWithText("View").performClick()
         val view = compose.onNodeWithTag("browse_options_popup").getUnclippedBoundsInRoot()
-        assertTrue("Short submenu should use less width: main=$main, view=$view", view.right - view.left < mainWidth)
+        assertEquals("Submenus retain the reference width", mainWidth.value, (view.right - view.left).value, 1f)
         assertTrue("Short submenu should use less height", view.bottom - view.top < main.bottom - main.top)
         compose.onNodeWithText("List").assertIsSelected()
         compose.onNodeWithText("Grid").performClick()
@@ -119,6 +124,7 @@ class BrowseOptionsComposeTest {
         compose.onNodeWithText("Show hidden files").performScrollTo().performClick()
         compose.onNodeWithText("Show hidden files").assertIsOn()
         compose.onNodeWithTag("browse_options_popup").assertExists()
+        compose.onNodeWithText("On").assertExists()
         compose.runOnIdle { assertTrue(hidden.value) }
         compose.onNodeWithText("New folder").performScrollTo().performClick()
         compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
@@ -141,6 +147,20 @@ class BrowseOptionsComposeTest {
         open()
         compose.onNodeWithText("View").assertExists()
         compose.onNodeWithContentDescription("Close file options").performClick()
+    }
+
+    @Test
+    fun outsideDismissDoesNotChangeTheSelectedValues() {
+        show()
+        open()
+        compose.onNodeWithTag("browse_options_popup").performTouchInput { click(Offset(4f, 6f)) }
+        compose.onNodeWithTag("browse_options_popup").assertExists()
+        compose.onNodeWithTag("browse_options_popup_overlay").performTouchInput { click(Offset(4f, 6f)) }
+        compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(FileViewMode.LIST, viewMode.value)
+            assertEquals(SortOption.NAME, sort.value)
+        }
     }
 
     private fun show(fontScale: Float = 1f) {

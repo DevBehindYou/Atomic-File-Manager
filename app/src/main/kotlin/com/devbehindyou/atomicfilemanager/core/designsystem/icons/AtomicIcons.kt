@@ -10,6 +10,11 @@ import androidx.compose.ui.unit.dp
 
 /** Bundled Tabler outline vectors. MIT license and pinned provenance in assets/licenses and docs/design. */
 object AtomicIcons {
+    val Sun: ImageVector get() = TablerDestinations.Sun
+    val Plug: ImageVector get() = TablerDestinations.Plug
+    val ChevronRight: ImageVector get() = TablerDestinations.ChevronRight
+    val Cloud: ImageVector get() = TablerDestinations.Cloud
+
     val Back: ImageVector get() = TablerNavigation.Back
     val Forward: ImageVector get() = TablerNavigation.Forward
     val Home: ImageVector get() = TablerNavigation.Home

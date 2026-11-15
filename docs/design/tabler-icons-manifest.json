@@ -294,6 +294,22 @@
     "Grid": {
       "source": "icons/outline/layout-grid.svg",
       "sha256": "91f923bcca6e9201ccedd2a10bb5d5a7eb3dbb5fa5a26af394d362f35c935237"
+    },
+    "Sun": {
+      "source": "icons/outline/sun.svg",
+      "sha256": "6677490605af8987d55d6e4185b1f6c241eced65b63ccfece68cadb7ce90fbb5"
+    },
+    "Plug": {
+      "source": "icons/outline/plug.svg",
+      "sha256": "b6df03adcf16818c31c1a96f1006557634da1f5a2aa4846cdc6dbcba713e3c6b"
+    },
+    "ChevronRight": {
+      "source": "icons/outline/chevron-right.svg",
+      "sha256": "83733bb6e03e1d20fd2674d06a493642c8ea6eef76c44ebb2239b9ef17dedff7"
+    },
+    "Cloud": {
+      "source": "icons/outline/cloud.svg",
+      "sha256": "abbbc58eb9bdd3e5b1f41b28b1d9743274d79762d248c88d72455c47f674f8e2"
     }
   }
 }

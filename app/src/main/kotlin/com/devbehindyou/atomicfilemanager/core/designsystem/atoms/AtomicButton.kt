@@ -205,7 +205,7 @@ fun AtomicButton(
 }
 
 /** Icon-only button variants (spec §7.2). */
-enum class AtomicIconButtonVariant { Ghost, Accent, Back, Toolbar, Destructive }
+enum class AtomicIconButtonVariant { Ghost, Accent, Back, Toolbar, Inset, Destructive }
 
 /** Icon-only button; [contentDescription] is required so TalkBack can name it. */
 @Composable
@@ -224,6 +224,7 @@ fun AtomicIconButton(
     val (fill, tint) =
         when (variant) {
             AtomicIconButtonVariant.Ghost -> colors.surfaceCard to colors.content
+            AtomicIconButtonVariant.Inset -> colors.surfaceInset to colors.content
             AtomicIconButtonVariant.Accent -> colors.accent to colors.onAccent
             AtomicIconButtonVariant.Back, AtomicIconButtonVariant.Toolbar -> colors.surfaceCard to colors.content
             AtomicIconButtonVariant.Destructive -> colors.error to colors.onError

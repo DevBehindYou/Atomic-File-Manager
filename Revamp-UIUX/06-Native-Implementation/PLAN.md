@@ -143,7 +143,7 @@ Existing engine validation suites are reused: ImageViewModes/FocusedGesture/GifP
 ## 10. Execution log
 
 - **R01 complete:** reference manifest pinned; 32-surface inventory, component contract, dialog/state families, dependencies, ownership and acceptance protocol documented; native viewer mapping and functional gaps cross-checked.
-- **R02/R03 in progress:** shared native top dialog and File Options replacement implemented locally; validation pending. This supersedes the old anchored, content-width popup contract.
+- **R02/R03 in progress:** shared native dialog and File Options use the reference width, centered header and content-driven height. Ten focused host tests passed, including pointer dismissal and all six sort directions. Detekt, formatting and debug APK packaging passed. APK SHA256: `ACA5DE15902A6C2D6DA65F5874EC604453E4BBE29798E64466361BE210E30AE9`. Wide-layout Dual pane, Commands/Tasks parity and the full visual matrix remain open.
 - **R04 in progress:** isolated Settings branch reserved; no shared-file overlap or local Gradle by the implementation agent.
 - **R05 in progress:** isolated Storage branch assigned; route wiring and combined tests remain parent integration work.
 - **Visual acceptance: 0/32.** This intentionally stays zero until complete per-surface gates pass; the plan itself is complete, implementation is not.

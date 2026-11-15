@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,8 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
@@ -27,13 +31,19 @@ internal fun BalancedPopupHeader(
     onBack: (() -> Unit)? = null,
     backDescription: String = "Back",
     subtitle: String? = null,
+    buttonVariant: AtomicIconButtonVariant = AtomicIconButtonVariant.Ghost,
+    controlsGap: Dp = 0.dp,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(controlsGap),
+    ) {
         Box(
             Modifier.size(AtomicSize.touchTarget).testTag("${testTagPrefix}_leading"),
             contentAlignment = Alignment.Center,
         ) {
-            if (onBack != null) AtomicIconButton(AtomicIcons.Back, backDescription, onBack)
+            if (onBack != null) AtomicIconButton(AtomicIcons.Back, backDescription, onBack, variant = buttonVariant)
         }
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             AtomicText(
@@ -49,7 +59,7 @@ internal fun BalancedPopupHeader(
             Modifier.size(AtomicSize.touchTarget).testTag("${testTagPrefix}_trailing"),
             contentAlignment = Alignment.Center,
         ) {
-            AtomicIconButton(AtomicIcons.Close, closeDescription, onClose)
+            AtomicIconButton(AtomicIcons.Close, closeDescription, onClose, variant = buttonVariant)
         }
     }
 }
