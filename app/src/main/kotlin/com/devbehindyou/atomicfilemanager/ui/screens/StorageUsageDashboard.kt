@@ -3,10 +3,13 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,13 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicProgressBar
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
@@ -33,7 +37,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicFil
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsagePhase
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageRepository
 import com.devbehindyou.atomicfilemanager.data.volume.StorageUsageUpdate
@@ -60,13 +63,19 @@ internal fun StorageUsageDashboard(
     onRunningChange: (Boolean) -> Unit = {},
 ) {
     val controls = rememberStorageUsageAnalysis(volumes, repository, finished, allowScan, onRunningChange)
-    StorageUsagePanel(controls.update, onRefresh = controls.start, allowRefresh = controls.enabled)
+    StorageUsagePanel(
+        controls.update,
+        onRefresh = controls.start,
+        allowRefresh = controls.enabled,
+        onCancel = controls.cancel,
+    )
 }
 
 internal data class StorageUsageControls(
     val update: StorageUsageUpdate,
     val enabled: Boolean,
     val start: () -> Unit,
+    val cancel: (() -> Unit)?,
 )
 
 /** Hoisted above lazy items so scrolling does not dispose the requested analysis or its result. */
@@ -87,6 +96,7 @@ internal fun rememberStorageUsageAnalysis(
         mutableStateOf(repository.lastResult(volumes) ?: StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
     }
     var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
+    var cancelling by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
     LaunchedEffect(repository, scopeKey, analysisKey) {
         // An earlier process's evidence is read on IO; it only fills an entry nothing has replaced yet.
         val restored = repository.restore(volumes)
@@ -116,19 +126,36 @@ internal fun rememberStorageUsageAnalysis(
             }
         } finally {
             repository.invalidate()
-            if (update.phase == StorageUsagePhase.SCANNING) update = update.copy(phase = StorageUsagePhase.CANCELLED)
+            if (update.phase == StorageUsagePhase.SCANNING) {
+                update = update.copy(phase = StorageUsagePhase.CANCELLED, current = null)
+            }
+            cancelling = false
             notifyRunning.value(false)
         }
     }
-    return StorageUsageControls(update, enabled = allowScan && !requested, start = {
-        if (allowScan && !requested && onRequest()) {
-            val previous = update.current?.takeIf { it.complete } ?: update.lastGood
-            val observed = update.current ?: update.previousObserved
-            update = StorageUsageUpdate(lastGood = previous, previousObserved = observed)
-            requested = true
-            notifyRunning.value(true)
-        }
-    })
+    val enabled = allowScan && !requested && !cancelling
+    return StorageUsageControls(
+        update = update,
+        enabled = enabled,
+        start = {
+            if (allowScan && !requested && !cancelling && onRequest()) {
+                val previous = update.current?.takeIf { it.complete } ?: update.lastGood
+                val observed = update.current ?: update.previousObserved
+                update = StorageUsageUpdate(lastGood = previous, previousObserved = observed)
+                requested = true
+                notifyRunning.value(true)
+            }
+        },
+        cancel =
+            if (requested && !cancelling && update.phase == StorageUsagePhase.SCANNING) {
+                {
+                    cancelling = true
+                    requested = false
+                }
+            } else {
+                null
+            },
+    )
 }
 
 @Composable
@@ -136,21 +163,25 @@ internal fun StorageUsagePanel(
     update: StorageUsageUpdate,
     onRefresh: () -> Unit,
     allowRefresh: Boolean = true,
+    onCancel: (() -> Unit)? = null,
 ) {
     val current = update.current
     val previous =
         update.lastGood.takeIf { update.phase != StorageUsagePhase.COMPLETE }
             ?: update.previousObserved.takeIf {
                 update.phase == StorageUsagePhase.SCANNING || update.phase == StorageUsagePhase.FAILED ||
+                    update.phase == StorageUsagePhase.CANCELLED ||
                     (current == null && update.phase == StorageUsagePhase.IDLE)
             }
     val files = previous ?: current
     val capacity = current?.capacity ?: previous?.capacity
-    Column(
-        Modifier.fillMaxWidth().testTag("storage_usage_dashboard"),
-        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
-    ) {
-        if (capacity == null && update.phase != StorageUsagePhase.IDLE) {
+    AnalysisCard(Modifier.testTag("storage_usage_dashboard")) {
+        AnalysisHeading("Readable shared files")
+        AtomicText(
+            "Includes accessible files, including hidden files. Percentages use their combined size.",
+            AtomicTextRole.BodySecondary,
+        )
+        if (capacity == null && update.phase !in setOf(StorageUsagePhase.IDLE, StorageUsagePhase.CANCELLED)) {
             AtomicText(
                 if (update.phase == StorageUsagePhase.FAILED) {
                     "Mounted storage capacity could not be read."
@@ -162,8 +193,15 @@ internal fun StorageUsagePanel(
         } else if (capacity != null) {
             StorageCapacitySummary(capacity)
         }
-        AtomicSectionLabel("Readable shared files")
+        if (update.phase == StorageUsagePhase.SCANNING) {
+            AtomicLoading("Reading accessible folders…")
+        }
         AtomicText(usageStatus(update), AtomicTextRole.BodySecondary, Modifier.testTag("storage_usage_status"))
+        if (onCancel != null) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                AtomicButton("Cancel scan", onClick = onCancel, modifier = Modifier.testTag("cancel_storage_usage"))
+            }
+        }
         if (update.persistenceFailed) {
             AtomicText("Scan history could not be saved for next time.", AtomicTextRole.BodySecondary)
         }
@@ -181,14 +219,10 @@ internal fun StorageUsagePanel(
                 AtomicTextRole.MonoMeta,
             )
         }
-        AtomicText(
-            "Includes accessible files, including hidden files. Percentages use their combined size.",
-            AtomicTextRole.BodySecondary,
-        )
         if (files != null) {
             AtomicText(
                 "${FileUtils.formatBytes(files.readableBytes)} · ${files.scannedFiles} files found",
-                AtomicTextRole.Name,
+                AtomicTextRole.NameLarge,
                 Modifier.testTag("storage_readable_total"),
             )
             StorageUsageCategory.entries.forEach { category -> UsageCategoryRow(category, files) }
@@ -205,18 +239,20 @@ internal fun StorageUsagePanel(
                 Modifier.testTag("storage_unattributed_estimate"),
             )
         }
-        AtomicButton(
-            when (update.phase) {
-                StorageUsagePhase.SCANNING -> "Scanning files…"
-                StorageUsagePhase.IDLE -> "Analyze file types"
-                else -> "Refresh file types"
-            },
-            onClick = onRefresh,
-            enabled = allowRefresh && update.phase != StorageUsagePhase.SCANNING,
-            variant = AtomicButtonVariant.Ghost,
-            leadingIcon = AtomicIcons.Refresh,
-            modifier = Modifier.fillMaxWidth().testTag("refresh_storage_usage"),
-        )
+        if (onCancel == null) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                AtomicButton(
+                    when (update.phase) {
+                        StorageUsagePhase.SCANNING -> "Scanning files…"
+                        StorageUsagePhase.IDLE, StorageUsagePhase.CANCELLED -> "Analyze file types"
+                        else -> "Refresh file types"
+                    },
+                    onClick = onRefresh,
+                    enabled = allowRefresh && update.phase != StorageUsagePhase.SCANNING,
+                    modifier = Modifier.testTag("refresh_storage_usage"),
+                )
+            }
+        }
     }
 }
 
@@ -224,8 +260,8 @@ internal fun StorageUsagePanel(
 internal fun StorageCapacitySummary(capacity: StorageCapacity) {
     val colors = Atomic.colors
     Column(
-        Modifier.fillMaxWidth().background(colors.surfaceCard, AtomicShape.md)
-            .border(AtomicBorder.structure, colors.borderStrong, AtomicShape.md).padding(AtomicSpacing.s16)
+        Modifier.fillMaxWidth().background(colors.surfaceInset, AtomicShape.sm)
+            .border(AtomicBorder.hair, colors.borderHair, AtomicShape.sm).padding(AtomicSpacing.s16)
             .testTag("storage_capacity_summary"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
@@ -291,21 +327,23 @@ private fun UsageCategoryRow(
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
     ) {
         Row(
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
         ) {
-            AtomicIconTile(icon)
-            Column(Modifier.weight(1f)) {
-                AtomicText(
-                    category.label,
-                    AtomicTextRole.Name,
-                    color = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark)),
-                )
-                AtomicText(
-                    "${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)}",
-                    AtomicTextRole.MonoMeta,
-                )
-            }
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = Color(AtomicFileTypeColors.icon(type, Atomic.colors.isDark)),
+            )
+            AtomicText(category.label, AtomicTextRole.Name, Modifier.weight(1f))
+            AtomicText(
+                "${FileUtils.formatBytes(usage.bytes)} · ${usage.files} files · ${percent(fraction)}",
+                AtomicTextRole.MonoMeta,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.End,
+            )
         }
         AtomicProgressBar(fraction, "${category.label}, ${percent(fraction)} of observed shared-file bytes")
     }

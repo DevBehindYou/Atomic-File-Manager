@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,8 +31,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -50,7 +53,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicStatTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarningBox
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
@@ -177,6 +179,7 @@ internal fun StorageIntelligenceContent(
     var fileTypesRunning by remember(rootId) { mutableStateOf(false) }
     var scanJob by remember(rootId) { mutableStateOf<Job?>(null) }
     var scanError by remember(rootId) { mutableStateOf(false) }
+    var scanCancelled by remember(rootId) { mutableStateOf(false) }
     var scannedFilesCount by remember(rootId) { mutableIntStateOf(0) }
     var currentCategory by rememberSaveable { mutableStateOf(StorageAnalysisCategory.LARGE_FILES) }
     var analysisResult by remember(rootId) { mutableStateOf(StorageAnalysisResult()) }
@@ -198,6 +201,7 @@ internal fun StorageIntelligenceContent(
         if (isScanning || fileTypesRunning) return
         isScanning = true
         scanError = false
+        scanCancelled = false
         scannedFilesCount = 0
         scanJob =
             coroutineScope.launch {
@@ -247,6 +251,16 @@ internal fun StorageIntelligenceContent(
     }
     val selectedNodes = StorageCleanupSelection.selectedNodes(analysisResult, currentCategory, selected)
 
+    val width = LocalConfiguration.current.screenWidthDp
+    val horizontalMargin =
+        when {
+            width <= 380 -> AtomicSpacing.s16
+            width < 760 -> AtomicSpacing.screenMargin
+            width < 1120 -> AtomicSpacing.s24
+            width < 1400 -> 40.dp
+            else -> AtomicSpacing.s56
+        }
+
     Column(
         modifier
             .fillMaxSize()
@@ -270,45 +284,68 @@ internal fun StorageIntelligenceContent(
         )
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(AtomicSpacing.s16),
-            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+            contentPadding = PaddingValues(horizontal = horizontalMargin, vertical = AtomicSpacing.s16),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16),
         ) {
             item(key = "file-types") {
-                StorageUsagePanel(fileTypes.update, onRefresh = fileTypes.start, allowRefresh = fileTypes.enabled)
+                StorageUsagePanel(
+                    fileTypes.update,
+                    onRefresh = fileTypes.start,
+                    allowRefresh = fileTypes.enabled,
+                    onCancel = fileTypes.cancel,
+                )
             }
-            item { AtomicSectionLabel("Cleanup analysis") }
-            item {
-                if (isScanning) {
-                    AtomicLoading("Scanning · $scannedFilesCount files")
-                } else if (scannedAt != null) {
-                    AtomicStatTile(
-                        value = FileUtils.formatBytes(analysisResult.totalPotentialSavingsBytes),
-                        caption =
-                            "You could free · ${analysisResult.scannedFilesCount} files scanned" +
-                                AnalysisAge.suffix(scannedAt, System.currentTimeMillis()),
-                        featured = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
-                    ) {
-                        AtomicText(
-                            if (scanError) {
-                                "Cleanup analysis could not finish. Try again."
-                            } else {
-                                "Cleanup hasn't been analyzed. Start a scan when you need suggestions."
-                            },
-                            AtomicTextRole.BodySecondary,
-                            Modifier.testTag("cleanup_unscanned"),
-                        )
-                        AtomicButton(
-                            "Analyze storage",
-                            onClick = ::startScan,
-                            enabled = !fileTypesRunning,
-                            modifier = Modifier.fillMaxWidth().testTag("start_cleanup_analysis"),
-                        )
+            item(key = "cleanup-analysis") {
+                Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
+                    AnalysisHeading("Cleanup analysis")
+                    AnalysisCard {
+                        when {
+                            isScanning -> {
+                                AtomicLoading("Scanning · $scannedFilesCount files")
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    AtomicButton(
+                                        "Cancel cleanup scan",
+                                        onClick = {
+                                            scanCancelled = true
+                                            scanJob?.cancel()
+                                        },
+                                        variant = AtomicButtonVariant.Ghost,
+                                        modifier = Modifier.testTag("cancel_cleanup_analysis"),
+                                    )
+                                }
+                            }
+                            scannedAt != null -> {
+                                AnalysisHeading("Review before removing")
+                                AtomicStatTile(
+                                    value = FileUtils.formatBytes(analysisResult.totalPotentialSavingsBytes),
+                                    caption =
+                                        "You could free · ${analysisResult.scannedFilesCount} files scanned" +
+                                            AnalysisAge.suffix(scannedAt, System.currentTimeMillis()),
+                                    featured = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            else -> {
+                                AnalysisHeading("A little more room")
+                                AtomicText(
+                                    when {
+                                        scanError -> "Cleanup analysis could not finish. Try again."
+                                        scanCancelled -> "Cleanup scan stopped. Analyze storage again when ready."
+                                        else -> "Find large files, duplicates and empty folders when you need space."
+                                    },
+                                    AtomicTextRole.BodySecondary,
+                                    Modifier.testTag("cleanup_unscanned"),
+                                )
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    AtomicButton(
+                                        "Analyze storage",
+                                        onClick = ::startScan,
+                                        enabled = !fileTypesRunning,
+                                        modifier = Modifier.testTag("start_cleanup_analysis"),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -320,7 +357,7 @@ internal fun StorageIntelligenceContent(
                     )
                 }
             }
-            if (scanError && scannedAt != null && !isScanning) {
+            if ((scanError || scanCancelled) && scannedAt != null && !isScanning) {
                 item {
                     AtomicWarningBox("Analysis stopped", "Previous cleanup results are shown. Analyze again to update.")
                 }
@@ -361,6 +398,7 @@ internal fun StorageIntelligenceContent(
                     onOpenFile = onOpenFile,
                 )
             }
+            item(key = "analysis-coverage") { AnalysisCoverageDisclosure() }
         }
 
         if (selectedNodes.isNotEmpty()) {
