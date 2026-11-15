@@ -59,7 +59,13 @@ sealed interface AtomicRoute {
         override fun encode() = "$COMPARE$SEPARATOR$leftRaw$PAIR$rightRaw"
     }
 
+    /** A dedicated tool reached from the Storage tab. */
+    data class StorageTool(val page: StorageToolPage) : AtomicRoute {
+        override fun encode() = "$STORAGE_TOOL$SEPARATOR${page.name}"
+    }
+
     companion object {
+        private const val STORAGE_TOOL = "storage-tool"
         private const val PRIVATE = "private"
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
@@ -88,6 +94,7 @@ sealed interface AtomicRoute {
             return when (kind) {
                 CATEGORY -> Category(argument)
                 ANALYSIS -> Analysis(argument)
+                STORAGE_TOOL -> StorageToolPage.entries.firstOrNull { it.name == argument }?.let(::StorageTool)
                 COMPARE -> {
                     val left = argument.substringBefore(PAIR, missingDelimiterValue = "")
                     val right = argument.substringAfter(PAIR, missingDelimiterValue = "")
@@ -98,6 +105,8 @@ sealed interface AtomicRoute {
         }
     }
 }
+
+enum class StorageToolPage { CONNECTIONS, FOLDER_COMPARE, STORAGE_ACCESS, SHIZUKU_LABS }
 
 /**
  * Immutable back stack of [AtomicRoute]s. The top entry is the visible screen; an empty stack

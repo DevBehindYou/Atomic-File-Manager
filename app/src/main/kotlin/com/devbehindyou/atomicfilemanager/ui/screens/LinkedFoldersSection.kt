@@ -29,13 +29,14 @@ import com.devbehindyou.atomicfilemanager.data.volume.LinkedFolders
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 
 /**
- * "Other apps" on the Storage screen (ALL_IN_ONE_PLAN.md 3.3): folders cloud and other apps
+ * Folders cloud and other apps
  * share through the system picker, browsed with the SAF backend. No accounts in this app.
  */
 @Composable
 fun LinkedFoldersSection(
     onBrowseFolder: (FileNodeId) -> Unit,
     onNotify: (String) -> Unit,
+    sectionTitle: String = "Linked folders",
 ) {
     val context = LocalContext.current
     val linked = remember { LinkedFolders(context.applicationContext) }
@@ -53,7 +54,7 @@ fun LinkedFoldersSection(
         }
 
     Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-        AtomicSectionLabel("Other apps")
+        AtomicSectionLabel(sectionTitle)
         AtomicText(LinkedFolderText.EXPLAINER, AtomicTextRole.BodySecondary)
         if (folders.isNotEmpty()) {
             Column {
@@ -67,7 +68,7 @@ fun LinkedFoldersSection(
             }
         }
         AtomicButton(
-            "Add a folder from another app",
+            "Link a folder",
             onClick = { pick.launch(null) },
             variant = AtomicButtonVariant.Ghost,
             leadingIcon = AtomicIcons.Add,

@@ -41,7 +41,7 @@ class SettingsScreenComposeTest {
     private var cacheClears = 0
     private val messages = mutableListOf<String>()
 
-    private fun show() {
+    private fun show(destinations: SettingsDestinations = SettingsDestinations()) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 SettingsScreen(
@@ -50,9 +50,47 @@ class SettingsScreenComposeTest {
                     onRequestStorageAccess = {},
                     onClearScanCache = { cacheClears++ },
                     onNotify = { messages += it },
+                    destinations = destinations,
                 )
             }
         }
+    }
+
+    @Test
+    fun groupedRootKeepsPreferenceActionsInTheirDestinations() {
+        show()
+        listOf("Make it yours", "Access & privacy", "About").forEach { heading ->
+            compose.onNodeWithContentDescription(heading).assertExists()
+        }
+        listOf(
+            "Appearance",
+            "File browsing",
+            "Opening files",
+            "In-app plugins",
+            "Storage permissions",
+            "Private files",
+            "Hidden files",
+            "Transfer bubbles",
+            "About Atomic",
+            "Cloud Connect",
+        ).forEach { destination ->
+            compose.onNodeWithContentDescription(destination).performScrollTo().assertIsDisplayed()
+        }
+        compose.onNodeWithContentDescription("Dark").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Show hidden files").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Execute").assertDoesNotExist()
+    }
+
+    @Test
+    fun privateSettingsOnlyOpenTheShellDestinationOnExplicitAction() {
+        var privateOpens = 0
+        show(SettingsDestinations(onOpenPrivateFiles = { privateOpens++ }))
+        compose.onNodeWithContentDescription("Private files").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Lock private files").assertExists()
+        assertEquals(0, privateOpens)
+        compose.onNodeWithContentDescription("Open Private files").performScrollTo().performClick()
+        assertEquals(1, privateOpens)
+        compose.onNodeWithTag("settings_preferences").assertDoesNotExist()
     }
 
     @Test
@@ -91,13 +129,15 @@ class SettingsScreenComposeTest {
     @Test
     fun themeChipSetsTheThemeMode() {
         show()
+        compose.onNodeWithContentDescription("Appearance").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Dark").performClick()
         assertEquals(ThemeMode.DARK, repository.settings.value.themeMode)
     }
 
     @Test
-    fun hiddenFilesCardTogglesTheSetting() {
+    fun hiddenFilesPreferencesToggleTheSetting() {
         show()
+        compose.onNodeWithContentDescription("Hidden files").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Show hidden files").performScrollTo().performClick()
         assertFalse(repository.settings.value.showHiddenFiles)
     }
@@ -105,6 +145,7 @@ class SettingsScreenComposeTest {
     @Test
     fun dangerZoneClearsTheScanCacheAndSaysSo() {
         show()
+        compose.onNodeWithContentDescription("File browsing").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Execute").performScrollTo().performClick()
         assertEquals(1, cacheClears)
         assertEquals(listOf("File scan cache cleared."), messages)
