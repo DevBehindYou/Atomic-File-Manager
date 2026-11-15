@@ -63,6 +63,8 @@ internal fun BrowseOptionsButton(
     onShowHiddenChange: (Boolean) -> Unit,
     onNewFolder: () -> Unit,
     onShowHiddenFilesScreen: () -> Unit,
+    dualPaneEnabled: Boolean? = null,
+    onDualPaneChange: (Boolean) -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
     var page by remember { mutableStateOf(BrowseOptionsPage.MAIN) }
@@ -111,22 +113,7 @@ internal fun BrowseOptionsButton(
                                 filter.label,
                                 AtomicIcons.SelectSameType,
                             ) { page = BrowseOptionsPage.FILTER }
-                            Row(
-                                Modifier.fillMaxWidth().heightIn(min = AtomicSize.touchTarget)
-                                    .toggleable(showHidden, role = Role.Switch, onValueChange = onShowHiddenChange)
-                                    .padding(AtomicSpacing.s12),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
-                            ) {
-                                Icon(
-                                    AtomicIcons.Visible,
-                                    null,
-                                    tint = Atomic.colors.accentText,
-                                    modifier = Modifier.size(AtomicSize.iconSmall),
-                                )
-                                AtomicText("Show hidden files", AtomicTextRole.Body, Modifier.weight(1f))
-                                AtomicText(if (showHidden) "On" else "Off", AtomicTextRole.BodySecondary)
-                            }
+                            BrowseOptionToggle("Show hidden files", AtomicIcons.Visible, showHidden, onShowHiddenChange)
                             BrowseOptionRow("New folder", icon = AtomicIcons.NewFolder) {
                                 expanded = false
                                 onNewFolder()
@@ -134,6 +121,12 @@ internal fun BrowseOptionsButton(
                             BrowseOptionRow("Manage hidden files", icon = AtomicIcons.Hidden) {
                                 expanded = false
                                 onShowHiddenFilesScreen()
+                            }
+                            if (dualPaneEnabled != null) {
+                                BrowseOptionToggle("Dual pane", AtomicIcons.DualPane, dualPaneEnabled) { enabled ->
+                                    expanded = false
+                                    onDualPaneChange(enabled)
+                                }
                             }
                         }
                         BrowseOptionsPage.VIEW -> {
@@ -209,6 +202,26 @@ private fun BrowseOptionRow(
                 modifier = Modifier.size(16.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun BrowseOptionToggle(
+    title: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = AtomicSize.touchTarget)
+            .toggleable(enabled, role = Role.Switch, onValueChange = onChange)
+            .padding(AtomicSpacing.s12),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+    ) {
+        Icon(icon, null, tint = Atomic.colors.accentText, modifier = Modifier.size(AtomicSize.iconSmall))
+        AtomicText(title, AtomicTextRole.Body, Modifier.weight(1f))
+        AtomicText(if (enabled) "On" else "Off", AtomicTextRole.BodySecondary)
     }
 }
 

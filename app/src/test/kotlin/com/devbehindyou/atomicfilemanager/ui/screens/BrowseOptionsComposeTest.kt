@@ -2,9 +2,11 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
@@ -48,6 +50,7 @@ class BrowseOptionsComposeTest {
         open()
         assertBalancedPopupHeading()
         compose.onNodeWithContentDescription("Back to file options").assertDoesNotExist()
+        compose.onNodeWithText("Dual pane").assertDoesNotExist()
         compose.onNodeWithText("View").performClick()
         compose.onNodeWithContentDescription("Back to file options").assertExists()
         assertBalancedPopupHeading()
@@ -163,7 +166,25 @@ class BrowseOptionsComposeTest {
         }
     }
 
-    private fun show(fontScale: Float = 1f) {
+    @Test
+    fun dualPaneSwitchReflectsSavedStateAndDismissesWhenChanged() {
+        val enabled = mutableStateOf<Boolean?>(false)
+        show(dualPane = enabled)
+        open()
+        compose.onNodeWithText("Dual pane").performScrollTo().assertIsOff().performClick()
+        compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(true, enabled.value) }
+
+        open()
+        compose.onNodeWithText("Dual pane").performScrollTo().assertIsOn().performClick()
+        compose.onNodeWithTag("browse_options_popup").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(false, enabled.value) }
+    }
+
+    private fun show(
+        fontScale: Float = 1f,
+        dualPane: MutableState<Boolean?>? = null,
+    ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 val density = LocalDensity.current
@@ -179,6 +200,8 @@ class BrowseOptionsComposeTest {
                         { hidden.value = it },
                         { foldersCreated++ },
                         { hiddenOpened++ },
+                        dualPaneEnabled = dualPane?.value,
+                        onDualPaneChange = { dualPane?.value = it },
                     )
                 }
             }
