@@ -2,15 +2,19 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -116,39 +120,80 @@ internal fun BrowseBottomBar(
                 ) + if (uiState.selectedIds.size == 1) singleFileActions else emptyList(),
         )
     } else if (clip != null) {
-        Column(Modifier.fillMaxWidth().background(Atomic.colors.background)) {
-            AtomicDivider(strong = true)
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth().padding(
-                        horizontal = AtomicSpacing.s16,
-                        vertical = AtomicSpacing.s10,
-                    ),
-                horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AtomicText(
-                    "${clip.items.size} ready to " + if (clip.operation == ClipboardOp.COPY) "copy" else "move",
-                    AtomicTextRole.MonoLabel,
-                    modifier = Modifier.weight(1f),
-                )
-                AtomicButton("Cancel", onClick = onClearClipboard, variant = AtomicButtonVariant.Text)
-                if (clipFolder != null && onCompareFolders != null) {
-                    AtomicButton(
-                        "Compare",
-                        onClick = { onCompareFolders(clipFolder.id, uiState.currentFolderId) },
-                        variant = AtomicButtonVariant.Text,
-                        modifier = Modifier.testTag("compare_with_clip_button"),
-                    )
+        val comparison =
+            if (clipFolder != null && onCompareFolders != null) {
+                { onCompareFolders(clipFolder.id, uiState.currentFolderId) }
+            } else {
+                null
+            }
+        ClipboardActionBar(
+            status = "${clip.items.size} ready to " + if (clip.operation == ClipboardOp.COPY) "copy" else "move",
+            onCancel = onClearClipboard,
+            onCompare = comparison,
+            onPaste = onPaste,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ClipboardActionBar(
+    status: String,
+    onCancel: () -> Unit,
+    onCompare: (() -> Unit)?,
+    onPaste: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().background(Atomic.colors.background)) {
+        AtomicDivider(strong = true)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val content = Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s10)
+            val inlineWidth = 400.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+            if (maxWidth < inlineWidth) {
+                Column(content, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
+                    // The action buttons must never squeeze the status text to a few pixels and grow the bar.
+                    AtomicText(status, AtomicTextRole.MonoLabel, maxLines = 2)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+                    ) {
+                        ClipboardButtons(onCancel, onCompare, onPaste)
+                    }
                 }
-                AtomicButton(
-                    "Paste here",
-                    onClick = onPaste,
-                    variant = AtomicButtonVariant.Solid,
-                    leadingIcon = AtomicIcons.Paste,
-                    modifier = Modifier.testTag("paste_button"),
-                )
+            } else {
+                Row(
+                    content,
+                    horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AtomicText(status, AtomicTextRole.MonoLabel, modifier = Modifier.weight(1f), maxLines = 2)
+                    ClipboardButtons(onCancel, onCompare, onPaste)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ClipboardButtons(
+    onCancel: () -> Unit,
+    onCompare: (() -> Unit)?,
+    onPaste: () -> Unit,
+) {
+    AtomicButton("Cancel", onClick = onCancel, variant = AtomicButtonVariant.Text)
+    if (onCompare != null) {
+        AtomicButton(
+            "Compare",
+            onClick = onCompare,
+            variant = AtomicButtonVariant.Text,
+            modifier = Modifier.testTag("compare_with_clip_button"),
+        )
+    }
+    AtomicButton(
+        "Paste here",
+        onClick = onPaste,
+        variant = AtomicButtonVariant.Solid,
+        leadingIcon = AtomicIcons.Paste,
+        modifier = Modifier.testTag("paste_button"),
+    )
 }
