@@ -47,8 +47,10 @@ import com.devbehindyou.atomicfilemanager.domain.model.StorageUsageCategory
 import com.devbehindyou.atomicfilemanager.domain.model.StorageUsageSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -96,7 +98,7 @@ internal fun rememberStorageUsageAnalysis(
         mutableStateOf(repository.lastResult(volumes) ?: StorageUsageUpdate(phase = StorageUsagePhase.IDLE))
     }
     var requested by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
-    var cancelling by remember(repository, scopeKey, analysisKey) { mutableStateOf(false) }
+    var activeScan by remember(repository, scopeKey, analysisKey) { mutableStateOf<Job?>(null) }
     LaunchedEffect(repository, scopeKey, analysisKey) {
         // An earlier process's evidence is read on IO; it only fills an entry nothing has replaced yet.
         val restored = repository.restore(volumes)
@@ -111,6 +113,7 @@ internal fun rememberStorageUsageAnalysis(
         if (!requested) return@LaunchedEffect
         try {
             owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                activeScan = currentCoroutineContext()[Job]
                 try {
                     coroutineScope {
                         val invalidation = launch { finished.collect { repository.invalidate() } }
@@ -121,6 +124,7 @@ internal fun rememberStorageUsageAnalysis(
                         }
                     }
                 } finally {
+                    activeScan = null
                     requested = false
                 }
             }
@@ -129,16 +133,15 @@ internal fun rememberStorageUsageAnalysis(
             if (update.phase == StorageUsagePhase.SCANNING) {
                 update = update.copy(phase = StorageUsagePhase.CANCELLED, current = null)
             }
-            cancelling = false
             notifyRunning.value(false)
         }
     }
-    val enabled = allowScan && !requested && !cancelling
+    val enabled = allowScan && !requested
     return StorageUsageControls(
         update = update,
         enabled = enabled,
         start = {
-            if (allowScan && !requested && !cancelling && onRequest()) {
+            if (allowScan && !requested && onRequest()) {
                 val previous = update.current?.takeIf { it.complete } ?: update.lastGood
                 val observed = update.current ?: update.previousObserved
                 update = StorageUsageUpdate(lastGood = previous, previousObserved = observed)
@@ -146,15 +149,7 @@ internal fun rememberStorageUsageAnalysis(
                 notifyRunning.value(true)
             }
         },
-        cancel =
-            if (requested && !cancelling && update.phase == StorageUsagePhase.SCANNING) {
-                {
-                    cancelling = true
-                    requested = false
-                }
-            } else {
-                null
-            },
+        cancel = activeScan?.takeIf { update.phase == StorageUsagePhase.SCANNING }?.let { job -> { job.cancel() } },
     )
 }
 
