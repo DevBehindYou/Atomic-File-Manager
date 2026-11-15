@@ -108,6 +108,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
+import com.devbehindyou.atomicfilemanager.ui.screens.PinnedLocationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsDestinations
@@ -593,6 +594,20 @@ fun AtomicAppContent(
             )
             return
         }
+        AtomicRoute.PinnedLocations -> {
+            PinnedLocationsScreen(
+                onBack = ::pop,
+                onOpenFolder = { folder ->
+                    pop()
+                    openInBrowse(folder)
+                },
+                onBrowseFiles = {
+                    pop()
+                    navigateTab(NavigationTab.BROWSE)
+                },
+            )
+            return
+        }
         AtomicRoute.Apps -> {
             AppManagerScreen(onBack = ::pop, onNotify = ::notify)
             return
@@ -938,6 +953,7 @@ private fun MainScreenContent(
                 onNavigateToFolder = callbacks.onFolderSelected,
                 onRequestStorageAccess = callbacks.onRequestStorageAccess,
                 onOpenStorageDetails = callbacks.onOpenStorageDetails,
+                onManagePinnedLocations = { callbacks.onOpenRoute(AtomicRoute.PinnedLocations) },
                 privateLocked = privateLocked,
             )
         }
