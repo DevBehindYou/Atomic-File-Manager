@@ -88,7 +88,10 @@ class HomeScreenComposeTest {
         show()
         compose.onNodeWithTag("volume_item_primary").performClick()
         compose.onNodeWithContentDescription("See storage").performScrollTo().performClick()
-        assertEquals(listOf("volume:primary", "details"), events)
+        compose.onNodeWithContentDescription("Recently opened").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Pinned locations").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Explore storage").performScrollTo().performClick()
+        assertEquals(listOf("volume:primary", "details", "details"), events)
     }
 
     @Test

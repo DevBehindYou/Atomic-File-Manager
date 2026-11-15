@@ -119,6 +119,8 @@ fun HomeScreen(
             )
         }
 
+        HomeShortcuts(onOpenFolder = onNavigateToFolder, onExploreStorage = onOpenStorageDetails)
+
         val additionalVolumes = volumes.filter { it.id != primaryVolume?.id }
         if (additionalVolumes.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
@@ -126,7 +128,6 @@ fun HomeScreen(
                 additionalVolumes.forEach { volume -> VolumeCard(volume, onBrowse = { onNavigateToVolume(volume) }) }
             }
         }
-        HomeShortcuts(onOpenFolder = onNavigateToFolder)
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
             AtomicSectionLabel("Folders")
