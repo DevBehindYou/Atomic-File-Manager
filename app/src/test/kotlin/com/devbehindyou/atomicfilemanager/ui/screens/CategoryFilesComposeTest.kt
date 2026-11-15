@@ -60,20 +60,22 @@ class CategoryFilesComposeTest {
     private fun bounds(file: FileNode) =
         compose.onNodeWithTag("category_file_${file.id.raw}").getUnclippedBoundsInRoot()
 
-    private fun fixture(name: String, parent: String) =
-        FileNode(
-            id = FileNodeId.file("$parent/$name"),
-            name = name,
-            displayName = name,
-            mimeType = "text/plain",
-            size = 1024,
-            modifiedAt = 0,
-            isDirectory = false,
-            isHidden = false,
-            parentId = FileNodeId.file(parent),
-            storageType = if (parent == "/storage/emulated/0") StorageType.INTERNAL_SHARED else StorageType.SD_CARD,
-            access = AccessFlags.READ_ONLY,
-            childCount = null,
-            extras = null,
-        )
+    private fun fixture(
+        name: String,
+        parent: String,
+    ) = FileNode(
+        id = FileNodeId.file("$parent/$name"),
+        name = name,
+        displayName = name,
+        mimeType = "text/plain",
+        size = 1024,
+        modifiedAt = 0,
+        isDirectory = false,
+        isHidden = false,
+        parentId = FileNodeId.file(parent),
+        storageType = if (parent == "/storage/emulated/0") StorageType.INTERNAL_SHARED else StorageType.SD_CARD,
+        access = AccessFlags.READ_ONLY,
+        childCount = null,
+        extras = null,
+    )
 }

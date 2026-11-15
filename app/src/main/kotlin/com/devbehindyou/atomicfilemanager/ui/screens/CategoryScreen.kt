@@ -309,7 +309,10 @@ private fun CategoryMessage(
     }
 }
 
-private fun categoryFileMeta(file: FileNode, includeDate: Boolean): String {
+private fun categoryFileMeta(
+    file: FileNode,
+    includeDate: Boolean,
+): String {
     val type =
         file.name.substringAfterLast('.', "").takeIf { it.isNotBlank() }
             ?.uppercase(Locale.ROOT) ?: "File"
