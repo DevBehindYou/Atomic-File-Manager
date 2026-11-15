@@ -1,15 +1,12 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -20,13 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.text.style.TextAlign
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -37,9 +29,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicProgressBar
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
@@ -58,7 +48,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
-/** Anchored live task summary; opening or dismissing it never changes the running work. */
+/** Live task summary; opening or dismissing it never changes the running work. */
 @Composable
 fun TasksButton(
     queue: OperationQueue,
@@ -93,31 +83,21 @@ fun TasksButton(
             )
         }
         if (expanded) {
-            val windowSize = LocalWindowInfo.current.containerSize
             val active by queue.active.collectAsState()
             val waiting by queue.queued.collectAsState()
             val network by transfers.active.collectAsState()
-            val offset = with(LocalDensity.current) { (AtomicSize.touchTarget + AtomicSpacing.s8).roundToPx() }
-            Popup(
-                alignment = Alignment.TopEnd,
-                offset = IntOffset(0, offset),
-                onDismissRequest = { expanded = false },
-                properties = PopupProperties(focusable = true),
-            ) {
-                TasksPanel(
-                    active,
-                    waiting,
-                    network,
-                    onCancelOperation = { queue.cancel(it.id) },
-                    onCancelTransfer = transfers::cancel,
-                    onDismiss = { expanded = false },
-                    onOpenOperations = {
-                        expanded = false
-                        onOpenOperations()
-                    },
-                    windowSize = windowSize,
-                )
-            }
+            TasksPanel(
+                active = active,
+                waiting = waiting,
+                transfers = network,
+                onCancelOperation = { queue.cancel(it.id) },
+                onCancelTransfer = transfers::cancel,
+                onDismiss = { expanded = false },
+                onOpenOperations = {
+                    expanded = false
+                    onOpenOperations()
+                },
+            )
         }
     }
 }
@@ -131,43 +111,33 @@ internal fun TasksPanel(
     onCancelTransfer: (String) -> Unit,
     onDismiss: () -> Unit,
     onOpenOperations: () -> Unit,
-    windowSize: IntSize = LocalWindowInfo.current.containerSize,
 ) {
-    val colors = Atomic.colors
-    val density = LocalDensity.current
-    val width =
-        with(density) {
-            minOf(
-                AtomicSize.popupMaxWidth,
-                (windowSize.width.toDp() - AtomicSpacing.s32).coerceAtLeast(AtomicSpacing.s2),
-            )
-        }
-    val maxHeight = with(density) { (windowSize.height.toDp() * 0.7f).coerceAtMost(AtomicSize.popupMaxHeight) }
-    val count = (if (active == null) 0 else 1) + waiting.size + transfers.size
-    Column(
-        Modifier.testTag("tasks_popup").width(width).heightIn(max = maxHeight)
-            .background(colors.surfaceCard, AtomicShape.md)
-            .border(AtomicBorder.hair, colors.borderHair, AtomicShape.md)
-            .padding(AtomicSpacing.s12),
-        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-    ) {
+    val isIdle = active == null && waiting.isEmpty() && transfers.isEmpty()
+    AtomicTopDialog(onDismiss = onDismiss, testTag = "tasks_popup") {
         BalancedPopupHeader(
             title = "Tasks",
             closeDescription = "Close tasks",
             onClose = onDismiss,
             testTagPrefix = "tasks",
-            subtitle = if (count == 0) "All clear" else "${count - waiting.size} running · ${waiting.size} queued",
+            buttonVariant = AtomicIconButtonVariant.Inset,
+            controlsGap = AtomicSpacing.s8,
         )
-        AtomicDivider()
+        AtomicDivider(modifier = Modifier.padding(top = AtomicSpacing.s12, bottom = AtomicSpacing.screenMargin))
         LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-            if (count == 0) {
+            if (isIdle) {
                 item {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
-                        modifier = Modifier.padding(vertical = AtomicSpacing.s12),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = AtomicSpacing.s24),
                     ) {
-                        AtomicText("No tasks running", AtomicTextRole.Name)
-                        AtomicText("Copies, moves, uploads and downloads appear here.", AtomicTextRole.BodySecondary)
+                        AtomicText("No tasks running", AtomicTextRole.DisplayCard, textAlign = TextAlign.Center)
+                        AtomicText(
+                            "Copy, move, extraction and network transfers appear here.",
+                            AtomicTextRole.BodySecondary,
+                            textAlign = TextAlign.Center,
+                        )
+                        AtomicButton("Task history", onOpenOperations, variant = AtomicButtonVariant.Ghost)
                     }
                 }
             }
@@ -185,6 +155,7 @@ internal fun TasksPanel(
                         state =
                             when (active.status) {
                                 is OperationStatus.AwaitingInput -> "Needs your decision"
+                                is OperationStatus.Running -> "Running"
                                 is OperationStatus.Paused -> "Paused"
                                 OperationStatus.Recovering -> "Recovering"
                                 else -> "Preparing"
@@ -219,13 +190,13 @@ internal fun TasksPanel(
                 )
             }
         }
-        AtomicDivider()
-        AtomicButton(
-            "All operations →",
-            onOpenOperations,
-            variant = AtomicButtonVariant.Ghost,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (!isIdle) {
+            AtomicButton(
+                "All tasks",
+                onOpenOperations,
+                modifier = Modifier.padding(top = AtomicSpacing.s12),
+            )
+        }
     }
 }
 
@@ -250,7 +221,7 @@ private fun TaskRow(
         if (fraction != null) {
             AtomicProgressBar(fraction, "$title, ${(fraction * 100).toInt()} percent")
             AtomicText(TaskText.progress(progress), AtomicTextRole.MonoMeta)
-        } else if (state == "Preparing" || state == "Transferring") {
+        } else if (state in listOf("Preparing", "Running", "Transferring")) {
             AtomicLoading(state)
         } else {
             AtomicText(state, AtomicTextRole.MonoMeta)

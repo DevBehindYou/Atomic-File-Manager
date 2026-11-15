@@ -89,7 +89,7 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithContentDescription("Close tasks").performClick()
         compose.onNodeWithTag("tasks_popup").assertDoesNotExist()
         compose.onNodeWithTag("tasks_button").performClick()
-        compose.onNodeWithContentDescription("All operations →").performClick()
+        compose.onNodeWithContentDescription("Task history").performClick()
         compose.onNodeWithTag("operations_screen").assertIsDisplayed()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
