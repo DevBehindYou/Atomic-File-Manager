@@ -72,12 +72,13 @@ class StorageScreenLeanComposeTest {
             compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
             compose.onNodeWithTag("open_storage_intelligence_button").performScrollTo().performClick()
             assertEquals(root, opened)
-            val tools = listOf(
-                "Connections" to StorageToolPage.CONNECTIONS,
-                "Folder compare" to StorageToolPage.FOLDER_COMPARE,
-                "Storage access" to StorageToolPage.STORAGE_ACCESS,
-                "Shizuku Labs" to StorageToolPage.SHIZUKU_LABS,
-            )
+            val tools =
+                listOf(
+                    "Connections" to StorageToolPage.CONNECTIONS,
+                    "Folder compare" to StorageToolPage.FOLDER_COMPARE,
+                    "Storage access" to StorageToolPage.STORAGE_ACCESS,
+                    "Shizuku Labs" to StorageToolPage.SHIZUKU_LABS,
+                )
             tools.forEach { (title, _) ->
                 compose.onNodeWithText(title).performScrollTo().performClick()
             }

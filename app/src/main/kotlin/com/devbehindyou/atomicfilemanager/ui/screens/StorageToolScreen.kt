@@ -94,10 +94,14 @@ private fun StorageCompareTools(
     ) {
         AtomicText("Compare first", AtomicTextRole.DisplayCard)
         AtomicText(
-            "In Files, select two folders and choose Compare. Review the differences and choose a copy direction before syncing.",
+            "In Files, select two folders and choose Compare. Review the differences before syncing.",
             AtomicTextRole.BodySecondary,
         )
-        AtomicButton("Choose folders in Files", onClick = onOpenFolderCompare, modifier = Modifier.align(Alignment.CenterHorizontally))
+        AtomicButton(
+            "Choose folders in Files",
+            onClick = onOpenFolderCompare,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
     }
     SyncPairsSection(onCompareFolders)
 }

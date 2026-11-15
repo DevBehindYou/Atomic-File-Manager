@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -109,9 +110,11 @@ import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.SettingsDestinations
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageIntelligenceScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.StorageToolScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StoredFolderCompareScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashText
@@ -594,6 +597,50 @@ fun AtomicAppContent(
             AppManagerScreen(onBack = ::pop, onNotify = ::notify)
             return
         }
+        is AtomicRoute.StorageTool -> {
+            val openFiles = {
+                pop()
+                navigateTab(NavigationTab.BROWSE)
+            }
+            Scaffold(
+                containerColor = Atomic.colors.background,
+                snackbarHost = { AtomicSnackbarHost(snackbarHostState) },
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            ) { padding ->
+                StorageToolScreen(
+                    page = route.page,
+                    onBack = ::pop,
+                    volumes = volumes,
+                    hasStorageAccess = hasStorageAccess,
+                    accessStatus = storageAccessStatus(storageReadiness),
+                    onRequestStorageAccess = {
+                        if (storageReadiness is StorageReadinessState.Ready) {
+                            requestStorageAccess()
+                        } else {
+                            refreshVolumes()
+                        }
+                    },
+                    onBrowseVolume = { volume ->
+                        val canRequest = storageReadiness is StorageReadinessState.Ready && !hasStorageAccess
+                        if (volume.isMounted && (volume.rootNodeId != null || canRequest)) {
+                            pop()
+                        }
+                        openVolume(volume)
+                    },
+                    onBrowseFolder = { folder ->
+                        pop()
+                        openInBrowse(folder)
+                    },
+                    onCompareFolders = { left, right -> push(AtomicRoute.FolderCompare(left.raw, right.raw)) },
+                    onOpenFolderCompare = openFiles,
+                    onOpenFiles = openFiles,
+                    onOpenTool = { push(AtomicRoute.StorageTool(it)) },
+                    onNotify = ::notify,
+                    modifier = Modifier.padding(padding),
+                )
+            }
+            return
+        }
         is AtomicRoute.FolderCompare -> {
             val comparer = remember { FolderComparer { app.container.storageBackendSelector.forNode(it) } }
             StoredFolderCompareScreen(
@@ -746,6 +793,7 @@ fun AtomicAppContent(
                     onClearScanCache = phoneIndex::invalidate,
                     onNotify = ::notify,
                     onOpenStorageDetails = { navigateTab(NavigationTab.STORAGE) },
+                    onOpenFiles = { navigateTab(NavigationTab.BROWSE) },
                     onOpenRoute = ::push,
                     onCompareFolders = { left, right -> push(AtomicRoute.FolderCompare(left.raw, right.raw)) },
                 ),
@@ -850,6 +898,7 @@ private class ShellCallbacks(
     val onClearScanCache: () -> Unit,
     val onNotify: (String) -> Unit,
     val onOpenStorageDetails: () -> Unit,
+    val onOpenFiles: () -> Unit,
     /** Opens a pushed screen: Operations, Trash, Apps, Wi-Fi share. */
     val onOpenRoute: (AtomicRoute) -> Unit,
     val onCompareFolders: (FileNodeId, FileNodeId) -> Unit,
@@ -935,26 +984,20 @@ private fun MainScreenContent(
             StorageScreen(
                 volumes = volumes,
                 onBrowseVolume = callbacks.onBrowseVolume,
-                onBrowseFolder = callbacks.onFolderSelected,
-                onCompareFolders = callbacks.onCompareFolders,
                 onOpenStorageIntelligence = callbacks.onOpenStorageIntelligence,
-                onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
-                onOpenTrash = { callbacks.onOpenRoute(AtomicRoute.Trash) },
-                onOpenApps = { callbacks.onOpenRoute(AtomicRoute.Apps) },
-                onOpenWifiShare = { callbacks.onOpenRoute(AtomicRoute.WifiShare) },
-                onNotify = callbacks.onNotify,
+                onOpenTool = { callbacks.onOpenRoute(AtomicRoute.StorageTool(it)) },
             )
         }
         NavigationTab.SETTINGS -> {
             SettingsScreen(
                 settingsRepository = settingsRepository,
                 hasStorageAccess = hasStorageAccess,
-                storageAccessStatus =
-                    when (storageReadiness) {
-                        is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
-                        is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
-                        is StorageReadinessState.Ready -> null
-                    },
+                storageAccessStatus = storageAccessStatus(storageReadiness),
+                destinations =
+                    SettingsDestinations(
+                        onOpenPrivateFiles = callbacks.onOpenPrivateFiles,
+                        onOpenFiles = callbacks.onOpenFiles,
+                    ),
                 onRequestStorageAccess =
                     if (storageReadiness is StorageReadinessState.Ready) {
                         callbacks.onRequestStorageAccess
@@ -967,6 +1010,14 @@ private fun MainScreenContent(
         }
     }
 }
+
+@Composable
+private fun storageAccessStatus(state: StorageReadinessState): String? =
+    when (state) {
+        is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
+        is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
+        is StorageReadinessState.Ready -> null
+    }
 
 /** Mounted volumes, or a single internal entry built from the app's own folder when none are listed. */
 private fun loadVolumes(

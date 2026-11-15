@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -70,10 +70,30 @@ internal fun SettingsRootContent(
             SettingsLinkGroup(
                 "Make it yours",
                 listOf(
-                    SettingsLink("Appearance", themeDetail(settings.themeMode), AtomicIcons.Sun, SettingsSheet.APPEARANCE),
-                    SettingsLink("File browsing", "List, sorting and hidden files", AtomicIcons.Files, SettingsSheet.BROWSING),
-                    SettingsLink("Opening files", "Built-in previews and external apps", AtomicIcons.Document, SettingsSheet.OPENING),
-                    SettingsLink("In-app plugins", "Eight bundled tools · v0.2", AtomicIcons.Plug, SettingsSheet.PLUGINS),
+                    SettingsLink(
+                        "Appearance",
+                        themeDetail(settings.themeMode),
+                        AtomicIcons.Sun,
+                        SettingsSheet.APPEARANCE,
+                    ),
+                    SettingsLink(
+                        "File browsing",
+                        "List, sorting and hidden files",
+                        AtomicIcons.Files,
+                        SettingsSheet.BROWSING,
+                    ),
+                    SettingsLink(
+                        "Opening files",
+                        "Built-in previews and external apps",
+                        AtomicIcons.Document,
+                        SettingsSheet.OPENING,
+                    ),
+                    SettingsLink(
+                        "In-app plugins",
+                        "Eight bundled tools · v0.2",
+                        AtomicIcons.Plug,
+                        SettingsSheet.PLUGINS,
+                    ),
                 ),
                 groupPadding,
                 onOpen,
@@ -81,10 +101,30 @@ internal fun SettingsRootContent(
             SettingsLinkGroup(
                 "Access & privacy",
                 listOf(
-                    SettingsLink("Storage permissions", "Shared files and linked folders", AtomicIcons.Security, SettingsSheet.ACCESS),
-                    SettingsLink("Private files", "Locked behind authentication", AtomicIcons.Lock, SettingsSheet.PRIVACY),
-                    SettingsLink("Hidden files", "Visibility is separate from privacy", AtomicIcons.Visible, SettingsSheet.HIDDEN),
-                    SettingsLink("Transfer bubbles", "Optional · up to 7 bubbles", AtomicIcons.Tasks, SettingsSheet.BUBBLES),
+                    SettingsLink(
+                        "Storage permissions",
+                        "Shared files and linked folders",
+                        AtomicIcons.Security,
+                        SettingsSheet.ACCESS,
+                    ),
+                    SettingsLink(
+                        "Private files",
+                        "Locked behind authentication",
+                        AtomicIcons.Lock,
+                        SettingsSheet.PRIVACY,
+                    ),
+                    SettingsLink(
+                        "Hidden files",
+                        "Visibility is separate from privacy",
+                        AtomicIcons.Visible,
+                        SettingsSheet.HIDDEN,
+                    ),
+                    SettingsLink(
+                        "Transfer bubbles",
+                        "Optional · up to 7 bubbles",
+                        AtomicIcons.Tasks,
+                        SettingsSheet.BUBBLES,
+                    ),
                 ),
                 groupPadding,
                 onOpen,
@@ -93,7 +133,12 @@ internal fun SettingsRootContent(
                 "About",
                 listOf(
                     SettingsLink("About Atomic", "Version, licenses and help", AtomicIcons.Info, SettingsSheet.ABOUT),
-                    SettingsLink("Cloud Connect", "Planned · no live sign-in available", AtomicIcons.Cloud, SettingsSheet.CLOUD),
+                    SettingsLink(
+                        "Cloud Connect",
+                        "Planned · no live sign-in available",
+                        AtomicIcons.Cloud,
+                        SettingsSheet.CLOUD,
+                    ),
                 ),
                 groupPadding,
                 onOpen,

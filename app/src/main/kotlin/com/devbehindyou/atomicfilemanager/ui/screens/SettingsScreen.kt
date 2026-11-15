@@ -104,9 +104,10 @@ fun SettingsScreen(
     val settings by settingsRepository.settings.collectAsState()
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val context = LocalContext.current
-    val version = remember(context) {
-        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
-    }
+    val version =
+        remember(context) {
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+        }
     val hideChoices = hideModeChoices(settings.hiddenFolder)
 
     // Existing guard: changing the lock requires successful authentication, not a visual toggle alone.
@@ -117,9 +118,10 @@ fun SettingsScreen(
             activity == null -> Unit
             !available && enabled -> onNotify("Set up a screen lock, fingerprint or face unlock first.")
             !available -> settingsRepository.update { it.copy(requireAuthForHidden = false) }
-            else -> authenticate(activity, if (enabled) "Turn on the lock" else "Turn off the lock") { ok ->
-                if (ok) settingsRepository.update { it.copy(requireAuthForHidden = enabled) }
-            }
+            else ->
+                authenticate(activity, if (enabled) "Turn on the lock" else "Turn off the lock") { ok ->
+                    if (ok) settingsRepository.update { it.copy(requireAuthForHidden = enabled) }
+                }
         }
     }
 
@@ -127,152 +129,158 @@ fun SettingsScreen(
     SettingsRootContent(settings, modifier) { sheet = it }
 
     when (sheet) {
-        SettingsSheet.APPEARANCE -> SettingsPreferencesDialog("Appearance", { sheet = null }) {
-            AtomicChipRow {
-                themeChoices.forEach { (mode, label) ->
-                    AtomicChip(label, settings.themeMode == mode, {
-                        settingsRepository.update { it.copy(themeMode = mode) }
-                    })
+        SettingsSheet.APPEARANCE ->
+            SettingsPreferencesDialog("Appearance", { sheet = null }) {
+                AtomicChipRow {
+                    themeChoices.forEach { (mode, label) ->
+                        AtomicChip(label, settings.themeMode == mode, {
+                            settingsRepository.update { it.copy(themeMode = mode) }
+                        })
+                    }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val accent = Atomic.accent
+                    SettingsPreferenceToggle(
+                        "Wallpaper colours",
+                        when {
+                            !settings.dynamicColor -> "Use your wallpaper colour when it meets contrast requirements."
+                            accent.source == AccentSource.WALLPAPER_REJECTED ->
+                                "Atomic Orange is used because your wallpaper colour doesn't suit this theme."
+                            else -> "Using your wallpaper colour as the accent."
+                        },
+                        settings.dynamicColor,
+                    ) { on -> settingsRepository.update { it.copy(dynamicColor = on) } }
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val accent = Atomic.accent
+        SettingsSheet.BROWSING ->
+            SettingsPreferencesDialog("File browsing", { sheet = null }) {
+                AtomicText("View", AtomicTextRole.Name)
+                AtomicChipRow {
+                    FileViewMode.entries.forEach { mode ->
+                        AtomicChip(
+                            label = if (mode == FileViewMode.LIST) "List" else "Grid",
+                            selected = settings.fileViewMode == mode,
+                            onSelectedChange = { settingsRepository.update { it.copy(fileViewMode = mode) } },
+                        )
+                    }
+                }
                 SettingsPreferenceToggle(
-                    "Wallpaper colours",
-                    when {
-                        !settings.dynamicColor -> "Use your wallpaper colour when it meets contrast requirements."
-                        accent.source == AccentSource.WALLPAPER_REJECTED ->
-                            "Atomic Orange is used because your wallpaper colour doesn't suit this theme."
-                        else -> "Using your wallpaper colour as the accent."
+                    "Show hidden files",
+                    "Names that start with a dot appear faded.",
+                    settings.showHiddenFiles,
+                ) { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } }
+                SettingsPreferenceToggle(
+                    "Use Trash",
+                    if (settings.useTrash) {
+                        "Deleted files can be restored for ${settings.trashRetentionDays} days."
+                    } else {
+                        "Deletes are permanent. Each delete still asks first."
                     },
-                    settings.dynamicColor,
-                ) { on -> settingsRepository.update { it.copy(dynamicColor = on) } }
+                    settings.useTrash,
+                ) { on -> settingsRepository.update { it.copy(useTrash = on) } }
+                AtomicText("Keep deleted files for", AtomicTextRole.MonoMeta)
+                AtomicChipRow {
+                    TRASH_RETENTION_CHOICES.forEach { days ->
+                        AtomicChip(
+                            "$days days",
+                            settings.trashRetentionDays == days,
+                            { settingsRepository.update { it.copy(trashRetentionDays = days) } },
+                            enabled = settings.useTrash,
+                        )
+                    }
+                }
+                AtomicSettingsRow("Hiding and privacy settings", { sheet = SettingsSheet.HIDDEN })
+                AtomicDangerZone(
+                    "These run immediately and can't be undone.",
+                    listOf(
+                        AtomicDangerAction("Clear scan cache", onExecute = {
+                            onClearScanCache()
+                            onNotify("File scan cache cleared.")
+                        }),
+                    ),
+                )
             }
-        }
-        SettingsSheet.BROWSING -> SettingsPreferencesDialog("File browsing", { sheet = null }) {
-            AtomicText("View", AtomicTextRole.Name)
-            AtomicChipRow {
-                FileViewMode.entries.forEach { mode ->
-                    AtomicChip(
-                        label = if (mode == FileViewMode.LIST) "List" else "Grid",
-                        selected = settings.fileViewMode == mode,
-                        onSelectedChange = { settingsRepository.update { it.copy(fileViewMode = mode) } },
-                    )
+        SettingsSheet.PRIVACY, SettingsSheet.HIDDEN ->
+            SettingsPreferencesDialog(
+                if (sheet == SettingsSheet.HIDDEN) "Hidden files" else "Private files",
+                { sheet = null },
+            ) {
+                AtomicText(
+                    "Hidden is not encrypted. Visibility and authentication are separate.",
+                    AtomicTextRole.BodySecondary,
+                )
+                SettingsPreferenceToggle(
+                    "Show hidden files",
+                    "Show dot-prefixed names in file lists.",
+                    settings.showHiddenFiles,
+                ) { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } }
+                AtomicSettingsRow(
+                    "Default hiding method",
+                    {
+                        hideParent = sheet ?: SettingsSheet.HIDDEN
+                        sheet = SettingsSheet.HIDE_METHOD
+                    },
+                    value = hideChoices.first { it.mode == settings.defaultHideMode }.title,
+                )
+                AtomicSettingsRow(
+                    "Hidden folder",
+                    {
+                        hideParent = sheet ?: SettingsSheet.HIDDEN
+                        sheet = SettingsSheet.HIDDEN_FOLDER
+                    },
+                    value = settings.hiddenFolder,
+                )
+                SettingsPreferenceToggle(
+                    "Lock private files",
+                    "Authenticate before hidden or private files open.",
+                    settings.requireAuthForHidden,
+                    ::setAuthRequired,
+                )
+                if (sheet == SettingsSheet.PRIVACY) {
+                    destinations.onOpenPrivateFiles?.let { open ->
+                        AtomicButton("Open Private files", onClick = {
+                            sheet = null
+                            open()
+                        })
+                    }
                 }
             }
-            SettingsPreferenceToggle(
-                "Show hidden files",
-                "Names that start with a dot appear faded.",
-                settings.showHiddenFiles,
-            ) { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } }
-            SettingsPreferenceToggle(
-                "Use Trash",
-                if (settings.useTrash) {
-                    "Deleted files can be restored for ${settings.trashRetentionDays} days."
-                } else {
-                    "Deletes are permanent. Each delete still asks first."
-                },
-                settings.useTrash,
-            ) { on -> settingsRepository.update { it.copy(useTrash = on) } }
-            AtomicText("Keep deleted files for", AtomicTextRole.MonoMeta)
-            AtomicChipRow {
-                TRASH_RETENTION_CHOICES.forEach { days ->
-                    AtomicChip(
-                        "$days days",
-                        settings.trashRetentionDays == days,
-                        { settingsRepository.update { it.copy(trashRetentionDays = days) } },
-                        enabled = settings.useTrash,
-                    )
-                }
+        SettingsSheet.ACCESS ->
+            SettingsPreferencesDialog("Storage permissions", { sheet = null }) {
+                AtomicText(
+                    "Android controls shared-storage access. Only grant the access you need.",
+                    AtomicTextRole.BodySecondary,
+                )
+                AtomicSettingsRow(
+                    "All files access",
+                    onRequestStorageAccess,
+                    value = storageAccessStatus ?: if (hasStorageAccess) "Granted" else "Needed to browse shared files",
+                )
             }
-            AtomicSettingsRow("Hiding and privacy settings", { sheet = SettingsSheet.HIDDEN })
-            AtomicDangerZone(
-                "These run immediately and can't be undone.",
-                listOf(
-                    AtomicDangerAction("Clear scan cache", onExecute = {
-                        onClearScanCache()
-                        onNotify("File scan cache cleared.")
-                    }),
-                ),
-            )
-        }
-        SettingsSheet.PRIVACY, SettingsSheet.HIDDEN -> SettingsPreferencesDialog(
-            if (sheet == SettingsSheet.HIDDEN) "Hidden files" else "Private files",
-            { sheet = null },
-        ) {
-            AtomicText(
-                "Hidden is not encrypted. Visibility and authentication are separate.",
-                AtomicTextRole.BodySecondary,
-            )
-            SettingsPreferenceToggle(
-                "Show hidden files",
-                "Show dot-prefixed names in file lists.",
-                settings.showHiddenFiles,
-            ) { on -> settingsRepository.update { it.copy(showHiddenFiles = on) } }
-            AtomicSettingsRow(
-                "Default hiding method",
-                {
-                    hideParent = sheet ?: SettingsSheet.HIDDEN
-                    sheet = SettingsSheet.HIDE_METHOD
-                },
-                value = hideChoices.first { it.mode == settings.defaultHideMode }.title,
-            )
-            AtomicSettingsRow(
-                "Hidden folder",
-                {
-                    hideParent = sheet ?: SettingsSheet.HIDDEN
-                    sheet = SettingsSheet.HIDDEN_FOLDER
-                },
-                value = settings.hiddenFolder,
-            )
-            SettingsPreferenceToggle(
-                "Lock private files",
-                "Authenticate before hidden or private files open.",
-                settings.requireAuthForHidden,
-                ::setAuthRequired,
-            )
-            if (sheet == SettingsSheet.PRIVACY) {
-                destinations.onOpenPrivateFiles?.let { open ->
-                    AtomicButton("Open Private files", onClick = {
+        SettingsSheet.BUBBLES ->
+            SettingsPreferencesDialog("Transfer bubbles", { sheet = null }) {
+                AtomicText("Keep selected files ready while you browse to a destination.", AtomicTextRole.BodySecondary)
+                AtomicText("Up to ${TransferBubble.MAX_BUBBLES} transfer bubbles", AtomicTextRole.Name)
+                AtomicText(
+                    "Create a bubble from the + button in Files. Manage its contents from the bubble rail.",
+                    AtomicTextRole.BodySecondary,
+                )
+                destinations.onOpenFiles?.let { open ->
+                    AtomicButton("Open Files", onClick = {
                         sheet = null
                         open()
                     })
                 }
             }
-        }
-        SettingsSheet.ACCESS -> SettingsPreferencesDialog("Storage permissions", { sheet = null }) {
-            AtomicText(
-                "Android controls shared-storage access. Only grant the access you need.",
-                AtomicTextRole.BodySecondary,
-            )
-            AtomicSettingsRow(
-                "All files access",
-                onRequestStorageAccess,
-                value = storageAccessStatus ?: if (hasStorageAccess) "Granted" else "Needed to browse shared files",
-            )
-        }
-        SettingsSheet.BUBBLES -> SettingsPreferencesDialog("Transfer bubbles", { sheet = null }) {
-            AtomicText("Keep selected files ready while you browse to a destination.", AtomicTextRole.BodySecondary)
-            AtomicText("Up to ${TransferBubble.MAX_BUBBLES} transfer bubbles", AtomicTextRole.Name)
-            AtomicText(
-                "Create a bubble from the + button in Files. Manage its contents from the bubble rail.",
-                AtomicTextRole.BodySecondary,
-            )
-            destinations.onOpenFiles?.let { open ->
-                AtomicButton("Open Files", onClick = {
-                    sheet = null
-                    open()
-                })
+        SettingsSheet.CLOUD ->
+            SettingsPreferencesDialog("Cloud Connect", { sheet = null }) {
+                AtomicText("Planned · no live sign-in available", AtomicTextRole.Name)
+                AtomicText(
+                    "Cloud Connect is a separate bundled-plugin track. Provider accounts and live transfers " +
+                        "are not available here yet. Linked folders and network storage remain in Connections.",
+                    AtomicTextRole.BodySecondary,
+                )
             }
-        }
-        SettingsSheet.CLOUD -> SettingsPreferencesDialog("Cloud Connect", { sheet = null }) {
-            AtomicText("Planned · no live sign-in available", AtomicTextRole.Name)
-            AtomicText(
-                "Cloud Connect is a separate bundled-plugin track. Provider accounts and live transfers " +
-                    "are not available here yet. Existing linked folders and network storage remain available in Connections.",
-                AtomicTextRole.BodySecondary,
-            )
-        }
         SettingsSheet.OPENING -> FileOpeningSettingsSheet(settingsRepository, onDismiss = { sheet = null })
         SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->

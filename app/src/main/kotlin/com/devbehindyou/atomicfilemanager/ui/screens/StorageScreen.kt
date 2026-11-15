@@ -73,13 +73,14 @@ fun StorageScreen(
 ) {
     val context = LocalContext.current
     val width = LocalConfiguration.current.screenWidthDp
-    val horizontalMargin = when {
-        width <= 380 -> 16.dp
-        width < 760 -> 20.dp
-        width < 1120 -> 24.dp
-        width < 1400 -> 40.dp
-        else -> 56.dp
-    }
+    val horizontalMargin =
+        when {
+            width <= 380 -> 16.dp
+            width < 760 -> 20.dp
+            width < 1120 -> 24.dp
+            width < 1400 -> 40.dp
+            else -> 56.dp
+        }
     val cardPadding = if (width < 760) 20.dp else 24.dp
     val capacity = remember(volumes) { storageCapacity(volumes) }
     val mountedNames = remember(volumes) { volumes.filter { it.isMounted }.map { it.label }.distinct() }
@@ -97,9 +98,12 @@ fun StorageScreen(
         }
         StorageSection("Understand your space") {
             StorageAnalysisCard(width, cardPadding) {
-                val primaryRoot = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED }?.rootNodeId
-                    ?: volumes.firstNotNullOfOrNull { it.rootNodeId }
-                    ?: FileNodeId.file(Environment.getExternalStorageDirectory()?.absolutePath ?: context.filesDir.absolutePath)
+                val primaryRoot =
+                    volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED }?.rootNodeId
+                        ?: volumes.firstNotNullOfOrNull { it.rootNodeId }
+                        ?: FileNodeId.file(
+                            Environment.getExternalStorageDirectory()?.absolutePath ?: context.filesDir.absolutePath,
+                        )
                 onOpenStorageIntelligence(primaryRoot)
             }
         }
@@ -168,21 +172,24 @@ private fun StorageCapacityCard(
         if (capacity.totalBytes > 0) {
             val mobile = width < 760
             val wide = width >= 1120
-            val ringSize = when {
-                wide -> 144.dp
-                mobile -> 100.dp
-                else -> 112.dp
-            }
-            val stroke = when {
-                wide -> 14.dp
-                mobile -> 10.dp
-                else -> 11.dp
-            }
-            val gap = when {
-                wide -> 32.dp
-                mobile -> 16.dp
-                else -> 20.dp
-            }
+            val ringSize =
+                when {
+                    wide -> 144.dp
+                    mobile -> 100.dp
+                    else -> 112.dp
+                }
+            val stroke =
+                when {
+                    wide -> 14.dp
+                    mobile -> 10.dp
+                    else -> 11.dp
+                }
+            val gap =
+                when {
+                    wide -> 32.dp
+                    mobile -> 16.dp
+                    else -> 20.dp
+                }
             if (width <= 380) {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                     StorageCapacityRing(capacity.fraction, ringSize, stroke, mobile)
@@ -205,8 +212,11 @@ private fun StorageCapacityCard(
         }
         if (capacity.unknownVolumes > 0) {
             AtomicText(
-                if (capacity.unknownVolumes == 1) "Capacity unavailable for 1 mounted volume."
-                else "Capacity unavailable for ${capacity.unknownVolumes} mounted volumes.",
+                if (capacity.unknownVolumes == 1) {
+                    "Capacity unavailable for 1 mounted volume."
+                } else {
+                    "Capacity unavailable for ${capacity.unknownVolumes} mounted volumes."
+                },
                 AtomicTextRole.MonoMeta,
             )
         }
@@ -261,20 +271,22 @@ private fun StorageCapacityValues(
     val total = FileUtils.formatBytes(capacity.totalBytes)
     Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
         Text(
-            text = buildAnnotatedString {
-                append(total.substringBeforeLast(' '))
-                append(" ")
-                withStyle(SpanStyle(fontSize = 16.sp)) {
-                    append(total.substringAfterLast(' '))
-                    append(" total")
-                }
-            },
+            text =
+                buildAnnotatedString {
+                    append(total.substringBeforeLast(' '))
+                    append(" ")
+                    withStyle(SpanStyle(fontSize = 16.sp)) {
+                        append(total.substringAfterLast(' '))
+                        append(" total")
+                    }
+                },
             modifier = Modifier.testTag("storage_capacity_total"),
-            style = AtomicTypography.displayTitle.copy(
-                fontSize = if (mobile) 28.sp else 38.sp,
-                lineHeight = if (mobile) 34.sp else 46.sp,
-                letterSpacing = (-0.7).sp,
-            ),
+            style =
+                AtomicTypography.displayTitle.copy(
+                    fontSize = if (mobile) 28.sp else 38.sp,
+                    lineHeight = if (mobile) 34.sp else 46.sp,
+                    letterSpacing = (-0.7).sp,
+                ),
             color = colors.content,
         )
         AtomicText(mountedNames.joinToString(" + "), AtomicTextRole.BodySecondary)
