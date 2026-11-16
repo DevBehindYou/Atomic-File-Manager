@@ -22,6 +22,16 @@ sealed interface AtomicRoute {
         override fun encode() = ABOUT
     }
 
+    /** Files opened through this application. */
+    data object RecentlyOpened : AtomicRoute {
+        override fun encode() = RECENTLY_OPENED
+    }
+
+    /** Manage the file and folder shortcuts saved from Browse. */
+    data object PinnedLocations : AtomicRoute {
+        override fun encode() = PINNED_LOCATIONS
+    }
+
     /** Search across all storage. */
     data object Search : AtomicRoute {
         override fun encode() = SEARCH
@@ -72,8 +82,10 @@ sealed interface AtomicRoute {
     companion object {
         private const val STORAGE_TOOL = "storage-tool"
         private const val PRIVATE = "private"
+        private const val PINNED_LOCATIONS = "pinned-locations"
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
+        private const val RECENTLY_OPENED = "recently-opened"
         private const val SEARCH = "search"
         private const val ABOUT = "about"
         private const val APPS = "apps"
@@ -89,8 +101,10 @@ sealed interface AtomicRoute {
         /** Returns null for anything it does not recognise, so a stale bundle never crashes. */
         fun decode(value: String): AtomicRoute? {
             if (value == PRIVATE) return PrivateFiles
+            if (value == PINNED_LOCATIONS) return PinnedLocations
             if (value == OPERATIONS) return Operations
             if (value == TRASH) return Trash
+            if (value == RECENTLY_OPENED) return RecentlyOpened
             if (value == SEARCH) return Search
             if (value == ABOUT) return About
             if (value == APPS) return Apps
