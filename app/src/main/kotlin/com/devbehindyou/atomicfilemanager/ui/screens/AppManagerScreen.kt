@@ -3,9 +3,11 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,36 +18,50 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
+import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicErrorState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFactSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
@@ -58,13 +74,16 @@ import com.devbehindyou.atomicfilemanager.data.apps.AppSort
 import com.devbehindyou.atomicfilemanager.data.apps.InstalledApp
 import com.devbehindyou.atomicfilemanager.data.apps.InstalledAppsReader
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 private const val APK_MIME = "application/vnd.android.package-archive"
 
 /**
- * App manager (ALL_IN_ONE_PLAN.md 2.7): launchable apps with size and dates. Each opens a sheet to
+ * App manager (ALL_IN_ONE_PLAN.md 2.7): launchable apps with package names. Each opens a sheet to
  * open the app, see its system info, save or share its APK, or uninstall (the system asks first).
  * The list reloads when the screen comes back, so an uninstalled app disappears.
  */
@@ -78,7 +97,7 @@ fun AppManagerScreen(
     val context = LocalContext.current
     val reader = remember { InstalledAppsReader(context.applicationContext) }
     val scope = rememberCoroutineScope()
-    var apps by remember { mutableStateOf<List<InstalledApp>?>(null) }
+    var apps by remember { mutableStateOf<Result<List<InstalledApp>>?>(null) }
     var reloads by remember { mutableIntStateOf(0) }
     var query by rememberSaveable { mutableStateOf("") }
     var sort by rememberSaveable { mutableStateOf(AppSort.NAME) }
@@ -86,7 +105,9 @@ fun AppManagerScreen(
     var chosen by remember { mutableStateOf<InstalledApp?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    LaunchedEffect(reloads) { apps = runCatching { reader.list() }.getOrDefault(emptyList()) }
+    LaunchedEffect(reloads) {
+        apps = runCatching { reader.list() }.onFailure { if (it is CancellationException) throw it }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer =
@@ -96,7 +117,10 @@ fun AppManagerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    val shown = apps?.let { AppManagerRules.visible(it, query, showSystem, sort) }
+    val installed = apps?.getOrNull()
+    val shown = remember(installed, query, showSystem, sort) {
+        installed?.let { AppManagerRules.visible(it, query, showSystem, sort) }
+    }
 
     Column(
         modifier
@@ -106,9 +130,12 @@ fun AppManagerScreen(
             .navigationBarsPadding()
             .testTag("app_manager"),
     ) {
-        AtomicPushedHeader(onBack = onBack, title = "Apps", eyebrow = AppText.count(shown?.size))
+        AtomicPushedHeader(
+            onBack = onBack,
+            title = "App manager",
+        )
         Column(
-            Modifier.padding(horizontal = AtomicSpacing.s16),
+            Modifier.padding(horizontal = AtomicSpacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
         ) {
             AtomicTextField(
@@ -127,36 +154,72 @@ fun AppManagerScreen(
                 }
                 AtomicChip("System apps", selected = showSystem, onSelectedChange = { showSystem = it })
             }
+            if (shown != null) AtomicText(AppText.count(shown.size), AtomicTextRole.MonoMeta)
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(AtomicSpacing.s16)) {
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(AtomicSpacing.screenMargin),
+        ) {
             when {
+                apps?.isFailure == true -> item {
+                    AtomicErrorState(
+                        title = "Apps unavailable",
+                        message = "Couldn't read the installed apps.",
+                        actionLabel = "Retry",
+                        onAction = {
+                            apps = null
+                            reloads++
+                        },
+                    )
+                }
                 shown == null -> item { AtomicLoading("Reading apps…") }
-                shown.isEmpty() -> item { AtomicEmptyState(message = "No apps match.") }
-                else ->
-                    items(shown, key = { it.packageName }) { app ->
-                        AtomicFileRow(
-                            name = app.label,
-                            meta = AppText.meta(app),
-                            icon = AtomicIcons.Apk,
-                            onClick = { chosen = app },
-                        )
-                    }
+                shown.isEmpty() -> item {
+                    AtomicEmptyState(
+                        message = if (query.isBlank()) "No apps to show" else "No apps match",
+                        actionLabel = when {
+                            query.isNotBlank() -> "Clear search"
+                            !showSystem -> "Show system apps"
+                            else -> null
+                        },
+                        onAction = {
+                            if (query.isNotBlank()) query = "" else showSystem = true
+                        },
+                    )
+                }
+                else -> itemsIndexed(shown, key = { _, app -> app.packageName }) { index, app ->
+                    InstalledAppRow(app, first = index == 0, last = index == shown.lastIndex) { chosen = app }
+                }
             }
         }
     }
 
     chosen?.let { app ->
-        AtomicSheet(label = app.label, onDismiss = { chosen = null }) {
+        val launchIntent by produceState<Intent?>(null, app.packageName, context) {
+            value = withContext(Dispatchers.IO) {
+                context.packageManager.getLaunchIntentForPackage(app.packageName)
+            }
+        }
+        AtomicSheet(label = app.label.ifBlank { app.packageName }, onDismiss = { chosen = null }) {
             AtomicFactSheet(AppText.facts(app))
             if (app.isSplit) {
                 AtomicText(AppText.SPLIT_NOTE, AtomicTextRole.BodySecondary)
             }
             AtomicCommandGrid(
                 buildList {
+                    launchIntent?.let { intent ->
+                        add(
+                            AtomicMenuAction("Open app", AtomicIcons.OpenExternally, {
+                                context.startSafely(intent, onNotify)
+                            }),
+                        )
+                    }
                     add(
-                        AtomicMenuAction("Open", AtomicIcons.OpenExternally, {
+                        AtomicMenuAction("App info", AtomicIcons.Info, {
                             context.startSafely(
-                                context.packageManager.getLaunchIntentForPackage(app.packageName),
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", app.packageName, null),
+                                ),
                                 onNotify,
                             )
                         }),
@@ -199,17 +262,6 @@ fun AppManagerScreen(
                             enabled = !busy,
                         ),
                     )
-                    add(
-                        AtomicMenuAction("App info", AtomicIcons.Info, {
-                            context.startSafely(
-                                Intent(
-                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                    Uri.fromParts("package", app.packageName, null),
-                                ),
-                                onNotify,
-                            )
-                        }),
-                    )
                     if (!app.isSystem) {
                         add(
                             AtomicMenuAction(
@@ -230,6 +282,60 @@ fun AppManagerScreen(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun InstalledAppRow(
+    app: InstalledApp,
+    first: Boolean,
+    last: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = Atomic.colors
+    val top = if (first) AtomicShape.radiusLg else 0.dp
+    val bottom = if (last) AtomicShape.radiusLg else 0.dp
+    val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+    AtomicFileRow(
+        name = app.label.ifBlank { app.packageName },
+        meta = app.packageName,
+        icon = AtomicIcons.Apk,
+        onClick = onClick,
+        modifier = Modifier.clip(shape).background(colors.surfaceCard).padding(horizontal = AtomicSpacing.s16),
+        leading = { InstalledAppIcon(app) },
+        trailing = {
+            Icon(
+                AtomicIcons.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(AtomicSize.iconSmall),
+                tint = colors.contentSecondary,
+            )
+        },
+    )
+}
+
+@Composable
+private fun InstalledAppIcon(app: InstalledApp) {
+    val packageManager = LocalContext.current.packageManager
+    val pixels = with(LocalDensity.current) { AtomicSize.iconTile.roundToPx() }
+    val icon by produceState<ImageBitmap?>(null, app.packageName, app.updatedAt, pixels) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                packageManager.getApplicationIcon(app.packageName).toBitmap(pixels, pixels).asImageBitmap()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
+            }
+        }
+    }
+    val bitmap = icon
+    if (bitmap == null) {
+        AtomicIconTile(AtomicIcons.Apk)
+    } else {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            modifier = Modifier.size(AtomicSize.iconTile).clip(AtomicShape.sm),
+        )
     }
 }
 
@@ -267,19 +373,7 @@ internal object AppText {
         "This app was installed in parts. It is saved as one .apks file, which needs an installer " +
             "that handles split APKs."
 
-    fun count(n: Int?): String =
-        when (n) {
-            null -> "Reading…"
-            1 -> "1 app"
-            else -> "$n apps"
-        }
-
-    fun meta(app: InstalledApp): String =
-        listOfNotNull(
-            FileUtils.formatBytes(app.sizeBytes),
-            app.versionName?.takeIf { it.isNotBlank() }?.let { "v$it" },
-            if (app.isSystem) "System" else null,
-        ).joinToString(" · ")
+    fun count(n: Int): String = if (n == 1) "1 app" else "$n apps"
 
     fun facts(app: InstalledApp): List<AtomicFact> =
         listOfNotNull(
