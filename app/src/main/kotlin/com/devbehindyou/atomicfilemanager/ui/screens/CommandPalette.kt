@@ -11,6 +11,7 @@ enum class PaletteCommand(
 ) {
     SEARCH("Search", "Go to", listOf("all storage", "find", "lookup")),
     FILES("Files", "Go to", listOf("browse", "folders", "explorer")),
+    NEW_FOLDER("New folder", "Tools", listOf("create directory", "mkdir")),
     DOWNLOADS("Downloads", "Go to", listOf("download")),
     IMAGES("Images", "Go to", listOf("photos", "pictures", "gallery")),
     VIDEOS("Videos", "Go to", listOf("movies", "clips")),
@@ -24,7 +25,10 @@ enum class PaletteCommand(
     OPERATIONS("Tasks", "Tools", listOf("operations", "copy", "move", "progress", "transfers", "queue")),
     APPS("App manager", "Tools", listOf("apps", "uninstall", "backup apk")),
     PRIVATE("Private files", "Tools", listOf("hidden", "vault", "secure", "encrypt")),
+    FOLDER_COMPARE("Folder compare", "Tools", listOf("sync", "differences")),
     WIFI_SHARE("Wi-Fi Share", "Tools", listOf("send to computer", "pc", "browser", "transfer", "wifi")),
+    PLUGINS("In-app plugins", "Tools", listOf("built-in viewers", "bundled tools")),
+    CONNECTIONS("Connections", "Tools", listOf("linked folders", "network locations")),
     SETTINGS("Settings", "Settings", listOf("preferences", "options")),
     THEME("Theme", "Settings", listOf("dark mode", "light mode", "colours", "colors", "appearance")),
     ABOUT("About Atomic File Manager", "Settings", listOf("version", "privacy")),
@@ -80,13 +84,17 @@ fun CommandPaletteSheet(
 private val palettePrimaryCommands =
     listOf(
         PaletteCommand.FILES,
+        PaletteCommand.NEW_FOLDER,
         PaletteCommand.SEARCH,
         PaletteCommand.OPERATIONS,
         PaletteCommand.ANALYSIS,
         PaletteCommand.TRASH,
         PaletteCommand.PRIVATE,
+        PaletteCommand.FOLDER_COMPARE,
         PaletteCommand.APPS,
         PaletteCommand.WIFI_SHARE,
+        PaletteCommand.PLUGINS,
+        PaletteCommand.CONNECTIONS,
     )
 
 internal val paletteBrowseOrder = palettePrimaryCommands + (PaletteCommand.entries - palettePrimaryCommands.toSet())
@@ -96,6 +104,7 @@ internal val PaletteCommand.icon
         when (this) {
             PaletteCommand.SEARCH -> AtomicIcons.Search
             PaletteCommand.FILES -> AtomicIcons.Files
+            PaletteCommand.NEW_FOLDER -> AtomicIcons.NewFolder
             PaletteCommand.DOWNLOADS -> AtomicIcons.Download
             PaletteCommand.IMAGES -> AtomicIcons.Image
             PaletteCommand.VIDEOS -> AtomicIcons.Video
@@ -108,7 +117,10 @@ internal val PaletteCommand.icon
             PaletteCommand.TRASH -> AtomicIcons.Trash
             PaletteCommand.OPERATIONS -> AtomicIcons.Tasks
             PaletteCommand.PRIVATE -> AtomicIcons.Lock
+            PaletteCommand.FOLDER_COMPARE -> AtomicIcons.DualPane
             PaletteCommand.WIFI_SHARE -> AtomicIcons.Network
+            PaletteCommand.PLUGINS -> AtomicIcons.Plug
+            PaletteCommand.CONNECTIONS -> AtomicIcons.Cloud
             PaletteCommand.SETTINGS -> AtomicIcons.Settings
             PaletteCommand.THEME -> AtomicIcons.Theme
             PaletteCommand.ABOUT -> AtomicIcons.Info
