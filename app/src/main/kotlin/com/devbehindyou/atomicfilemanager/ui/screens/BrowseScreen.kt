@@ -281,6 +281,10 @@ fun BrowseScreen(
         ) {
             HiddenFilesScreen(
                 repository = app.container.hiddenFilesRepository,
+                visibility =
+                    HiddenFilesVisibility(settings.showHiddenFiles) { show ->
+                        app.container.settingsRepository.update { it.copy(showHiddenFiles = show) }
+                    },
                 onNavigateBack = {
                     showHiddenScreen = false
                     viewModel.refresh()
