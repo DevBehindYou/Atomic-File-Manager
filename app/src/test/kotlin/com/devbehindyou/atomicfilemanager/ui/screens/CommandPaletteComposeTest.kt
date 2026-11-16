@@ -43,10 +43,10 @@ class CommandPaletteComposeTest {
         assertEquals(overlay.bottom.value, sheet.bottom.value, 1f)
 
         val files = compose.onNodeWithTag("palette_files").getUnclippedBoundsInRoot()
-        val search = compose.onNodeWithTag("palette_search").getUnclippedBoundsInRoot()
+        val newFolder = compose.onNodeWithTag("palette_new_folder").getUnclippedBoundsInRoot()
         val tasks = compose.onNodeWithTag("palette_operations").getUnclippedBoundsInRoot()
-        assertEquals(files.top.value, search.top.value, 1f)
-        assertTrue(files.right < search.left)
+        assertEquals(files.top.value, newFolder.top.value, 1f)
+        assertTrue(files.right < newFolder.left)
         assertTrue(tasks.top > files.top)
 
         compose.onNodeWithContentDescription("Close commands").performClick()
