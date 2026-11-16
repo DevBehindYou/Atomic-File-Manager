@@ -7,6 +7,8 @@ on:
       - '.github/workflows/pdf-source-session-native.yml'
       - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/PdfSourceSessionDeviceTest.kt'
       - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/PdfReaderDeviceTest.kt'
+      - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/PdfHostileSessionDeviceTest.kt'
+      - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/HostilePdfFixtures.kt'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/PdfPreviewContent.kt'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/preview/PdfPageController.kt'
       - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/data/preview/PdfPreviewHelper.kt'
@@ -53,7 +55,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: ./gradlew --no-daemon --max-workers=1 :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.PdfSourceSessionDeviceTest,com.devbehindyou.atomicfilemanager.PdfReaderDeviceTest
+          script: ./gradlew --no-daemon --max-workers=1 :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.devbehindyou.atomicfilemanager.PdfSourceSessionDeviceTest,com.devbehindyou.atomicfilemanager.PdfReaderDeviceTest,com.devbehindyou.atomicfilemanager.PdfHostileSessionDeviceTest
       - name: Capture artifact identities
         if: always()
         shell: bash

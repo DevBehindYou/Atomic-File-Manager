@@ -47,3 +47,9 @@ This is research, not an engine selection, tested PDF feature or license/securit
 ## Scoped acceptance, 6 November 2026
 
 Source revision and helper replacement passed host checks and three native cases on each API 28 and 34 emulator. PR #91 merged into feature integration as `956839c`. Engine, provider and full PDF1–PDF5 acceptance remain open. [Validation record](../testing/PDF_SOURCE_SESSION_CANDIDATE.md)
+
+## Hostile sessions and password classification — 7 November 2026 (C021)
+
+PDF-B02 / PDF-T01: the reader reported a password-protected or unsupported-encryption PDF exactly like a damaged one. Both became `IoFailure`, shown with one "damaged or password protected" message and a Retry that could never work. Now a `SecurityException` from PdfRenderer construction alone maps to `UnsupportedFormat(PDF_PASSWORD_PROTECTED)`. The reader shows a distinct "password protected or encrypted" message with no Retry. Provider security failures during staging stay generic. Password unlocking is still not a feature.
+
+New host and native coverage exercises generated 1000-page, mixed-size, scanned-like, malformed, truncated and RC4-encrypted documents, source loss and replacement, and repeated disposal. It asserts serial rendering (peak in-flight 1), one displayed page, bitmaps of ≤ 4 MP / 16 MB, staged-copy removal and zero staged descriptors after every close. Staging cap, raster bounds and ownership are unchanged. The native class runs in `pdf-source-session-native.yml` on API 28 and 34. [Evidence record](../testing/PDF_HOSTILE_SESSIONS_C021.md). Provider disconnects on physical storage, memory pressure, engine features and full PDF1–PDF5 acceptance remain open. Version remains v0.2. On API 34 the total process descriptor count grows by a plateauing pool of platform `anon_inode:sync_file` frame fences, which is not a PDF leak. The disposal test therefore asserts that no descriptor targets a test-owned file after each lifetime.
