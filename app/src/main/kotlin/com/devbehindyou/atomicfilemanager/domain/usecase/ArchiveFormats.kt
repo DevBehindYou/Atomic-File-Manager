@@ -14,6 +14,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.channels.SeekableByteChannel
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.CRC32
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
 import net.lingala.zip4j.exception.ZipException as Zip4jException
@@ -107,7 +108,7 @@ object ArchiveFormats {
             Kind.BZ2 -> SingleStream(BZip2CompressorInputStream(buffered, true), innerName(name, kind), size)
             Kind.XZ -> SingleStream(XZCompressorInputStream(buffered, true), innerName(name, kind), size)
             Kind.SEVEN_Z -> SevenZStream.open(buffered, spool)
-            Kind.RAR -> RarStream(Archive(buffered))
+            Kind.RAR -> RarStream.open(buffered)
         }
     }
 
@@ -185,6 +186,12 @@ object ArchiveFormats {
 
 /** Shown as the "format" of an archive opened without its password. */
 const val PASSWORD_PROTECTED = "password-protected archive"
+
+/** Shown as the "format" of a RAR5 archive: the bundled reader understands RAR 1.5 to 4.x only. */
+const val RAR5_UNSUPPORTED = "RAR5 archive"
+
+/** A recognised archive written in a variant the bundled reader cannot open; [variant] names it. */
+class ArchiveUnsupportedVariant(val variant: String) : IOException("Unsupported archive variant: $variant")
 
 /** Shown as the "format" when the password given for an archive is wrong. */
 const val WRONG_PASSWORD = "wrong password"
@@ -303,13 +310,41 @@ private class SevenZStream(
 
 private class RarStream(private val archive: Archive) : ArchiveStream {
     private var current: InputStream? = null
+    private var checksum: CRC32? = null
+    private var expectedChecksum = 0L
+
+    companion object {
+        /** RAR 5.0 marker; WinRAR 7 writes only this format, which junrar cannot read. */
+        private val RAR5_SIGNATURE = byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00)
+
+        fun open(input: BufferedInputStream): RarStream {
+            input.mark(RAR5_SIGNATURE.size)
+            val head = ByteArray(RAR5_SIGNATURE.size)
+            var filled = 0
+            while (filled < head.size) {
+                val read = input.read(head, filled, head.size - filled)
+                if (read < 0) break
+                filled += read
+            }
+            input.reset()
+            // Without this check a valid RAR5 file is reported as damaged.
+            val isRar5 = filled == head.size && head.contentEquals(RAR5_SIGNATURE)
+            if (isRar5) throw ArchiveUnsupportedVariant(RAR5_UNSUPPORTED)
+            return RarStream(Archive(input))
+        }
+    }
 
     override fun next(): ArchiveHeader? {
         current?.close()
         current = null
+        checksum = null
         val header = archive.nextFileHeader() ?: return null
         if (header.isEncrypted || archive.isEncrypted) throw ArchivePasswordRequired()
-        if (!header.isDirectory) current = archive.getInputStream(header)
+        if (!header.isDirectory) {
+            current = archive.getInputStream(header)
+            checksum = CRC32()
+            expectedChecksum = header.fileCRC.toLong() and 0xFFFF_FFFFL
+        }
         return ArchiveHeader(
             path = header.fileName,
             isDirectory = header.isDirectory,
@@ -323,7 +358,22 @@ private class RarStream(private val archive: Archive) : ArchiveStream {
         buffer: ByteArray,
         offset: Int,
         length: Int,
-    ): Int = current?.read(buffer, offset, length) ?: -1
+    ): Int {
+        val read = current?.read(buffer, offset, length) ?: return -1
+        if (read > 0) checksum?.update(buffer, offset, read)
+        if (read < 0) verifyChecksum()
+        return read
+    }
+
+    /**
+     * junrar extracts on a background thread behind a pipe and drops its own CRC error, so a damaged
+     * entry would otherwise end like a good one. The stored CRC is checked once the entry ends.
+     */
+    private fun verifyChecksum() {
+        val actual = checksum?.value ?: return
+        checksum = null
+        if (actual != expectedChecksum) throw IOException("RAR entry failed its checksum")
+    }
 
     override fun close() {
         try {

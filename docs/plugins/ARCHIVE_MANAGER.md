@@ -47,3 +47,7 @@ See [the candidate validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md
 ## Scoped acceptance, 6 November 2026
 
 Duplicate-path rejection and inspection cancellation passed host checks. The FILE inspection case passed on each API 28 and 34 emulator. PR #92 merged into feature integration as `ac668e5`. ARC1–ARC5 and wider archive workflows remain open. [Validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md)
+
+## 7 November C041 slice — RAR5 honesty and RAR 4 entry checksums
+
+ARC-B01 and ARC-B02 (Claude Code C041, host-verified only). RAR files from current WinRAR are RAR5, which the bundled reader cannot open. They are now reported as "RAR5 archive" with an Open with hint instead of "damaged", and nothing is extracted. A RAR 4 entry whose data fails its stored CRC now fails extraction with nothing published; before, junrar's background extractor dropped the error and corrupted bytes were written. There are 43 archive host tests, with real RAR 7.23 fixtures and a generated stored RAR 4. See [C041 record](../testing/ARCHIVE_RAR_VARIANTS_C041.md). RAR5 reading, compressed and multi-volume RAR 4, and encrypted 7z remain open. Version stays v0.2.

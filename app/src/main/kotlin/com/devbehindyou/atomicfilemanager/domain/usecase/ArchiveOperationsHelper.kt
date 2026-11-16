@@ -323,6 +323,9 @@ internal object ArchiveOperationsHelper {
             if (e is ArchivePasswordRequired) {
                 return FileOperationsEngine.ItemResult.Failure(FileError.UnsupportedFormat(PASSWORD_PROTECTED))
             }
+            if (e is ArchiveUnsupportedVariant) {
+                return FileOperationsEngine.ItemResult.Failure(FileError.UnsupportedFormat(e.variant))
+            }
             return FileOperationsEngine.ItemResult.Failure(FileError.CorruptedArchive(sourceId.raw))
         }
     }
