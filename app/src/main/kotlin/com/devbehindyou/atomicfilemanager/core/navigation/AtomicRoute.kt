@@ -17,6 +17,11 @@ sealed interface AtomicRoute {
         override fun encode() = OPERATIONS
     }
 
+    /** Files opened through this application. */
+    data object RecentlyOpened : AtomicRoute {
+        override fun encode() = RECENTLY_OPENED
+    }
+
     /** Manage the file and folder shortcuts saved from Browse. */
     data object PinnedLocations : AtomicRoute {
         override fun encode() = PINNED_LOCATIONS
@@ -75,6 +80,7 @@ sealed interface AtomicRoute {
         private const val PINNED_LOCATIONS = "pinned-locations"
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
+        private const val RECENTLY_OPENED = "recently-opened"
         private const val SEARCH = "search"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
@@ -92,6 +98,7 @@ sealed interface AtomicRoute {
             if (value == PINNED_LOCATIONS) return PinnedLocations
             if (value == OPERATIONS) return Operations
             if (value == TRASH) return Trash
+            if (value == RECENTLY_OPENED) return RecentlyOpened
             if (value == SEARCH) return Search
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare

@@ -74,6 +74,7 @@ fun HomeScreen(
     privateLocked: Boolean = false,
     storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
     onRetryStorage: () -> Unit = {},
+    onViewOpenedHistory: (() -> Unit)? = null,
     onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     Column(
@@ -123,6 +124,7 @@ fun HomeScreen(
         HomeShortcuts(
             onOpenFolder = onNavigateToFolder,
             onExploreStorage = onOpenStorageDetails,
+            onViewOpenedHistory = onViewOpenedHistory,
             onManagePinnedLocations = onManagePinnedLocations,
         )
 

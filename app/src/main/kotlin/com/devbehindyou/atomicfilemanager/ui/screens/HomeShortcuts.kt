@@ -58,6 +58,7 @@ private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 fun HomeShortcuts(
     onOpenFolder: (FileNodeId) -> Unit,
     onExploreStorage: () -> Unit,
+    onViewOpenedHistory: (() -> Unit)? = null,
     onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     val container = (LocalContext.current.applicationContext as AtomicApp).container
@@ -96,6 +97,7 @@ fun HomeShortcuts(
             onPreview = { preview = it },
             onRemove = { item -> scope.launch { recentsRepo.remove(item.id) } },
             modifier = Modifier.testTag("home_recent"),
+            onViewAll = onViewOpenedHistory,
         )
     }
     val pins: @Composable () -> Unit = {
@@ -167,9 +169,14 @@ private fun RecentShortcutCard(
     modifier: Modifier = Modifier,
     onRemove: ((RecentItem) -> Unit)? = null,
     emptyMessage: String? = null,
+    onViewAll: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
-        AtomicText(title, AtomicTextRole.DisplayCard)
+        if (onViewAll == null) {
+            AtomicText(title, AtomicTextRole.DisplayCard)
+        } else {
+            AtomicSectionLabel(title, actionLabel = "View all", onAction = onViewAll)
+        }
         Column(
             Modifier.fillMaxWidth()
                 .background(Atomic.colors.surfaceCard, AtomicShape.lg)

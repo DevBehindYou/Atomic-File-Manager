@@ -58,6 +58,7 @@ class HomeScreenComposeTest {
                     onRequestStorageAccess = { events += "grant" },
                     onOpenPrivateFiles = { events += "private" },
                     onOpenStorageDetails = { events += "details" },
+                    onViewOpenedHistory = { events += "opened" },
                     onManagePinnedLocations = { events += "manage pins" },
                     storageReadiness =
                         readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
@@ -103,6 +104,13 @@ class HomeScreenComposeTest {
         compose.onNodeWithTag("category_more").performScrollTo().performClick()
         compose.onNodeWithTag("app_private_storage_item").performScrollTo().performClick()
         assertEquals(listOf("category:${FileCategory.IMAGE}", "category:${FileCategory.OTHER}", "private"), events)
+    }
+
+    @Test
+    fun viewAllUnderRecentlyOpenedOpensHistory() {
+        show()
+        compose.onNodeWithContentDescription("View all").performScrollTo().performClick()
+        assertEquals(listOf("opened"), events)
     }
 
     @Test
