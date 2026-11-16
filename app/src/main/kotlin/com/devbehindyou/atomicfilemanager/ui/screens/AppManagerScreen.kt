@@ -118,9 +118,10 @@ fun AppManagerScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val installed = apps?.getOrNull()
-    val shown = remember(installed, query, showSystem, sort) {
-        installed?.let { AppManagerRules.visible(it, query, showSystem, sort) }
-    }
+    val shown =
+        remember(installed, query, showSystem, sort) {
+            installed?.let { AppManagerRules.visible(it, query, showSystem, sort) }
+        }
 
     Column(
         modifier
@@ -161,43 +162,48 @@ fun AppManagerScreen(
             contentPadding = PaddingValues(AtomicSpacing.screenMargin),
         ) {
             when {
-                apps?.isFailure == true -> item {
-                    AtomicErrorState(
-                        title = "Apps unavailable",
-                        message = "Couldn't read the installed apps.",
-                        actionLabel = "Retry",
-                        onAction = {
-                            apps = null
-                            reloads++
-                        },
-                    )
-                }
+                apps?.isFailure == true ->
+                    item {
+                        AtomicErrorState(
+                            title = "Apps unavailable",
+                            message = "Couldn't read the installed apps.",
+                            actionLabel = "Retry",
+                            onAction = {
+                                apps = null
+                                reloads++
+                            },
+                        )
+                    }
                 shown == null -> item { AtomicLoading("Reading apps…") }
-                shown.isEmpty() -> item {
-                    AtomicEmptyState(
-                        message = if (query.isBlank()) "No apps to show" else "No apps match",
-                        actionLabel = when {
-                            query.isNotBlank() -> "Clear search"
-                            !showSystem -> "Show system apps"
-                            else -> null
-                        },
-                        onAction = {
-                            if (query.isNotBlank()) query = "" else showSystem = true
-                        },
-                    )
-                }
-                else -> itemsIndexed(shown, key = { _, app -> app.packageName }) { index, app ->
-                    InstalledAppRow(app, first = index == 0, last = index == shown.lastIndex) { chosen = app }
-                }
+                shown.isEmpty() ->
+                    item {
+                        AtomicEmptyState(
+                            message = if (query.isBlank()) "No apps to show" else "No apps match",
+                            actionLabel =
+                                when {
+                                    query.isNotBlank() -> "Clear search"
+                                    !showSystem -> "Show system apps"
+                                    else -> null
+                                },
+                            onAction = {
+                                if (query.isNotBlank()) query = "" else showSystem = true
+                            },
+                        )
+                    }
+                else ->
+                    itemsIndexed(shown, key = { _, app -> app.packageName }) { index, app ->
+                        InstalledAppRow(app, first = index == 0, last = index == shown.lastIndex) { chosen = app }
+                    }
             }
         }
     }
 
     chosen?.let { app ->
         val launchIntent by produceState<Intent?>(null, app.packageName, context) {
-            value = withContext(Dispatchers.IO) {
-                context.packageManager.getLaunchIntentForPackage(app.packageName)
-            }
+            value =
+                withContext(Dispatchers.IO) {
+                    context.packageManager.getLaunchIntentForPackage(app.packageName)
+                }
         }
         AtomicSheet(label = app.label.ifBlank { app.packageName }, onDismiss = { chosen = null }) {
             AtomicFactSheet(AppText.facts(app))
@@ -319,13 +325,14 @@ private fun InstalledAppIcon(app: InstalledApp) {
     val packageManager = LocalContext.current.packageManager
     val pixels = with(LocalDensity.current) { AtomicSize.iconTile.roundToPx() }
     val icon by produceState<ImageBitmap?>(null, app.packageName, app.updatedAt, pixels) {
-        value = withContext(Dispatchers.IO) {
-            try {
-                packageManager.getApplicationIcon(app.packageName).toBitmap(pixels, pixels).asImageBitmap()
-            } catch (_: PackageManager.NameNotFoundException) {
-                null
+        value =
+            withContext(Dispatchers.IO) {
+                try {
+                    packageManager.getApplicationIcon(app.packageName).toBitmap(pixels, pixels).asImageBitmap()
+                } catch (_: PackageManager.NameNotFoundException) {
+                    null
+                }
             }
-        }
     }
     val bitmap = icon
     if (bitmap == null) {
