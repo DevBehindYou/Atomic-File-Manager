@@ -50,6 +50,7 @@ class RouteStackTest {
                 .push(AtomicRoute.PrivateFiles)
                 .push(AtomicRoute.Operations)
                 .push(AtomicRoute.Apps)
+                .push(AtomicRoute.About)
                 .push(AtomicRoute.FolderCompare("file:/storage/emulated/0/DCIM", "sftp:nas:/home/me/Photos"))
                 .push(AtomicRoute.WifiShare)
                 .push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))

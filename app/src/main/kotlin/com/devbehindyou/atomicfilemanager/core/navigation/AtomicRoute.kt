@@ -17,6 +17,11 @@ sealed interface AtomicRoute {
         override fun encode() = OPERATIONS
     }
 
+    /** App version, help and bundled notices. */
+    data object About : AtomicRoute {
+        override fun encode() = ABOUT
+    }
+
     /** Search across all storage. */
     data object Search : AtomicRoute {
         override fun encode() = SEARCH
@@ -70,6 +75,7 @@ sealed interface AtomicRoute {
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
         private const val SEARCH = "search"
+        private const val ABOUT = "about"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
         private const val CATEGORY = "category"
@@ -86,6 +92,7 @@ sealed interface AtomicRoute {
             if (value == OPERATIONS) return Operations
             if (value == TRASH) return Trash
             if (value == SEARCH) return Search
+            if (value == ABOUT) return About
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare
             val kind = value.substringBefore(SEPARATOR, missingDelimiterValue = "")
