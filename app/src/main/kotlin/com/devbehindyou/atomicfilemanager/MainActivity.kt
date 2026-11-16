@@ -620,14 +620,9 @@ fun AtomicAppContent(
             )
             return
         }
-        AtomicRoute.PinnedLocations -> {
-            PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
-            return
-        }
-        AtomicRoute.Apps -> {
-            AppManagerScreen(onBack = ::pop, onNotify = ::notify)
-            return
-        }
+        AtomicRoute.PinnedLocations ->
+            return PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
+        AtomicRoute.Apps -> return AppManagerScreen(onBack = ::pop, onNotify = ::notify)
         is AtomicRoute.StorageTool -> {
             val openFiles = {
                 pop()
