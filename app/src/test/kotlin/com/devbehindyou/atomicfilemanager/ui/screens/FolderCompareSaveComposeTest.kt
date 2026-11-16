@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import android.app.Application
 import android.os.Looper
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -15,6 +16,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.getOrNull
@@ -31,7 +34,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp")
 class FolderCompareSaveComposeTest {
     @get:Rule
     val compose = createComposeRule()
@@ -55,10 +58,10 @@ class FolderCompareSaveComposeTest {
                 )
             }
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            shadowOf(Looper.getMainLooper()).idle()
-            compose.onAllNodesWithTag("save_sync_pair").fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.onNodeWithContentDescription("No changes made").assertExists()
+        compose.onNodeWithTag("review_sync_button").assertDoesNotExist()
+        compose.onNodeWithTag("run_folder_compare").performScrollTo().performClick()
+        awaitReviewButton()
         compose.onNodeWithTag("save_sync_pair").assertIsEnabled().performClick()
         compose.onNodeWithContentDescription("Saved for one-tap sync").assertDoesNotExist()
 
@@ -96,8 +99,14 @@ class FolderCompareSaveComposeTest {
         awaitReviewButton()
         compose.onNodeWithTag("sync_mode_MIRROR").assertIsOn()
         compose.onNodeWithTag("sync_mode_COPY_NEW").assertIsOff()
+        compose.onNodeWithTag("folder_compare_entries").performScrollToNode(hasText("extra.txt"))
+        compose.onNodeWithText("extra.txt").performClick()
+        compose.onNodeWithContentDescription("Difference details").assertExists()
+        compose.onNodeWithContentDescription("Got it").performClick()
         compose.onNodeWithTag("review_sync_button").performClick()
         compose.onNodeWithText(MIRROR_SUMMARY).assertExists()
+        compose.onNodeWithText("Source: /mem/1").assertExists()
+        compose.onNodeWithText("Destination: /mem/2").assertExists()
         compose.onNodeWithText("− extra.txt").assertExists()
         compose.onNodeWithTag("start_sync_button").assertExists()
     }
