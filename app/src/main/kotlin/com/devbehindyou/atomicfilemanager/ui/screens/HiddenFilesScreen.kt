@@ -6,18 +6,20 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,18 +28,23 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarningBox
@@ -59,7 +66,7 @@ private val HideMode.tabLabel: String
         when (this) {
             HideMode.FAST_OBSCURE -> "Obscured"
             HideMode.GALLERY -> "Gallery"
-            HideMode.PRIVATE_STORAGE -> "Private"
+            HideMode.PRIVATE_STORAGE -> "Private storage"
         }
 
 private val HideMode.explanation: String
@@ -73,11 +80,13 @@ private val HideMode.explanation: String
                     "Atomic File Manager is uninstalled, so restore them first."
         }
 
-/**
- * Private & hidden (ATOMIC_UI_PLAN.md §7.6, canvas "Private & hidden"): one chip per hiding
- * method, what that method means, the files with Restore, and a reminder that none of this is
- * encryption. Deleting a hidden file asks first.
- */
+/** Existing Files visibility preference, supplied by the hosting screen. */
+class HiddenFilesVisibility(
+    val showHiddenFiles: Boolean,
+    val onChange: (Boolean) -> Unit,
+)
+
+/** Manage hidden entries after the host's access gate, or only private entries on the dedicated route. */
 @Composable
 fun HiddenFilesScreen(
     repository: HiddenFilesRepository,
@@ -85,8 +94,10 @@ fun HiddenFilesScreen(
     modifier: Modifier = Modifier,
     initialMode: HideMode = HideMode.FAST_OBSCURE,
     privateOnly: Boolean = false,
+    visibility: HiddenFilesVisibility? = null,
+    onLockPrivateFiles: (() -> Unit)? = null,
 ) {
-    val hiddenItems by repository.hiddenItems.collectAsState()
+    val hiddenItems by repository.hiddenItems.collectAsStateWithLifecycle()
     var currentMode by rememberSaveable { mutableStateOf(initialMode) }
     var itemToDelete by remember { mutableStateOf<HiddenItem?>(null) }
     val scope = rememberCoroutineScope()
@@ -123,20 +134,35 @@ fun HiddenFilesScreen(
     }
 
     val mode = if (privateOnly) HideMode.PRIVATE_STORAGE else currentMode
-    val currentItems = hiddenItems.filter { it.mode == mode }
+    val currentItems = remember(hiddenItems, mode) { hiddenItems.filter { it.mode == mode } }
 
-    Box(modifier.fillMaxSize().background(Atomic.colors.background)) {
+    Box(
+        modifier.fillMaxSize().background(Atomic.colors.background)
+            .testTag(if (privateOnly) "private_files_screen" else "hidden_files_screen"),
+    ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             AtomicPushedHeader(
                 onBack = onNavigateBack,
-                title = if (privateOnly) "Private files" else "Private & hidden",
+                title = if (privateOnly) "Private files" else "Hidden files",
             )
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(AtomicSpacing.s16),
                 verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
             ) {
-                if (!privateOnly) {
+                if (privateOnly) {
+                    item { AtomicWarningBox(title = HiddenText.privateTitle, body = HiddenText.privateExplanation) }
+                    if (onLockPrivateFiles != null) {
+                        item { AtomicButton("Lock now", onClick = onLockPrivateFiles, leadingIcon = AtomicIcons.Lock) }
+                    }
+                } else {
+                    item {
+                        AtomicWarningBox(
+                            title = HiddenText.visibilityTitle,
+                            body = HiddenText.visibilityExplanation,
+                        )
+                    }
+                    if (visibility != null) item { HiddenVisibilityCard(visibility) }
                     item {
                         Row(
                             Modifier.horizontalScroll(rememberScrollState()),
@@ -153,6 +179,9 @@ fun HiddenFilesScreen(
                     }
                 }
                 item { AtomicText(mode.explanation, AtomicTextRole.BodySecondary) }
+                if (!privateOnly && mode == HideMode.PRIVATE_STORAGE) {
+                    item { AtomicWarningBox(title = HiddenText.privateTitle, body = HiddenText.privateExplanation) }
+                }
                 if (currentItems.isEmpty()) {
                     item {
                         AtomicEmptyState(
@@ -203,9 +232,6 @@ fun HiddenFilesScreen(
                         )
                     }
                 }
-                item {
-                    AtomicWarningBox(title = HiddenText.boxTitle(mode), body = HiddenText.boxBody(mode))
-                }
             }
         }
         AtomicSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
@@ -239,6 +265,22 @@ fun HiddenFilesScreen(
 }
 
 @Composable
+private fun HiddenVisibilityCard(visibility: HiddenFilesVisibility) {
+    Column(
+        Modifier.fillMaxWidth().background(Atomic.colors.surfaceCard, AtomicShape.lg)
+            .padding(horizontal = AtomicSpacing.s16),
+    ) {
+        SettingsPreferenceToggle(
+            title = "Show hidden files",
+            description = if (visibility.showHiddenFiles) "Visible in Files" else "Hidden from Files",
+            checked = visibility.showHiddenFiles,
+            onChange = visibility.onChange,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun HiddenItemRow(
     item: HiddenItem,
     onRestore: () -> Unit,
@@ -247,32 +289,42 @@ private fun HiddenItemRow(
     onExport: (() -> Unit)? = null,
 ) {
     val from = item.originalLocation.substringBeforeLast('/').ifEmpty { "/" }
-    AtomicFileRow(
-        name = item.originalName,
-        meta = "From $from · ${FileUtils.formatBytes(item.size)} · ${FileUtils.formatDate(item.hiddenAt)}",
-        icon = if (item.mode == HideMode.PRIVATE_STORAGE) AtomicIcons.Lock else AtomicIcons.Hidden,
-        // Restoring moves files, so it only happens from the explicit Restore button.
-        onClick = {},
-        trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Items hidden before the vault are still plain; one tap encrypts them in place.
-                if (onEncrypt != null) {
-                    AtomicButton("Encrypt", onClick = onEncrypt, variant = AtomicButtonVariant.Text)
-                }
-                // Encrypted items: a normal copy in Download, the private one stays.
-                if (onExport != null) {
-                    AtomicButton("Export", onClick = onExport, variant = AtomicButtonVariant.Text)
-                }
-                AtomicButton("Restore", onClick = onRestore, variant = AtomicButtonVariant.Text)
-                AtomicIconButton(
-                    AtomicIcons.Trash,
-                    "Delete ${item.originalName} for good",
-                    onClick = onDelete,
-                    variant = AtomicIconButtonVariant.Destructive,
+    val icon = if (item.mode == HideMode.PRIVATE_STORAGE) AtomicIcons.Lock else AtomicIcons.Hidden
+    Column(
+        modifier =
+            Modifier.fillMaxWidth().background(Atomic.colors.surfaceCard, AtomicShape.lg)
+                .padding(AtomicSpacing.s16),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AtomicIconTile(icon, tint = Atomic.colors.accentText)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
+                AtomicText(item.originalName, AtomicTextRole.NameLarge, Modifier.semantics { heading() })
+                AtomicText(
+                    "From $from · ${FileUtils.formatBytes(item.size)} · ${FileUtils.formatDate(item.hiddenAt)}",
+                    AtomicTextRole.BodySecondary,
                 )
+                if (!item.isAvailable) AtomicText("File unavailable", AtomicTextRole.BodySecondary)
             }
-        },
-    )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        ) {
+            AtomicButton("Restore", onClick = onRestore, variant = AtomicButtonVariant.Ghost)
+            if (onEncrypt != null) AtomicButton("Encrypt", onClick = onEncrypt, variant = AtomicButtonVariant.Text)
+            if (onExport != null) AtomicButton("Export", onClick = onExport, variant = AtomicButtonVariant.Text)
+            AtomicIconButton(
+                AtomicIcons.Trash,
+                "Delete ${item.originalName} for good",
+                onClick = onDelete,
+                variant = AtomicIconButtonVariant.Destructive,
+            )
+        }
+    }
 }
 
 /** Wording for [HiddenFilesScreen]; pure so it is unit-tested. */
@@ -292,16 +344,14 @@ internal object HiddenText {
             "“${item.originalName}” couldn't be exported"
         }
 
-    fun boxTitle(mode: HideMode): String =
-        if (mode == HideMode.PRIVATE_STORAGE) "Encrypted on this phone" else "Not encryption"
+    const val visibilityTitle = "Hidden is not encrypted"
+    const val visibilityExplanation =
+        "Show hidden files changes which dot-prefixed names Files displays. Use Private files for protected storage."
 
-    fun boxBody(mode: HideMode): String =
-        if (mode == HideMode.PRIVATE_STORAGE) {
-            "New private files are encrypted with a key kept in Android's keystore. Restore puts a file back; " +
-                "Export saves a normal copy to Download and keeps the private one."
-        } else {
-            "Hiding keeps files out of other apps' sight but doesn't encrypt them. Private files are encrypted."
-        }
+    const val privateTitle = "Private storage"
+    const val privateExplanation =
+        "New private files are encrypted with a key kept in Android's keystore. Restore puts a file back; " +
+            "Export saves a normal copy to Download and keeps the private one."
 
     const val EXPORT_PATH = "Download/Atomic File Manager/Exported"
 
