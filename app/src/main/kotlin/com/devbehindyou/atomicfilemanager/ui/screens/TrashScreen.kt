@@ -2,13 +2,16 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,25 +24,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
-import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicActivityRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicConfirmSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerZone
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
+import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.OperationId
@@ -68,12 +71,12 @@ fun TrashScreen(
     onBack: () -> Unit,
     onNotify: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onBrowseFiles: (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     val entriesFlow = remember(store) { store.observeAll() }
     val entries by entriesFlow.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableStateOf<TrashEntry?>(null) }
     var confirmForever by remember { mutableStateOf<List<TrashEntry>?>(null) }
 
     fun restore(items: List<TrashEntry>) {
@@ -99,74 +102,14 @@ fun TrashScreen(
             .testTag("trash_screen"),
     ) {
         AtomicPushedHeader(onBack = onBack, title = "Trash")
-        val list = entries
-        LazyColumn(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(AtomicSpacing.s16),
-            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
-        ) {
-            if (list == null) return@LazyColumn
-            item { AtomicSectionLabel(TrashText.summary(list), trailingText = "Kept $retentionDays days") }
-            if (list.isEmpty()) {
-                item {
-                    AtomicEmptyState(
-                        message = "Trash is empty.",
-                        detail = "Deleted files stay here for $retentionDays days, then go for good.",
-                    )
-                }
-                return@LazyColumn
-            }
-            items(list, key = { it.id }) { entry ->
-                AtomicActivityRow(
-                    title = entry.name,
-                    timestamp = TrashText.meta(entry, retentionDays, System.currentTimeMillis()),
-                    actionLabel = "Restore",
-                    onAction = { restore(listOf(entry)) },
-                    modifier =
-                        Modifier
-                            .clickable(onClickLabel = "More actions", role = Role.Button) { selected = entry }
-                            .testTag("trash_entry"),
-                )
-            }
-            item {
-                AtomicButton(
-                    "Restore all",
-                    onClick = { restore(list) },
-                    variant = AtomicButtonVariant.Solid,
-                    modifier = Modifier.fillMaxWidth().testTag("trash_restore_all"),
-                )
-            }
-            item {
-                AtomicDangerZone(
-                    warning = "Emptying the Trash deletes every item in it for good.",
-                    actions = listOf(AtomicDangerAction("Empty Trash", onExecute = { confirmForever = list })),
-                )
-            }
-        }
-    }
-
-    selected?.let { entry ->
-        AtomicSheet(label = "In Trash", onDismiss = { selected = null }) {
-            AtomicText(entry.name, AtomicTextRole.NameLarge)
-            AtomicText(TrashText.meta(entry, retentionDays, System.currentTimeMillis()), AtomicTextRole.MonoMeta)
-            AtomicCommandGrid(
-                listOf(
-                    AtomicMenuAction("Restore", AtomicIcons.Restore, {
-                        restore(listOf(entry))
-                        selected = null
-                    }),
-                    AtomicMenuAction(
-                        "Delete forever",
-                        AtomicIcons.Trash,
-                        onClick = {
-                            confirmForever = listOf(entry)
-                            selected = null
-                        },
-                        destructive = true,
-                    ),
-                ),
-            )
-        }
+        TrashContent(
+            entries = entries,
+            retentionDays = retentionDays,
+            onRestore = ::restore,
+            onConfirmDelete = { confirmForever = it },
+            onBrowseFiles = onBrowseFiles,
+            modifier = Modifier.weight(1f),
+        )
     }
 
     confirmForever?.let { doomed ->
@@ -191,26 +134,138 @@ fun TrashScreen(
     }
 }
 
+@Composable
+internal fun TrashContent(
+    entries: List<TrashEntry>?,
+    retentionDays: Int,
+    onRestore: (List<TrashEntry>) -> Unit,
+    onConfirmDelete: (List<TrashEntry>) -> Unit,
+    onBrowseFiles: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val summary = remember(entries) { TrashText.summary(entries.orEmpty()) }
+    LazyColumn(
+        modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(AtomicSpacing.screenMargin),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+    ) {
+        if (entries == null) {
+            item { AtomicLoading("Loading Trash…") }
+            return@LazyColumn
+        }
+        if (entries.isEmpty()) {
+            item {
+                AtomicEmptyState(
+                    message = "Your Trash is empty",
+                    detail = "Files moved to Trash can be restored within $retentionDays days.",
+                    actionLabel = "Browse files",
+                    onAction = onBrowseFiles,
+                )
+            }
+            return@LazyColumn
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
+                AtomicSectionLabel(summary, trailingText = "Kept $retentionDays days")
+                AtomicText("Review original locations before restoring.", AtomicTextRole.BodySecondary)
+            }
+        }
+        items(entries, key = { it.id }) { entry ->
+            TrashEntryCard(
+                entry = entry,
+                retentionDays = retentionDays,
+                onRestore = { onRestore(listOf(entry)) },
+                onConfirmDelete = { onConfirmDelete(listOf(entry)) },
+            )
+        }
+        item {
+            AtomicButton(
+                "Restore all",
+                onClick = { onRestore(entries) },
+                variant = AtomicButtonVariant.Solid,
+                modifier = Modifier.fillMaxWidth().testTag("trash_restore_all"),
+            )
+        }
+        item {
+            AtomicDangerZone(
+                warning = "Emptying the Trash deletes every item in it for good.",
+                actions = listOf(AtomicDangerAction("Empty Trash", onExecute = { onConfirmDelete(entries) })),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TrashEntryCard(
+    entry: TrashEntry,
+    retentionDays: Int,
+    onRestore: () -> Unit,
+    onConfirmDelete: () -> Unit,
+) {
+    val colors = Atomic.colors
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(colors.surfaceCard, AtomicShape.lg)
+                .border(AtomicBorder.hair, colors.borderHair, AtomicShape.lg)
+                .padding(AtomicSpacing.s16)
+                .testTag("trash_entry"),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+    ) {
+        AtomicText(entry.name, AtomicTextRole.NameLarge, Modifier.semantics { heading() })
+        AtomicText(TrashText.origin(entry), AtomicTextRole.BodySecondary)
+        AtomicText(
+            TrashText.retention(entry, retentionDays, System.currentTimeMillis()),
+            AtomicTextRole.MonoMeta,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+        ) {
+            AtomicButton(
+                "Restore",
+                onClick = onRestore,
+                modifier = Modifier.testTag("trash_restore:${entry.id}"),
+            )
+            AtomicButton(
+                "Delete permanently",
+                onClick = onConfirmDelete,
+                modifier = Modifier.testTag("trash_delete:${entry.id}"),
+                variant = AtomicButtonVariant.Ghost,
+                contentColor = colors.error,
+            )
+        }
+    }
+}
+
 /** Wording for the Trash screen and its snackbars; pure so it is unit-tested. */
 internal object TrashText {
     fun items(count: Int): String = if (count == 1) "1 item" else "$count items"
 
     fun summary(entries: List<TrashEntry>): String {
-        val bytes = entries.filter { it.size > 0 }.sumOf { it.size }
+        val bytes = entries.sumOf { it.size.coerceAtLeast(0) }
         return if (entries.isEmpty()) "Nothing here" else "${items(entries.size)} · ${FileUtils.formatBytes(bytes)}"
     }
 
-    /** "Deleted 2026-10-01 08:11 · restores to /Download · 2.0 MB · 23 days left". */
-    fun meta(
+    fun origin(entry: TrashEntry): String =
+        if (entry.originalParent.prefix == FileNodeId.Prefix.FILE) {
+            val path = entry.originalParent.raw.removePrefix(FileNodeId.Prefix.FILE.scheme)
+            "Originally $path"
+        } else {
+            "Original location unavailable"
+        }
+
+    fun retention(
         entry: TrashEntry,
         retentionDays: Int,
         now: Long,
     ): String {
-        val where = entry.originalParent.raw.removePrefix(entry.volumeRoot.raw).ifEmpty { "/" }
         val size = if (entry.size >= 0) " · ${FileUtils.formatBytes(entry.size)}" else ""
         val left = ((entry.deletedAt + retentionDays * DAY_MILLIS - now) / DAY_MILLIS).coerceAtLeast(0)
         val days = if (left == 1L) "1 day left" else "$left days left"
-        return "Deleted ${FileUtils.formatDate(entry.deletedAt)} · restores to $where$size · $days"
+        return "Deleted ${FileUtils.formatDate(entry.deletedAt)}$size · $days"
     }
 
     fun foreverHeadline(entries: List<TrashEntry>): String =
