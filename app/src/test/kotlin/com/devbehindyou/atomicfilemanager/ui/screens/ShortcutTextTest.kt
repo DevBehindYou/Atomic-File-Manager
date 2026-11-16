@@ -19,6 +19,6 @@ class ShortcutTextTest {
         val opened = RecentItem(FileNodeId.file("/a.pdf"), "a.pdf", null, 2_048, 0, RecentSource.OPENED)
         assertTrue(ShortcutText.recentMeta(opened).startsWith("2.0 KB · Opened "))
         val media = opened.copy(size = -1, source = RecentSource.MEDIA)
-        assertTrue(ShortcutText.recentMeta(media).startsWith("Added "))
+        assertTrue(ShortcutText.recentMeta(media).startsWith("Modified "))
     }
 }

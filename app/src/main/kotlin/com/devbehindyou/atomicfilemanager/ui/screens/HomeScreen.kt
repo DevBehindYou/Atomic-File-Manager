@@ -74,6 +74,8 @@ fun HomeScreen(
     privateLocked: Boolean = false,
     storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
     onRetryStorage: () -> Unit = {},
+    onViewOpenedHistory: (() -> Unit)? = null,
+    onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -119,6 +121,13 @@ fun HomeScreen(
             )
         }
 
+        HomeShortcuts(
+            onOpenFolder = onNavigateToFolder,
+            onExploreStorage = onOpenStorageDetails,
+            onViewOpenedHistory = onViewOpenedHistory,
+            onManagePinnedLocations = onManagePinnedLocations,
+        )
+
         val additionalVolumes = volumes.filter { it.id != primaryVolume?.id }
         if (additionalVolumes.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
@@ -126,7 +135,6 @@ fun HomeScreen(
                 additionalVolumes.forEach { volume -> VolumeCard(volume, onBrowse = { onNavigateToVolume(volume) }) }
             }
         }
-        HomeShortcuts(onOpenFolder = onNavigateToFolder)
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
             AtomicSectionLabel("Folders")

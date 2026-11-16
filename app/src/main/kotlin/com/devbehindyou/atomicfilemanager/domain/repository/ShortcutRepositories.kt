@@ -25,6 +25,9 @@ interface RecentsRepository {
 
     suspend fun remove(id: FileNodeId)
 
+    /** Clears opened-file history metadata. Files and MediaStore are left intact. */
+    suspend fun clearOpened()
+
     /** Photos, videos and audio added or changed since [sinceMillis], newest first; empty without access. */
     suspend fun recentMedia(
         sinceMillis: Long,
