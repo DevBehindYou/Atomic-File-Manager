@@ -38,7 +38,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P02 | Files | BrowseScreen / BrowseHeaders / BrowsePanes / FileListItem | Source strip; location context; title; view/select/count row; list/grid; selection bar; dual pane | Partial |
 | P03 | Storage | StorageScreen / StorageUsageDashboard | All connected storage ring + totals/legend; Your storage; analysis CTA card; four tools rows | Pending |
 | P04 | Analysis | StorageIntelligenceScreen / StorageUsageDashboard | Readable-file card; explicit scan/cancel; breakdown; cleanup card; inclusion disclosure | Pending |
-| P05 | Category | CategoryScreen | Scope caption; list/grid items; loading/empty/error | Pending |
+| P05 | Category | CategoryScreen | Scope caption; list/grid items; loading/empty/error | Compact phone verified Documents, collection search and Back. Four focused tests passed before current-head CI and feature integration. Visual matrix open. |
 | P06 | Recently opened | RecentlyOpenedScreen / MainActivity | History list; clear-history action; empty state; no file deletion | Host verified and compact phone navigation checked; visual matrix open |
 | P07 | Pinned locations | PinnedLocationsScreen / MainActivity | Pinned location cards; manage/unpin; missing provider state | Host verified and compact phone navigation checked; visual matrix open |
 | P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Host tests and phone navigation verified. Responsive visual matrix pending. |
@@ -55,8 +55,8 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P19 | Cloud Connect | Cloud records / future inventory surface | Honest bundled/planned capability presentation; no fake sign-in/download controls | Pending |
 | P20 | Storage access | Existing permission / SAF entry points | Status rows; real Android grant/link flows; revoked/disconnected states | Pending |
 | P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Pending |
-| P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | 14 focused host tests passed on the standalone build. Settings route, help, credits and bundled tools verified on a compact phone. Full visual matrix open. |
-| P23 | Plugins | InAppPluginsScreen / plugin inventory | Eight plugin cards; v0.2 About information; status/formats/limits; no downloader | Pending |
+| P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | Fourteen focused host tests passed. USB verified Settings and Commands entry, help, credits, bundled tools and Back. Visual matrix open. |
+| P23 | Plugins | InAppPluginsScreen / plugin inventory | Eight plugin cards; v0.2 About information; status/formats/limits; no downloader | Sixteen focused host tests passed across the inventory, About and navigation. USB verified the three entry points and v0.2 details. Visual matrix open. |
 | P24 | Image viewer | ui/components/ImageGallery.kt + AnimatedGifImage.kt | Universal viewer chrome; image stage; fit/zoom; navigation; GIF Stop/Replay; details | Pending |
 | P25 | Video player | ui/components/preview/VideoPreviewContent.kt + PreviewPlayer.kt | Media stage; play/seek/time; speed; metadata; lifecycle/error | Pending |
 | P26 | Audio player | ui/components/preview/AudioPreviewContent.kt + PreviewPlayer.kt | Artwork/track stage; seek; transport; ±10s; metadata; focus states | Pending |
@@ -155,3 +155,6 @@ Existing engine validation suites are reused: ImageViewModes/FocusedGesture/GifP
 Current R06 evidence
 - Home shortcuts (#137): 14 focused tests passed. The phone verified Recently opened, Pinned locations and Explore storage. View all and Manage are separate route work.
 - Category: 4 focused tests passed. The phone verified Documents, collection search and Back. Pushed-screen global toolbar parity and the full visual matrix remain open.
+
+- [Category #138](https://github.com/DevBehindYou/Atomic-File-Manager/pull/138) and [Search #142](https://github.com/DevBehindYou/Atomic-File-Manager/pull/142) passed their current-head emulator runs and merged into feature integration. Search passed 25 focused tests and its Index status phone smoke.
+- [About #143](https://github.com/DevBehindYou/Atomic-File-Manager/pull/143) and [Bundled tools #144](https://github.com/DevBehindYou/Atomic-File-Manager/pull/144) passed focused host and compact phone checks. The bundled-tools screen covers eight v0.2 entries. Its platform capabilities and the separate advanced plugin acceptance groups receive no new credit from the UI change.
