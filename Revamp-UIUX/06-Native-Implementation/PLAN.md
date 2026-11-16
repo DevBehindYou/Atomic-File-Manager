@@ -55,7 +55,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P19 | Cloud Connect | Cloud records / future inventory surface | Honest bundled/planned capability presentation; no fake sign-in/download controls | Pending |
 | P20 | Storage access | Existing permission / SAF entry points | Status rows; real Android grant/link flows; revoked/disconnected states | Pending |
 | P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Pending |
-| P22 | About | Settings About / licenses | Version; licenses; help; runtime version and bundled notices | Pending |
+| P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | 14 focused host tests passed on the standalone build. Settings route, help, credits and bundled tools verified on a compact phone. Full visual matrix open. |
 | P23 | Plugins | InAppPluginsSheet / plugin inventory | Eight plugin cards; v0.2 About information; status/formats/limits; no downloader | Pending |
 | P24 | Image viewer | ui/components/ImageGallery.kt + AnimatedGifImage.kt | Universal viewer chrome; image stage; fit/zoom; navigation; GIF Stop/Replay; details | Pending |
 | P25 | Video player | ui/components/preview/VideoPreviewContent.kt + PreviewPlayer.kt | Media stage; play/seek/time; speed; metadata; lifecycle/error | Pending |

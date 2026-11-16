@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicColorFactory
@@ -116,6 +117,17 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithTag("palette_plugins").performScrollTo().performClick()
         compose.onNodeWithText("Included with Atomic").assertIsDisplayed()
         compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun commandsOpenAboutAndBackReturnsHome() {
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_query").performTextInput("about")
+        compose.onNodeWithTag("palette_about").performScrollTo().performClick()
+        compose.onNodeWithTag("about_screen").assertIsDisplayed()
+        compose.onNodeWithText("Help & notices").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
