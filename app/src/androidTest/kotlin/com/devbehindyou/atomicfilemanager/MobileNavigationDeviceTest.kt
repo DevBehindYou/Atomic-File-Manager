@@ -126,7 +126,7 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithTag("palette_query").performTextInput("about")
         compose.onNodeWithTag("palette_about").performScrollTo().performClick()
         compose.onNodeWithTag("about_screen").assertIsDisplayed()
-        compose.onNodeWithText("Help & notices").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Help & notices").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
