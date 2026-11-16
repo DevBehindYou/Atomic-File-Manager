@@ -39,7 +39,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P03 | Storage | StorageScreen / StorageUsageDashboard | All connected storage ring + totals/legend; Your storage; analysis CTA card; four tools rows | Pending |
 | P04 | Analysis | StorageIntelligenceScreen / StorageUsageDashboard | Readable-file card; explicit scan/cancel; breakdown; cleanup card; inclusion disclosure | Pending |
 | P05 | Category | CategoryScreen | Scope caption; list/grid items; loading/empty/error | Pending |
-| P06 | Recently opened | Recent files collection / MainActivity | History list; clear-history action; empty state; no file deletion | Pending |
+| P06 | Recently opened | RecentlyOpenedScreen / MainActivity | History list; clear-history action; empty state; no file deletion | Host verified and compact phone navigation checked; visual matrix open |
 | P07 | Pinned locations | Favourites collection / MainActivity | Pinned location cards; manage/unpin; missing provider state | Pending |
 | P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Pending |
 | P09 | Tasks | OperationsScreen | Real task cards; status/progress; safe cancel/retry/details; empty state | Pending |
