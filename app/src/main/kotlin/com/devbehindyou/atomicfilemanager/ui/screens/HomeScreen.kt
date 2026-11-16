@@ -75,6 +75,7 @@ fun HomeScreen(
     storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
     onRetryStorage: () -> Unit = {},
     onViewOpenedHistory: (() -> Unit)? = null,
+    onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -124,6 +125,7 @@ fun HomeScreen(
             onOpenFolder = onNavigateToFolder,
             onExploreStorage = onOpenStorageDetails,
             onViewOpenedHistory = onViewOpenedHistory,
+            onManagePinnedLocations = onManagePinnedLocations,
         )
 
         val additionalVolumes = volumes.filter { it.id != primaryVolume?.id }

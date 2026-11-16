@@ -108,6 +108,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
+import com.devbehindyou.atomicfilemanager.ui.screens.PinnedLocationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
 import com.devbehindyou.atomicfilemanager.ui.screens.RecentlyOpenedScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
@@ -581,10 +582,7 @@ fun AtomicAppContent(
             }
             return
         }
-        AtomicRoute.RecentlyOpened -> {
-            RecentlyOpenedScreen(onBack = ::pop)
-            return
-        }
+        AtomicRoute.RecentlyOpened -> return RecentlyOpenedScreen(onBack = ::pop)
         AtomicRoute.Search -> {
             SearchScreen(
                 index = app.container.searchIndex,
@@ -596,6 +594,10 @@ fun AtomicAppContent(
                     openInBrowse(folder)
                 },
             )
+            return
+        }
+        AtomicRoute.PinnedLocations -> {
+            PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
             return
         }
         AtomicRoute.Apps -> {
@@ -891,6 +893,25 @@ fun AtomicAppContent(
     }
 }
 
+@Composable
+private fun PinnedLocationsRoute(
+    onBack: () -> Unit,
+    onOpenFolder: (FileNodeId) -> Unit,
+    onBrowseFiles: () -> Unit,
+) {
+    PinnedLocationsScreen(
+        onBack = onBack,
+        onOpenFolder = { folder ->
+            onBack()
+            onOpenFolder(folder)
+        },
+        onBrowseFiles = {
+            onBack()
+            onBrowseFiles()
+        },
+    )
+}
+
 /** Navigation and feedback callbacks the tab screens share. */
 private class ShellCallbacks(
     val onFolderSelected: (FileNodeId) -> Unit,
@@ -944,6 +965,7 @@ private fun MainScreenContent(
                 onRequestStorageAccess = callbacks.onRequestStorageAccess,
                 onOpenStorageDetails = callbacks.onOpenStorageDetails,
                 onViewOpenedHistory = { callbacks.onOpenRoute(AtomicRoute.RecentlyOpened) },
+                onManagePinnedLocations = { callbacks.onOpenRoute(AtomicRoute.PinnedLocations) },
                 privateLocked = privateLocked,
             )
         }

@@ -1,15 +1,11 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,9 +14,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
@@ -28,7 +22,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
@@ -37,9 +30,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVa
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
-import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
@@ -68,6 +59,7 @@ fun HomeShortcuts(
     onOpenFolder: (FileNodeId) -> Unit,
     onExploreStorage: () -> Unit,
     onViewOpenedHistory: (() -> Unit)? = null,
+    onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     val container = (LocalContext.current.applicationContext as AtomicApp).container
     val favouritesRepo = container.favouritesRepository
@@ -120,6 +112,7 @@ fun HomeShortcuts(
                 }
             },
             onExploreStorage = onExploreStorage,
+            onManagePinnedLocations = onManagePinnedLocations,
         )
     }
     if (LocalConfiguration.current.screenWidthDp >= 1120) {
@@ -217,35 +210,25 @@ private fun PinnedShortcutCards(
     resolved: Map<FileNodeId, FileNode?>,
     onOpen: (Favourite, FileNode?) -> Unit,
     onExploreStorage: () -> Unit,
+    onManagePinnedLocations: (() -> Unit)?,
 ) {
     Column(
         Modifier.fillMaxWidth().testTag("home_favourites"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10),
     ) {
-        AtomicText("Pinned locations", AtomicTextRole.DisplayCard, Modifier.padding(bottom = AtomicSpacing.s6))
+        AtomicSectionLabel("Pinned locations", actionLabel = "Manage", onAction = onManagePinnedLocations)
         if (favourites.isEmpty()) {
             AtomicText("Pin files or folders from Files to keep them here.", AtomicTextRole.BodySecondary)
         }
         favourites.forEach { favourite ->
             val node = resolved[favourite.id]
             val known = favourite.id in resolved
-            val shape = RoundedCornerShape(14.dp)
-            Row(
-                Modifier.fillMaxWidth().clip(shape).background(Atomic.colors.surfaceCard)
-                    .clickable(enabled = known, role = Role.Button) { onOpen(favourite, node) }
-                    .padding(AtomicSpacing.s16),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val fallbackIcon = if (favourite.isDirectory) AtomicIcons.Files else AtomicIcons.Document
-                val icon = node?.let(::iconFor) ?: fallbackIcon
-                Icon(icon, null, Modifier.size(AtomicSize.iconSmall), tint = Atomic.colors.accentText)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
-                    AtomicText(favourite.name, AtomicTextRole.Name)
-                    AtomicText(ShortcutText.favouriteMeta(node, known), AtomicTextRole.BodySecondary)
-                }
-                Icon(AtomicIcons.ChevronRight, null, Modifier.size(18.dp), tint = Atomic.colors.accentText)
-            }
+            PinnedLocationCard(
+                favourite = favourite,
+                node = node,
+                detail = ShortcutText.favouriteMeta(node, known),
+                onOpen = if (known) ({ onOpen(favourite, node) }) else null,
+            )
         }
         ExploreStorageCard(onExploreStorage)
     }

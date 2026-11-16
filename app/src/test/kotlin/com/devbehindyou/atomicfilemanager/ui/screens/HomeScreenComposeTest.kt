@@ -59,6 +59,7 @@ class HomeScreenComposeTest {
                     onOpenPrivateFiles = { events += "private" },
                     onOpenStorageDetails = { events += "details" },
                     onViewOpenedHistory = { events += "opened" },
+                    onManagePinnedLocations = { events += "manage pins" },
                     storageReadiness =
                         readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
                     onRetryStorage = { events += "retry" },
@@ -92,7 +93,8 @@ class HomeScreenComposeTest {
         compose.onNodeWithContentDescription("Recently opened").performScrollTo().assertExists()
         compose.onNodeWithContentDescription("Pinned locations").performScrollTo().assertExists()
         compose.onNodeWithContentDescription("Explore storage").performScrollTo().performClick()
-        assertEquals(listOf("volume:primary", "details", "details"), events)
+        compose.onNodeWithContentDescription("Manage").performScrollTo().performClick()
+        assertEquals(listOf("volume:primary", "details", "details", "manage pins"), events)
     }
 
     @Test
