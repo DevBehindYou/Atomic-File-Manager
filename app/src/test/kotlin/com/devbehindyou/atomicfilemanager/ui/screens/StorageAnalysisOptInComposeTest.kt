@@ -153,6 +153,28 @@ class StorageAnalysisOptInComposeTest {
             fixture.expectDeepCancellation = true
         }
 
+    @Test
+    fun visibleCancelActionsStopOnlyTheirActiveScanner() =
+        withFixture { fixture ->
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().performClick()
+            compose.waitUntil(5_000) { fixture.activeUsage.get() == 1 }
+            compose.onNodeWithTag("cancel_storage_usage").performScrollTo().performClick()
+            compose.waitUntil(5_000) {
+                fixture.usageCancelled.isCompleted && fixture.activeUsage.get() == 0 &&
+                    fixture.finished.subscriptionCount.value == 0
+            }
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled()
+            assertEquals(0, fixture.deepStarts.get())
+
+            compose.onNodeWithTag("start_cleanup_analysis").performScrollTo().performClick()
+            compose.waitUntil(5_000) { fixture.activeDeep.get() == 1 }
+            compose.onNodeWithTag("cancel_cleanup_analysis").performScrollTo().performClick()
+            compose.waitUntil(5_000) { fixture.deepCancelled.isCompleted && fixture.activeDeep.get() == 0 }
+            compose.onNodeWithTag("start_cleanup_analysis").performScrollTo().assertIsEnabled()
+            compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled()
+            assertEquals(1, fixture.usageStarts.get())
+        }
+
     private fun withFixture(
         fixture: Fixture = Fixture(),
         assertions: (Fixture) -> Unit,
