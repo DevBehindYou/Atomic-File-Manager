@@ -448,6 +448,8 @@ class RemoteOpenPreparationComposeTest {
     private object NoOpRecents : RecentsRepository {
         override fun observeOpened(limit: Int): Flow<List<RecentItem>> = flowOf(emptyList())
 
+        override suspend fun clearOpened(): Unit = error("Unexpected history clear")
+
         override suspend fun recordOpened(node: FileNode) = Unit
 
         override suspend fun remove(id: FileNodeId) = Unit

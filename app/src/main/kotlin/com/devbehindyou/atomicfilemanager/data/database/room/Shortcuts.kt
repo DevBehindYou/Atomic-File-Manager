@@ -56,6 +56,9 @@ interface RecentItemDao {
     @Query("DELETE FROM recent_item WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("DELETE FROM recent_item")
+    suspend fun clear()
+
     @Query("SELECT * FROM recent_item ORDER BY openedAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<RecentItemEntity>>
 
@@ -98,6 +101,8 @@ class RoomRecentsRepository(
     }
 
     override suspend fun remove(id: FileNodeId) = dao.delete(id.raw)
+
+    override suspend fun clearOpened() = dao.clear()
 
     override suspend fun recentMedia(
         sinceMillis: Long,

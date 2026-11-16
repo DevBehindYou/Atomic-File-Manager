@@ -122,6 +122,17 @@ class AtomicDatabaseMigrationTest {
                 val recents = RoomRecentsRepository(database.recentItems(), media = { _, _ -> emptyList() })
                 recents.recordOpened(node.copy(id = FileNodeId.file("/storage/emulated/0/a.pdf"), isDirectory = false))
                 assertEquals(1, recents.observeOpened(10).first().size)
+                recents.recordOpened(node.copy(id = FileNodeId.file("/storage/emulated/0/b.pdf"), isDirectory = false))
+                assertEquals(2, recents.observeOpened(10).first().size)
+                recents.clearOpened()
+                assertEquals(emptyList<String>(), recents.observeOpened(10).first().map { it.id.raw })
+                assertEquals(listOf("Docs"), favourites.observe().first().map { it.name })
+                assertEquals(entry, store.byTrashedId(entry.trashedId))
+                recents.recordOpened(node.copy(id = FileNodeId.file("/storage/emulated/0/c.pdf"), isDirectory = false))
+                assertEquals(
+                    listOf("file:/storage/emulated/0/c.pdf"),
+                    recents.observeOpened(10).first().map { it.id.raw },
+                )
 
                 val search = database.searchIndex()
                 search.upsert(

@@ -17,6 +17,11 @@ sealed interface AtomicRoute {
         override fun encode() = OPERATIONS
     }
 
+    /** Files opened through this application. */
+    data object RecentlyOpened : AtomicRoute {
+        override fun encode() = RECENTLY_OPENED
+    }
+
     /** Search across all storage. */
     data object Search : AtomicRoute {
         override fun encode() = SEARCH
@@ -69,6 +74,7 @@ sealed interface AtomicRoute {
         private const val PRIVATE = "private"
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
+        private const val RECENTLY_OPENED = "recently-opened"
         private const val SEARCH = "search"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
@@ -85,6 +91,7 @@ sealed interface AtomicRoute {
             if (value == PRIVATE) return PrivateFiles
             if (value == OPERATIONS) return Operations
             if (value == TRASH) return Trash
+            if (value == RECENTLY_OPENED) return RecentlyOpened
             if (value == SEARCH) return Search
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare

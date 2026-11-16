@@ -47,6 +47,7 @@ class RouteStackTest {
             RouteStack()
                 .push(AtomicRoute.Analysis("saf:content://tree/primary:Download"))
                 .push(AtomicRoute.Category("VIDEOS"))
+                .push(AtomicRoute.RecentlyOpened)
                 .push(AtomicRoute.PrivateFiles)
                 .push(AtomicRoute.Operations)
                 .push(AtomicRoute.Apps)

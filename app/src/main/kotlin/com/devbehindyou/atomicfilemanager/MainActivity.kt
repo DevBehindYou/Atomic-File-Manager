@@ -109,6 +109,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
+import com.devbehindyou.atomicfilemanager.ui.screens.RecentlyOpenedScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsDestinations
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
@@ -580,6 +581,10 @@ fun AtomicAppContent(
             }
             return
         }
+        AtomicRoute.RecentlyOpened -> {
+            RecentlyOpenedScreen(onBack = ::pop)
+            return
+        }
         AtomicRoute.Search -> {
             SearchScreen(
                 index = app.container.searchIndex,
@@ -938,6 +943,7 @@ private fun MainScreenContent(
                 onNavigateToFolder = callbacks.onFolderSelected,
                 onRequestStorageAccess = callbacks.onRequestStorageAccess,
                 onOpenStorageDetails = callbacks.onOpenStorageDetails,
+                onViewOpenedHistory = { callbacks.onOpenRoute(AtomicRoute.RecentlyOpened) },
                 privateLocked = privateLocked,
             )
         }
