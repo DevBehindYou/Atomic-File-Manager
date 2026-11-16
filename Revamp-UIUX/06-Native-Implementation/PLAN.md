@@ -151,3 +151,7 @@ Existing engine validation suites are reused: ImageViewModes/FocusedGesture/GifP
 - **Feature integration:** [#130](https://github.com/DevBehindYou/Atomic-File-Manager/pull/130) merged as `0ab3c363`; [#131](https://github.com/DevBehindYou/Atomic-File-Manager/pull/131) merged as `db8e292d`. The current PR heads passed standard CI and both dry-run merges reproduced the tested trees. The visual acceptance and release checkpoints remain open.
 - **R06 Analysis host verified:** separate Analysis cards preserve both opt-in scan actions, expose cancellation and retain earlier results. The corrected build passed all 20 focused tests for opt-in, cancellation, lifecycle, result restoration and cleanup selection. APK SHA256: `7391FCFA2A590068DBCB5B09787AA6AB01B32E434A4FB35815B611C65222E24B`.
 - **Visual acceptance: 0/32.** This intentionally stays zero until complete per-surface gates pass; the plan itself is complete, implementation is not.
+---
+Current R06 evidence
+- Home shortcuts (#137): 14 focused tests passed. The phone verified Recently opened, Pinned locations and Explore storage. View all and Manage are separate route work.
+- Category: 4 focused tests passed. The phone verified Documents, collection search and Back. Pushed-screen global toolbar parity and the full visual matrix remain open.
