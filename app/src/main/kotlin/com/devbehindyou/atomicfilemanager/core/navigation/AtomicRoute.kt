@@ -22,6 +22,11 @@ sealed interface AtomicRoute {
         override fun encode() = ABOUT
     }
 
+    /** The catalog of tools included with the installed app. */
+    data object InAppPlugins : AtomicRoute {
+        override fun encode() = PLUGINS
+    }
+
     /** Search across all storage. */
     data object Search : AtomicRoute {
         override fun encode() = SEARCH
@@ -76,6 +81,7 @@ sealed interface AtomicRoute {
         private const val TRASH = "trash"
         private const val SEARCH = "search"
         private const val ABOUT = "about"
+        private const val PLUGINS = "plugins"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
         private const val CATEGORY = "category"
@@ -93,6 +99,7 @@ sealed interface AtomicRoute {
             if (value == TRASH) return Trash
             if (value == SEARCH) return Search
             if (value == ABOUT) return About
+            if (value == PLUGINS) return InAppPlugins
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare
             val kind = value.substringBefore(SEPARATOR, missingDelimiterValue = "")

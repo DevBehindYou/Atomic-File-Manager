@@ -115,7 +115,7 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithTag("home_palette_button").performClick()
         compose.onNodeWithTag("palette_plugins").performScrollTo().performClick()
         compose.onNodeWithText("Included with Atomic").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 
