@@ -595,17 +595,7 @@ fun AtomicAppContent(
             return
         }
         AtomicRoute.PinnedLocations -> {
-            PinnedLocationsScreen(
-                onBack = ::pop,
-                onOpenFolder = { folder ->
-                    pop()
-                    openInBrowse(folder)
-                },
-                onBrowseFiles = {
-                    pop()
-                    navigateTab(NavigationTab.BROWSE)
-                },
-            )
+            PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
             return
         }
         AtomicRoute.Apps -> {
@@ -899,6 +889,25 @@ fun AtomicAppContent(
             onDismiss = { showAboutDialog = false },
         )
     }
+}
+
+@Composable
+private fun PinnedLocationsRoute(
+    onBack: () -> Unit,
+    onOpenFolder: (FileNodeId) -> Unit,
+    onBrowseFiles: () -> Unit,
+) {
+    PinnedLocationsScreen(
+        onBack = onBack,
+        onOpenFolder = { folder ->
+            onBack()
+            onOpenFolder(folder)
+        },
+        onBrowseFiles = {
+            onBack()
+            onBrowseFiles()
+        },
+    )
 }
 
 /** Navigation and feedback callbacks the tab screens share. */
