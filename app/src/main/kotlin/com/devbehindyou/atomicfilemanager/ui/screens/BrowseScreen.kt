@@ -70,14 +70,19 @@ enum class DualPaneMode {
     PREVIEW,
 }
 
+/** A folder open revision and an optional one-time request for the active Browse tab. */
+data class BrowseEntryRequest(
+    val folderRevision: Int = 0,
+    val onNewFolderHandled: (() -> Unit)? = null,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowseScreen(
     initialFolderId: FileNodeId,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Changes each time the caller explicitly opens [initialFolderId]; see [BrowseViewModel.onOpenRequest]. */
-    openRequest: Int = 0,
+    entryRequest: BrowseEntryRequest = BrowseEntryRequest(),
     onOpenFile: ((FileNode) -> Unit)? = null,
     /** Shows feedback in the app snackbar. */
     onNotify: (String) -> Unit = {},
@@ -179,6 +184,14 @@ fun BrowseScreen(
 
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
+    val onNewFolderRequestHandled = entryRequest.onNewFolderHandled
+    LaunchedEffect(onNewFolderRequestHandled != null) {
+        if (onNewFolderRequestHandled != null) {
+            showHiddenScreen = false
+            showNewFolderDialog = true
+            onNewFolderRequestHandled()
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val favouriteIds by produceState<Set<FileNodeId>?>(null, app.container) {
         withContext(Dispatchers.IO) { app.container.favouritesRepository }.observe().collect { favourites ->
@@ -225,7 +238,7 @@ fun BrowseScreen(
         if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
-    PrimaryBrowseVisibility(viewModel, openRequest, contentVisible = !showHiddenScreen)
+    PrimaryBrowseVisibility(viewModel, entryRequest.folderRevision, contentVisible = !showHiddenScreen)
     if (isDualPane) {
         SecondaryBrowseVisibility(
             secondaryViewModel,

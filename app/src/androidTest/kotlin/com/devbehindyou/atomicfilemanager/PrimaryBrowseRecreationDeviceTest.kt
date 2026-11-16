@@ -3,7 +3,6 @@ package com.devbehindyou.atomicfilemanager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -55,9 +54,7 @@ class PrimaryBrowseRecreationDeviceTest {
                         .putExtra(MainActivity.EXTRA_OPEN, OpenTarget.Folder(rootId.raw).encode()),
                 )
             }
-            compose.waitUntil(5_000) {
-                compose.onAllNodesWithTag("file_item_${childId.raw}").fetchSemanticsNodes().isNotEmpty()
-            }
+            compose.revealBrowseItem(childId, timeoutMillis = 5_000)
             lateinit var model: BrowseViewModel
             compose.activityRule.scenario.onActivity { model = existingModel(it, rootId) }
             compose.runOnIdle {
@@ -65,7 +62,7 @@ class PrimaryBrowseRecreationDeviceTest {
                 model.copySelected()
             }
             val clipboard = checkNotNull(model.uiState.value.clipboard)
-            compose.onNodeWithTag("file_item_${childId.raw}").performClick()
+            compose.revealBrowseItem(childId, timeoutMillis = 5_000).performClick()
             awaitFolder(model, childId)
             compose.onNodeWithTag("tab_home").performClick()
             compose.onNodeWithTag("tab_browse").performClick()
