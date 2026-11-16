@@ -111,7 +111,9 @@ import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.InAppPluginsSheet
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
+import com.devbehindyou.atomicfilemanager.ui.screens.PinnedLocationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
+import com.devbehindyou.atomicfilemanager.ui.screens.RecentlyOpenedScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsDestinations
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
@@ -604,6 +606,7 @@ fun AtomicAppContent(
             }
             return
         }
+        AtomicRoute.RecentlyOpened -> return RecentlyOpenedScreen(onBack = ::pop)
         AtomicRoute.Search -> {
             SearchScreen(
                 index = app.container.searchIndex,
@@ -617,10 +620,9 @@ fun AtomicAppContent(
             )
             return
         }
-        AtomicRoute.Apps -> {
-            AppManagerScreen(onBack = ::pop, onNotify = ::notify)
-            return
-        }
+        AtomicRoute.PinnedLocations ->
+            return PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
+        AtomicRoute.Apps -> return AppManagerScreen(onBack = ::pop, onNotify = ::notify)
         is AtomicRoute.StorageTool -> {
             val openFiles = {
                 pop()
@@ -906,6 +908,25 @@ fun AtomicAppContent(
 }
 
 @Composable
+private fun PinnedLocationsRoute(
+    onBack: () -> Unit,
+    onOpenFolder: (FileNodeId) -> Unit,
+    onBrowseFiles: () -> Unit,
+) {
+    PinnedLocationsScreen(
+        onBack = onBack,
+        onOpenFolder = { folder ->
+            onBack()
+            onOpenFolder(folder)
+        },
+        onBrowseFiles = {
+            onBack()
+            onBrowseFiles()
+        },
+    )
+}
+
+@Composable
 private fun MainToolbarActions(
     onSearch: () -> Unit,
     onCommands: () -> Unit,
@@ -980,6 +1001,8 @@ private fun MainScreenContent(
                 onNavigateToFolder = callbacks.onFolderSelected,
                 onRequestStorageAccess = callbacks.onRequestStorageAccess,
                 onOpenStorageDetails = callbacks.onOpenStorageDetails,
+                onViewOpenedHistory = { callbacks.onOpenRoute(AtomicRoute.RecentlyOpened) },
+                onManagePinnedLocations = { callbacks.onOpenRoute(AtomicRoute.PinnedLocations) },
                 privateLocked = privateLocked,
             )
         }

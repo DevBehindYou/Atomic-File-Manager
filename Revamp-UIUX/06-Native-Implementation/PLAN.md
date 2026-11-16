@@ -39,8 +39,8 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P03 | Storage | StorageScreen / StorageUsageDashboard | All connected storage ring + totals/legend; Your storage; analysis CTA card; four tools rows | Pending |
 | P04 | Analysis | StorageIntelligenceScreen / StorageUsageDashboard | Readable-file card; explicit scan/cancel; breakdown; cleanup card; inclusion disclosure | Pending |
 | P05 | Category | CategoryScreen | Scope caption; list/grid items; loading/empty/error | Pending |
-| P06 | Recently opened | Recent files collection / MainActivity | History list; clear-history action; empty state; no file deletion | Pending |
-| P07 | Pinned locations | Favourites collection / MainActivity | Pinned location cards; manage/unpin; missing provider state | Pending |
+| P06 | Recently opened | RecentlyOpenedScreen / MainActivity | History list; clear-history action; empty state; no file deletion | Host verified and compact phone navigation checked; visual matrix open |
+| P07 | Pinned locations | PinnedLocationsScreen / MainActivity | Pinned location cards; manage/unpin; missing provider state | Host verified and compact phone navigation checked; visual matrix open |
 | P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Host tests and phone navigation verified. Responsive visual matrix pending. |
 | P09 | Tasks | OperationsScreen | Real task cards; status/progress; safe cancel/retry/details; empty state | Pending |
 | P10 | Destination | Folder picker / transfer flow | Source operation notice; independent destination/source strip; free capacity; confirm | Pending |
@@ -151,3 +151,7 @@ Existing engine validation suites are reused: ImageViewModes/FocusedGesture/GifP
 - **Feature integration:** [#130](https://github.com/DevBehindYou/Atomic-File-Manager/pull/130) merged as `0ab3c363`; [#131](https://github.com/DevBehindYou/Atomic-File-Manager/pull/131) merged as `db8e292d`. The current PR heads passed standard CI and both dry-run merges reproduced the tested trees. The visual acceptance and release checkpoints remain open.
 - **R06 Analysis host verified:** separate Analysis cards preserve both opt-in scan actions, expose cancellation and retain earlier results. The corrected build passed all 20 focused tests for opt-in, cancellation, lifecycle, result restoration and cleanup selection. APK SHA256: `7391FCFA2A590068DBCB5B09787AA6AB01B32E434A4FB35815B611C65222E24B`.
 - **Visual acceptance: 0/32.** This intentionally stays zero until complete per-surface gates pass; the plan itself is complete, implementation is not.
+---
+Current R06 evidence
+- Home shortcuts (#137): 14 focused tests passed. The phone verified Recently opened, Pinned locations and Explore storage. View all and Manage are separate route work.
+- Category: 4 focused tests passed. The phone verified Documents, collection search and Back. Pushed-screen global toolbar parity and the full visual matrix remain open.
