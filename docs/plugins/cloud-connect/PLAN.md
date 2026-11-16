@@ -15,7 +15,7 @@ Historical source audit: accepted feature integration `863f78702de1066f6d7fc3c7f
 | `data/backend/network/NetworkCredentialsStore.kt` | Keystore-protected network passwords and server configurations | Reuse protection ideas, not the password schema for OAuth expiry/scopes/refresh ownership |
 | `data/volume/LinkedFolders.kt` | User-linked SAF folders with provider-app labels | Keep working device-app access separate from direct accounts |
 | `data/backend/StorageBackendSelector.kt`, `AtomicApp.kt` | Device/network dispatch and manual container registration | Register a connector only with usable capabilities and tests |
-| `ui/screens/InAppPluginsSheet.kt` | Eight shipped entries and per-plugin versions | Add ninth entry only when a useful Cloud increment ships |
+| `ui/screens/InAppPluginsScreen.kt` | Eight shipped entries and per-plugin versions | Add ninth entry only when a useful Cloud increment ships |
 
 ## Product boundaries
 
