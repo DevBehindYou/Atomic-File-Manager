@@ -41,7 +41,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P05 | Category | CategoryScreen | Scope caption; list/grid items; loading/empty/error | Pending |
 | P06 | Recently opened | RecentlyOpenedScreen / MainActivity | History list; clear-history action; empty state; no file deletion | Host verified and compact phone navigation checked; visual matrix open |
 | P07 | Pinned locations | PinnedLocationsScreen / MainActivity | Pinned location cards; manage/unpin; missing provider state | Host verified and compact phone navigation checked; visual matrix open |
-| P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Pending |
+| P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Host tests and phone navigation verified. Responsive visual matrix pending. |
 | P09 | Tasks | OperationsScreen | Real task cards; status/progress; safe cancel/retry/details; empty state | Pending |
 | P10 | Destination | Folder picker / transfer flow | Source operation notice; independent destination/source strip; free capacity; confirm | Pending |
 | P11 | Trash | TrashScreen | Origin-aware cards; restore/purge; conflict and confirmation; empty | Pending |
