@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,7 +39,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicDivider
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
@@ -50,9 +48,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSha
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.ui.components.AtomicTopDialog
 import com.devbehindyou.atomicfilemanager.ui.components.BalancedPopupHeader
 
@@ -135,55 +130,6 @@ private enum class BuiltInPlugin(
         "0.2",
         "ZIP · TAR · 7Z",
     ),
-}
-
-@Composable
-internal fun InAppPluginsSheet(onDismiss: () -> Unit) {
-    var selected by rememberSaveable { mutableStateOf<BuiltInPlugin?>(null) }
-    val plugin = selected
-    val scroll = rememberScrollState()
-    // Keep one modal window while changing pages, and reset a scrolled list before showing details.
-    LaunchedEffect(plugin) { scroll.scrollTo(0) }
-    AtomicSheet(
-        label = stringResource(R.string.plugins_title),
-        onDismiss = onDismiss,
-        scrollState = scroll,
-    ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (plugin != null) {
-                AtomicIconButton(
-                    AtomicIcons.Back,
-                    stringResource(R.string.plugins_back),
-                    onClick = { selected = null },
-                )
-            }
-            AtomicText(
-                stringResource(plugin?.title ?: R.string.plugins_included),
-                AtomicTextRole.Body,
-                modifier = Modifier.weight(1f),
-            )
-            AtomicIconButton(AtomicIcons.Close, stringResource(R.string.action_close), onClick = onDismiss)
-        }
-        if (plugin == null) {
-            AtomicText(stringResource(R.string.plugins_intro), AtomicTextRole.BodySecondary)
-            AtomicCommandGrid(
-                BuiltInPlugin.entries.map { entry ->
-                    AtomicMenuAction(
-                        label = stringResource(entry.title),
-                        icon = entry.icon,
-                        description = stringResource(R.string.plugins_built_in),
-                        onClick = { selected = entry },
-                    )
-                },
-            )
-        } else {
-            PluginAboutContent(plugin)
-        }
-    }
 }
 
 @Composable
