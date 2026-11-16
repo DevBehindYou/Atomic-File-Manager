@@ -356,6 +356,8 @@ class OpeningInferredTypeRecentsComposeTest {
 
         override fun observeOpened(limit: Int): Flow<List<RecentItem>> = flowOf(emptyList())
 
+        override suspend fun clearOpened(): Unit = error("Unexpected history clear")
+
         override suspend fun recordOpened(node: FileNode) {
             opened += node
         }

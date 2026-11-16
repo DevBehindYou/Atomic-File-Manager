@@ -2,11 +2,8 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -15,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,15 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.input.ImeAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
@@ -64,11 +54,15 @@ private const val QUERY_LIMIT = 2_000
 private const val SHOWN_LIMIT = 200
 private const val TYPING_PAUSE_MS = 150L
 
-/**
- * Search (ALL_IN_ONE_PLAN.md 1.4): one box over every readable volume, answered from the index.
- * Type chips narrow it; each result shows its folder and can open that folder. While the index
- * builds, results come from what is indexed so far and the screen says so.
- */
+private sealed interface SearchResults {
+    data object Pending : SearchResults
+
+    data object Failed : SearchResults
+
+    data class Found(val hits: List<SearchHit>) : SearchResults
+}
+
+/** Search readable file and folder names using the existing index. */
 @Composable
 fun SearchScreen(
     index: SearchIndex,
@@ -82,7 +76,9 @@ fun SearchScreen(
     val state by index.state.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(SearchFilter.ALL) }
-    var hits by remember { mutableStateOf<List<SearchHit>>(emptyList()) }
+    var results by remember(query, filter) { mutableStateOf<SearchResults>(SearchResults.Pending) }
+    var showIndexStatus by rememberSaveable { mutableStateOf(false) }
+    var showMoreTypes by rememberSaveable { mutableStateOf(false) }
     var preview by remember { mutableStateOf<FileNode?>(null) }
     val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
@@ -91,16 +87,18 @@ fun SearchScreen(
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // Re-runs when the text, the chip or the index changes; the short pause skips keystrokes in between.
     LaunchedEffect(query, filter, state.indexedCount, state.builtAt) {
+        if (query.isBlank()) return@LaunchedEffect
         delay(TYPING_PAUSE_MS)
-        hits =
+        results =
             try {
-                index.search(query, QUERY_LIMIT, filter)
+                SearchResults.Found(index.search(query, QUERY_LIMIT, filter))
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                emptyList()
+                SearchResults.Failed
             }
     }
+    val hits = (results as? SearchResults.Found)?.hits.orEmpty()
     val shown = remember(hits, filter) { hits.filter(filter::matches).take(SHOWN_LIMIT) }
 
     Column(
@@ -112,40 +110,48 @@ fun SearchScreen(
             .imePadding()
             .testTag("search_screen"),
     ) {
-        AtomicPushedHeader(onBack = onBack, title = "Search", eyebrow = SearchText.status(state))
-        Column(
-            Modifier.padding(horizontal = AtomicSpacing.s16),
-            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-        ) {
-            AtomicTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = "Search all storage",
-                placeholder = "Name or part of a name",
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("search_field"),
-            )
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-            ) {
-                SearchFilter.entries.forEach { option ->
-                    AtomicChip(
-                        label = option.title,
-                        selected = filter == option,
-                        onSelectedChange = { filter = option },
-                    )
-                }
-            }
-        }
+        AtomicPushedHeader(onBack = onBack, title = "Search")
+        SearchNameField(
+            value = query,
+            onValueChange = { query = it },
+            focus = focus,
+            modifier = Modifier.padding(horizontal = AtomicSpacing.s16),
+        )
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(AtomicSpacing.s16),
         ) {
-            val message = SearchText.emptyMessage(query, state, hits.size, shown.size)
-            if (message != null) {
-                item {
-                    AtomicEmptyState(message = message.first, detail = message.second)
+            item(key = "search_controls") {
+                SearchControls(
+                    filter = filter,
+                    onFilter = { filter = it },
+                    onMoreTypes = { showMoreTypes = true },
+                    onIndexStatus = { showIndexStatus = true },
+                )
+            }
+            when {
+                query.isBlank() -> {
+                    item {
+                        AtomicEmptyState(
+                            message = "What are you looking for?",
+                            detail = "Search file names across accessible storage.",
+                        )
+                    }
+                }
+                results == SearchResults.Pending -> item { AtomicLoading("Searching…") }
+                results == SearchResults.Failed -> {
+                    item {
+                        AtomicEmptyState(
+                            message = "Search could not read the index.",
+                            detail = "Check Index status, then try again.",
+                        )
+                    }
+                }
+                else -> {
+                    val message = SearchText.emptyMessage(state, hits.size, shown.size)
+                    if (message != null) {
+                        item { AtomicEmptyState(message = message.first, detail = message.second) }
+                    }
                 }
             }
             items(shown, key = { it.id.raw }) { hit ->
@@ -175,18 +181,27 @@ fun SearchScreen(
                         },
                 )
             }
-            item {
-                AtomicButton(
-                    if (state.building) "Indexing…" else "Rebuild index",
-                    onClick = { index.rebuild(roots) },
-                    enabled = !state.building,
-                    variant = AtomicButtonVariant.Text,
-                    modifier = Modifier.fillMaxWidth().testTag("search_rebuild"),
-                )
-            }
         }
     }
 
+    if (showIndexStatus) {
+        SearchIndexDialog(
+            state = state,
+            hasRoots = roots.isNotEmpty(),
+            onRebuild = { index.rebuild(roots) },
+            onDismiss = { showIndexStatus = false },
+        )
+    }
+    if (showMoreTypes) {
+        SearchMoreTypesDialog(
+            filter = filter,
+            onFilter = {
+                filter = it
+                showMoreTypes = false
+            },
+            onDismiss = { showMoreTypes = false },
+        )
+    }
     preview?.let { FilePreviewDialog(node = it, onDismiss = { preview = null }) }
 }
 
@@ -207,19 +222,17 @@ internal object SearchText {
 
     /** Title and detail when there is nothing to list, or null when there are results. */
     fun emptyMessage(
-        query: String,
         state: SearchIndexState,
         matches: Int,
         shown: Int,
     ): Pair<String, String?>? =
         when {
-            query.isBlank() && state.builtAt == null && !state.building ->
-                "Search needs an index." to "Grant storage access, then Rebuild index below."
-            query.isBlank() -> "Type a name to search all storage." to "Hidden files and the Trash are not searched."
             shown > 0 -> null
-            matches > 0 -> "Nothing of this type matches." to "Try All."
+            matches > 0 -> "Nothing of this type matches." to "Try All types."
             state.building -> "No match yet." to "Still indexing; results appear as folders are read."
-            else -> "No file or folder name contains “${query.trim()}”." to null
+            state.builtAt == null ->
+                "Search needs an index." to "Check Index status to rebuild when storage is available."
+            else -> "No matching files" to "Try a shorter name or choose a different file type."
         }
 
     private fun count(n: Int): String = if (n == 1) "1 item" else String.format(Locale.US, "%,d items", n)
