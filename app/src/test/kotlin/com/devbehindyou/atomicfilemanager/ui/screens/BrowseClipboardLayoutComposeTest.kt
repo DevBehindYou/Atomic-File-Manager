@@ -46,11 +46,12 @@ class BrowseClipboardLayoutComposeTest {
     ) {
         val source = FileNodeId.file("/fixture/source")
         val destination = FileNodeId.saf("content://fixture/tree/opaque-destination")
+        val displayedFolderId = if (staleDestination) source.raw else destination.raw
         val state =
             BrowseUiState(
                 destination,
                 currentFolderName = "Previous folder",
-                breadcrumbs = listOf(BreadcrumbItem("Destination", if (staleDestination) source.raw else destination.raw)),
+                breadcrumbs = listOf(BreadcrumbItem("Destination", displayedFolderId)),
                 clipboard = ClipboardState(listOf(folder(source, "Source")), operation),
             )
         val actions = mutableListOf<String>()
