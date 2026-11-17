@@ -692,6 +692,10 @@ fun AtomicAppContent(
                 retentionDays = settings.trashRetentionDays,
                 onBack = ::pop,
                 onNotify = ::notify,
+                onBrowseFiles = {
+                    pop()
+                    navigateTab(NavigationTab.BROWSE)
+                },
             )
             return
         }

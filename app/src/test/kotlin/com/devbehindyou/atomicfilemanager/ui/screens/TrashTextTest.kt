@@ -28,16 +28,20 @@ class TrashTextTest {
     )
 
     @Test
-    fun `meta shows where it goes back, its size and the days left`() {
+    fun `origin disambiguates volumes and retention includes deleted time and size`() {
         val deleted = 1_000 * day
-        val meta = TrashText.meta(entry(deletedAt = deleted), retentionDays = 30, now = deleted + 7 * day)
-        assertTrue(meta.endsWith(" · restores to /Download · 2.0 KB · 23 days left"), meta)
+        val stored = entry(deletedAt = deleted)
+        val otherVolume = stored.copy(originalParent = FileNodeId.file("/storage/1234-5678/Download"))
+        assertEquals("Originally /storage/emulated/0/Download", TrashText.origin(stored))
+        assertEquals("Originally /storage/1234-5678/Download", TrashText.origin(otherVolume))
+        val meta = TrashText.retention(stored, retentionDays = 30, now = deleted + 7 * day)
+        assertTrue(meta.endsWith(" · 2.0 KB · 23 days left"), meta)
         assertTrue(meta.startsWith("Deleted ${FileUtils.formatDate(deleted, ZoneId.systemDefault())}"))
     }
 
     @Test
     fun `expired items never show negative days`() {
-        assertTrue(TrashText.meta(entry(), retentionDays = 7, now = 100 * day).endsWith("0 days left"))
+        assertTrue(TrashText.retention(entry(), retentionDays = 7, now = 100 * day).endsWith("0 days left"))
     }
 
     @Test
