@@ -151,15 +151,15 @@ fun HiddenFilesScreen(
                 verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
             ) {
                 if (privateOnly) {
-                    item { AtomicWarningBox(title = HiddenText.privateTitle, body = HiddenText.privateExplanation) }
+                    item { AtomicWarningBox(title = HiddenText.PRIVATE_TITLE, body = HiddenText.PRIVATE_EXPLANATION) }
                     if (onLockPrivateFiles != null) {
                         item { AtomicButton("Lock now", onClick = onLockPrivateFiles, leadingIcon = AtomicIcons.Lock) }
                     }
                 } else {
                     item {
                         AtomicWarningBox(
-                            title = HiddenText.visibilityTitle,
-                            body = HiddenText.visibilityExplanation,
+                            title = HiddenText.VISIBILITY_TITLE,
+                            body = HiddenText.VISIBILITY_EXPLANATION,
                         )
                     }
                     if (visibility != null) item { HiddenVisibilityCard(visibility) }
@@ -180,7 +180,7 @@ fun HiddenFilesScreen(
                 }
                 item { AtomicText(mode.explanation, AtomicTextRole.BodySecondary) }
                 if (!privateOnly && mode == HideMode.PRIVATE_STORAGE) {
-                    item { AtomicWarningBox(title = HiddenText.privateTitle, body = HiddenText.privateExplanation) }
+                    item { AtomicWarningBox(title = HiddenText.PRIVATE_TITLE, body = HiddenText.PRIVATE_EXPLANATION) }
                 }
                 if (currentItems.isEmpty()) {
                     item {
@@ -344,12 +344,12 @@ internal object HiddenText {
             "“${item.originalName}” couldn't be exported"
         }
 
-    const val visibilityTitle = "Hidden is not encrypted"
-    const val visibilityExplanation =
+    const val VISIBILITY_TITLE = "Hidden is not encrypted"
+    const val VISIBILITY_EXPLANATION =
         "Show hidden files changes which dot-prefixed names Files displays. Use Private files for protected storage."
 
-    const val privateTitle = "Private storage"
-    const val privateExplanation =
+    const val PRIVATE_TITLE = "Private storage"
+    const val PRIVATE_EXPLANATION =
         "New private files are encrypted with a key kept in Android's keystore. Restore puts a file back; " +
             "Export saves a normal copy to Download and keeps the private one."
 
