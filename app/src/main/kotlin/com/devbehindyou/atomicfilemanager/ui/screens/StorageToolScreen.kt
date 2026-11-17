@@ -184,7 +184,7 @@ private fun StorageAccessNotice() {
         ) {
             AtomicText("Choose the access you need", AtomicTextRole.DisplayCard)
             AtomicText(
-                "Android manages shared storage access. You can also choose a single folder with Android’s folder picker.",
+                "Android manages shared storage access. Use the folder picker to grant access to one folder.",
                 AtomicTextRole.BodySecondary,
             )
         }
