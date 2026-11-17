@@ -591,12 +591,14 @@ fun AtomicAppContent(
                 required = settings.requireAuthForHidden,
                 title = "Unlock private files",
                 onDenied = ::pop,
-            ) {
+                manualUnlock = true,
+            ) { lock ->
                 HiddenFilesScreen(
                     repository = app.container.hiddenFilesRepository,
                     onNavigateBack = ::pop,
                     initialMode = HideMode.PRIVATE_STORAGE,
                     privateOnly = true,
+                    onLockPrivateFiles = lock,
                 )
             }
             return

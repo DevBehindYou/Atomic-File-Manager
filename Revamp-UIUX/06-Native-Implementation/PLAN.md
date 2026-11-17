@@ -44,17 +44,17 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P08 | Search | SearchScreen | Search input; type chips; scope/index status; results; empty/error | Host tests and phone navigation verified. Responsive visual matrix pending. |
 | P09 | Tasks | OperationsScreen | Real task cards; status/progress; safe cancel/retry/details; empty state | Pending |
 | P10 | Destination | Folder picker / transfer flow | Source operation notice; independent destination/source strip; free capacity; confirm | Pending |
-| P11 | Trash | TrashScreen | Origin-aware cards; restore/purge; conflict and confirmation; empty | Pending |
+| P11 | Trash | TrashScreen | Origin-aware cards; restore/purge; conflict and confirmation; empty | Five focused tests passed. USB verified the empty Trash action and Files navigation. Visual matrix open. |
 | P12 | Settings | SettingsScreen | Make it yours / Access & privacy / About; icon rows only; controls in secondary surfaces | Pending |
 | P13 | Private files | HiddenFilesScreen / Private route | Locked zero-disclosure state; real authentication; unlocked content; lock action | Pending |
 | P14 | Hidden files | HiddenFilesScreen / Browse hidden mode | Visibility notice; hidden toggle; real hidden entries; privacy separation | Pending |
 | P15 | Folder compare | FolderCompareScreen / sync pairs | Two locations; comparison CTA; differences; direction review; saved pairs | Pending |
-| P16 | Apps | AppManagerScreen | App icon/name/package; applicable app actions; empty/error | Pending |
+| P16 | Apps | AppManagerScreen | App icon/name/package; applicable app actions; empty/error | Three App manager rule tests passed. USB verified Commands, installed app listing and Back. Visual matrix open. |
 | P17 | Wi-Fi share | WifiShareScreen | Start/stop state; real URL/session; access instructions; transfer status | Pending |
 | P18 | Connections | Storage linked folders / network server controls | Separate routed page for linked locations and existing server CRUD; capability/error states | Pending |
 | P19 | Cloud Connect | Cloud records / future inventory surface | Honest bundled/planned capability presentation; no fake sign-in/download controls | Pending |
 | P20 | Storage access | Existing permission / SAF entry points | Status rows; real Android grant/link flows; revoked/disconnected states | Pending |
-| P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Pending |
+| P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Seven focused tests passed. USB verified folder details and Close. Open, Share and Rename remain open. |
 | P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | Fourteen focused host tests passed. USB verified Settings and Commands entry, help, credits, bundled tools and Back. Visual matrix open. |
 | P23 | Plugins | InAppPluginsScreen / plugin inventory | Eight plugin cards; v0.2 About information; status/formats/limits; no downloader | Sixteen focused host tests passed across the inventory, About and navigation. USB verified the three entry points and v0.2 details. Visual matrix open. |
 | P24 | Image viewer | ui/components/ImageGallery.kt + AnimatedGifImage.kt | Universal viewer chrome; image stage; fit/zoom; navigation; GIF Stop/Replay; details | Pending |

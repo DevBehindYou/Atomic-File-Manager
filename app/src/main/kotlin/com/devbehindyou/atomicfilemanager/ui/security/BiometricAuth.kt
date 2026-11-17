@@ -83,23 +83,27 @@ fun Context.findFragmentActivity(): FragmentActivity? {
 /**
  * Shows [content] only after the user has unlocked the device, when [required]. Leaving the screen
  * and coming back asks again; rotating the device does not.
+ * Manual unlock keeps private content uncomposed until authentication succeeds after an explicit tap.
  */
 @Composable
 fun AuthGate(
     required: Boolean,
     title: String,
     onDenied: () -> Unit,
-    content: @Composable () -> Unit,
+    manualUnlock: Boolean = false,
+    content: @Composable (onLock: (() -> Unit)?) -> Unit,
 ) {
     val context = LocalContext.current
-    var unlocked by rememberSaveable { mutableStateOf(!required) }
-    var failed by remember { mutableStateOf(false) }
-    var attempt by remember { mutableIntStateOf(0) }
+    var unlocked by rememberSaveable(required) { mutableStateOf(!required) }
+    var failed by remember(required) { mutableStateOf(false) }
+    var attempt by remember(required) { mutableIntStateOf(0) }
     val activity = remember(context) { context.findFragmentActivity() }
     val available = remember(context) { canAuthenticate(context) }
 
-    LaunchedEffect(attempt, unlocked) {
-        if (!unlocked && activity != null && available) {
+    val waitingForTap = manualUnlock && attempt == 0
+
+    LaunchedEffect(attempt, unlocked, required) {
+        if (required && !unlocked && !waitingForTap && activity != null && available) {
             authenticate(activity, title) { ok ->
                 if (ok) {
                     unlocked = true
@@ -111,7 +115,17 @@ fun AuthGate(
     }
 
     if (unlocked) {
-        content()
+        val lock: (() -> Unit)? =
+            if (required && manualUnlock) {
+                {
+                    attempt = 0
+                    failed = false
+                    unlocked = false
+                }
+            } else {
+                null
+            }
+        content(lock)
     } else {
         Column(
             modifier =
@@ -124,7 +138,13 @@ fun AuthGate(
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterVertically),
         ) {
             AtomicIconTile(AtomicIcons.Lock, inverted = true)
-            AtomicText(title, AtomicTextRole.DisplayTitle)
+            AtomicText(if (manualUnlock) "Your private space" else title, AtomicTextRole.DisplayTitle)
+            if (manualUnlock) {
+                AtomicText(
+                    "Authenticate to access private files. Names and counts stay hidden while locked.",
+                    AtomicTextRole.Body,
+                )
+            }
             when {
                 !available || activity == null ->
                     AtomicText(
@@ -132,10 +152,10 @@ fun AuthGate(
                             "or turn the lock off in Settings.",
                         AtomicTextRole.Body,
                     )
-                failed -> {
-                    AtomicText("Unlock to continue. Nothing was opened.", AtomicTextRole.Body)
+                failed || waitingForTap -> {
+                    if (failed) AtomicText("Unlock to continue. Nothing was opened.", AtomicTextRole.Body)
                     AtomicButton(
-                        "Try again",
+                        if (failed) "Try again" else "Unlock",
                         onClick = {
                             failed = false
                             attempt++
