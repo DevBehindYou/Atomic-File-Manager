@@ -30,7 +30,14 @@ class NetworkLocationsSectionComposeTest {
 
     @Test
     fun forwardsSavedIdentityAndStartsSetupWithTheChosenProtocol() {
-        val server = NetworkServerConfig("opaque", "Office NAS", NetworkProtocol.SMB, "nas.example", remotePath = "/Share")
+        val server =
+            NetworkServerConfig(
+                id = "opaque",
+                name = "Office NAS",
+                protocol = NetworkProtocol.SMB,
+                host = "nas.example",
+                remotePath = "/Share",
+            )
         var opened: FileNodeId? = null
         var removed: NetworkServerConfig? = null
         var added: NetworkProtocol? = null
