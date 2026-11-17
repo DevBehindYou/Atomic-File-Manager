@@ -27,7 +27,12 @@ class PrivateFilesAuthGateComposeTest {
         var denied = 0
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                AuthGate(required = true, title = "Unlock private files", onDenied = { denied++ }, manualUnlock = true) {
+                AuthGate(
+                    required = true,
+                    title = "Unlock private files",
+                    onDenied = { denied++ },
+                    manualUnlock = true,
+                ) {
                     Text("Example private file")
                 }
             }
@@ -35,7 +40,7 @@ class PrivateFilesAuthGateComposeTest {
 
         compose.onNodeWithContentDescription("Your private space").assertIsDisplayed()
         compose.onNodeWithText("Example private file").assertDoesNotExist()
-        compose.onNodeWithText("Go back").performClick()
-        assertEquals(1, denied)
+        compose.onNodeWithContentDescription("Go back").performClick()
+        compose.runOnIdle { assertEquals(1, denied) }
     }
 }
