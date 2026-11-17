@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,12 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
+import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.navigation.StorageToolPage
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
@@ -118,38 +121,43 @@ private fun StorageAccessTools(
     onOpenFiles: () -> Unit,
     onNotify: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
-        AtomicText("Choose the access you need", AtomicTextRole.DisplayCard)
-        AtomicText(
-            "Android manages shared storage access. Link a folder to grant access to that location.",
-            AtomicTextRole.BodySecondary,
-        )
+    StorageAccessNotice()
+    Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+        AtomicSectionLabel("Device storage")
+        Column(
+            Modifier.fillMaxWidth()
+                .background(Atomic.colors.surfaceCard, AtomicShape.lg)
+                .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
+        ) {
+            StorageToolRow(
+                "Shared storage",
+                accessStatus ?: if (hasStorageAccess) "Allowed by Android" else "Needed to browse shared files",
+                AtomicIcons.Storage,
+                onClick = onRequestStorageAccess,
+            )
+            volumes.filter { it.isRemovable }.forEach { volume ->
+                StorageToolDivider()
+                StorageToolRow(
+                    volume.label,
+                    when {
+                        !volume.isMounted -> "Not mounted. Reconnect this storage."
+                        volume.rootNodeId != null -> "Available to browse"
+                        accessStatus != null -> accessStatus
+                        !hasStorageAccess -> "Access required"
+                        else -> "Unavailable. Reconnect and try again."
+                    },
+                    AtomicIcons.Plug,
+                    onClick = { onBrowseVolume(volume) },
+                )
+            }
+        }
     }
+    LinkedFoldersSection(onBrowseFolder, onNotify, sectionTitle = "Removable or linked folder")
     Column(
         Modifier.fillMaxWidth()
             .background(Atomic.colors.surfaceCard, AtomicShape.lg)
             .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
     ) {
-        StorageToolRow(
-            "Shared storage",
-            accessStatus ?: if (hasStorageAccess) "Allowed by Android" else "Needed to browse shared files",
-            AtomicIcons.Storage,
-            onClick = onRequestStorageAccess,
-        )
-        volumes.filter { it.isRemovable }.forEach { volume ->
-            StorageToolDivider()
-            StorageToolRow(
-                volume.label,
-                when {
-                    !volume.isMounted -> "Not mounted"
-                    volume.rootNodeId != null -> "Available to browse"
-                    else -> "Access required"
-                },
-                AtomicIcons.Plug,
-                onClick = { onBrowseVolume(volume) },
-            )
-        }
-        StorageToolDivider()
         StorageToolRow(
             "Optional Shizuku",
             "Read-only tools. Setup required.",
@@ -157,6 +165,28 @@ private fun StorageAccessTools(
             onClick = onOpenShizuku,
         )
     }
-    LinkedFoldersSection(onBrowseFolder, onNotify, sectionTitle = "Removable or linked folder")
     AtomicButton("Continue to Files", onClick = onOpenFiles)
+}
+
+@Composable
+private fun StorageAccessNotice() {
+    Row(
+        Modifier.fillMaxWidth()
+            .background(Atomic.colors.surfaceCard, AtomicShape.lg)
+            .padding(AtomicSpacing.s16),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+    ) {
+        AtomicIconTile(AtomicIcons.Security)
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+        ) {
+            AtomicText("Choose the access you need", AtomicTextRole.DisplayCard)
+            AtomicText(
+                "Android manages shared storage access. You can also choose a single folder with Android’s folder picker.",
+                AtomicTextRole.BodySecondary,
+            )
+        }
+    }
 }
