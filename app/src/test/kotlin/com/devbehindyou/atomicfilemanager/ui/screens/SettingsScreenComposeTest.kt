@@ -41,7 +41,7 @@ class SettingsScreenComposeTest {
     private var cacheClears = 0
     private val messages = mutableListOf<String>()
 
-    private fun show(destinations: SettingsDestinations = SettingsDestinations()) {
+    private fun show(destinations: SettingsDestinations = SettingsDestinations(onOpenAbout = {})) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 SettingsScreen(
@@ -82,9 +82,17 @@ class SettingsScreenComposeTest {
     }
 
     @Test
+    fun aboutOpensTheSharedDestination() {
+        var aboutOpens = 0
+        show(SettingsDestinations(onOpenAbout = { aboutOpens++ }))
+        compose.onNodeWithContentDescription("About Atomic").performScrollTo().performClick()
+        assertEquals(1, aboutOpens)
+    }
+
+    @Test
     fun privateSettingsOnlyOpenTheShellDestinationOnExplicitAction() {
         var privateOpens = 0
-        show(SettingsDestinations(onOpenPrivateFiles = { privateOpens++ }))
+        show(SettingsDestinations(onOpenAbout = {}, onOpenPrivateFiles = { privateOpens++ }))
         compose.onNodeWithContentDescription("Private files").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Lock private files").assertExists()
         assertEquals(0, privateOpens)

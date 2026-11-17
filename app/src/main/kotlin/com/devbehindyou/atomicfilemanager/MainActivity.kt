@@ -68,7 +68,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicHomeHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicBottomBar
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDestination
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicInfoSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicNavRail
@@ -98,6 +97,7 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.FolderComparer
 import com.devbehindyou.atomicfilemanager.ui.components.ConflictSheet
 import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
 import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
+import com.devbehindyou.atomicfilemanager.ui.screens.AboutAtomicScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseEntryRequest
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseScreen
@@ -325,7 +325,6 @@ fun AtomicAppContent(
     val storageReadiness by storageLoader.state.collectAsState()
     val volumes = storageReadiness.snapshot?.volumes.orEmpty()
     val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
-    var showAboutDialog by remember { mutableStateOf(false) }
     var showInAppPlugins by rememberSaveable { mutableStateOf(false) }
     var showPalette by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -564,7 +563,7 @@ fun AtomicAppContent(
             PaletteCommand.PLUGINS -> showInAppPlugins = true
             PaletteCommand.CONNECTIONS -> push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))
             PaletteCommand.SETTINGS, PaletteCommand.THEME -> navigateTab(NavigationTab.SETTINGS)
-            PaletteCommand.ABOUT -> showAboutDialog = true
+            PaletteCommand.ABOUT -> push(AtomicRoute.About)
         }
     }
 
@@ -606,6 +605,7 @@ fun AtomicAppContent(
             }
             return
         }
+        AtomicRoute.About -> return AboutRoute(onBack = ::pop, onOpenBundledTools = { showInAppPlugins = true })
         AtomicRoute.RecentlyOpened -> return RecentlyOpenedScreen(onBack = ::pop)
         AtomicRoute.Search -> {
             SearchScreen(
@@ -894,17 +894,19 @@ fun AtomicAppContent(
             ) { screen() }
         }
     }
+}
 
-    if (showAboutDialog) {
-        AtomicInfoSheet(
-            label = "About",
-            headline = "Atomic File Manager",
-            body =
-                "An offline-first, private file manager in the DevBehindYou Atomic family. No account, no ads, " +
-                    "no tracking. Nothing leaves your phone unless you connect a server yourself.",
-            onDismiss = { showAboutDialog = false },
-        )
-    }
+@Composable
+private fun AboutRoute(
+    onBack: () -> Unit,
+    onOpenBundledTools: () -> Unit,
+) {
+    val context = LocalContext.current
+    val version =
+        remember(context) {
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+        }
+    AboutAtomicScreen(version = version, onBack = onBack, onOpenBundledTools = onOpenBundledTools)
 }
 
 @Composable
@@ -1065,6 +1067,7 @@ private fun MainScreenContent(
                 storageAccessStatus = storageAccessStatus(storageReadiness),
                 destinations =
                     SettingsDestinations(
+                        onOpenAbout = { callbacks.onOpenRoute(AtomicRoute.About) },
                         onOpenPrivateFiles = callbacks.onOpenPrivateFiles,
                         onOpenFiles = callbacks.onOpenFiles,
                     ),
