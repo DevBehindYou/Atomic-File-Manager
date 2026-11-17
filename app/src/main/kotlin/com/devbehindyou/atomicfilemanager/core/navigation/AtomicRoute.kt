@@ -22,6 +22,11 @@ sealed interface AtomicRoute {
         override fun encode() = ABOUT
     }
 
+    /** The catalog of tools included with the installed app. */
+    data object InAppPlugins : AtomicRoute {
+        override fun encode() = PLUGINS
+    }
+
     /** Files opened through this application. */
     data object RecentlyOpened : AtomicRoute {
         override fun encode() = RECENTLY_OPENED
@@ -88,6 +93,7 @@ sealed interface AtomicRoute {
         private const val RECENTLY_OPENED = "recently-opened"
         private const val SEARCH = "search"
         private const val ABOUT = "about"
+        private const val PLUGINS = "plugins"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
         private const val CATEGORY = "category"
@@ -107,6 +113,7 @@ sealed interface AtomicRoute {
             if (value == RECENTLY_OPENED) return RecentlyOpened
             if (value == SEARCH) return Search
             if (value == ABOUT) return About
+            if (value == PLUGINS) return InAppPlugins
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare
             val kind = value.substringBefore(SEPARATOR, missingDelimiterValue = "")

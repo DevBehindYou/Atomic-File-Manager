@@ -69,6 +69,7 @@ private val themeChoices =
 /** Native navigation owned by the application shell. */
 data class SettingsDestinations(
     val onOpenAbout: () -> Unit,
+    val onOpenPlugins: () -> Unit,
     val onOpenPrivateFiles: (() -> Unit)? = null,
     val onOpenFiles: (() -> Unit)? = null,
 )
@@ -122,10 +123,10 @@ fun SettingsScreen(
 
     var hideParent by rememberSaveable { mutableStateOf(SettingsSheet.HIDDEN) }
     SettingsRootContent(settings, modifier) { destination ->
-        if (destination == SettingsSheet.ABOUT) {
-            destinations.onOpenAbout()
-        } else {
-            sheet = destination
+        when (destination) {
+            SettingsSheet.ABOUT -> destinations.onOpenAbout()
+            SettingsSheet.PLUGINS -> destinations.onOpenPlugins()
+            else -> sheet = destination
         }
     }
 
@@ -283,7 +284,6 @@ fun SettingsScreen(
                 )
             }
         SettingsSheet.OPENING -> FileOpeningSettingsSheet(settingsRepository, onDismiss = { sheet = null })
-        SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->
             AtomicSheet(label = "Default hiding method", onDismiss = { sheet = hideParent }) {
                 hideChoices.forEach { choice ->
@@ -307,7 +307,7 @@ fun SettingsScreen(
                     sheet = hideParent
                 },
             )
-        SettingsSheet.ABOUT, null -> Unit
+        SettingsSheet.ABOUT, SettingsSheet.PLUGINS, null -> Unit
     }
 }
 

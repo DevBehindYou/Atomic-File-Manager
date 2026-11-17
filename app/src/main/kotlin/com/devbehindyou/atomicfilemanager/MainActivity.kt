@@ -108,7 +108,7 @@ import com.devbehindyou.atomicfilemanager.ui.screens.CategoryScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.CommandPaletteSheet
 import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
-import com.devbehindyou.atomicfilemanager.ui.screens.InAppPluginsSheet
+import com.devbehindyou.atomicfilemanager.ui.screens.InAppPluginsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
 import com.devbehindyou.atomicfilemanager.ui.screens.PinnedLocationsScreen
@@ -325,7 +325,6 @@ fun AtomicAppContent(
     val storageReadiness by storageLoader.state.collectAsState()
     val volumes = storageReadiness.snapshot?.volumes.orEmpty()
     val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
-    var showInAppPlugins by rememberSaveable { mutableStateOf(false) }
     var showPalette by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -534,7 +533,6 @@ fun AtomicAppContent(
 
     fun runCommand(command: PaletteCommand) {
         showPalette = false
-        showInAppPlugins = false
         newFolderTabKey = null
         // A command starts from the tabs, so Back from what it opens returns there.
         routeEntries = emptyList()
@@ -560,7 +558,7 @@ fun AtomicAppContent(
             PaletteCommand.PRIVATE -> push(AtomicRoute.PrivateFiles)
             PaletteCommand.FOLDER_COMPARE -> push(AtomicRoute.StorageTool(StorageToolPage.FOLDER_COMPARE))
             PaletteCommand.WIFI_SHARE -> push(AtomicRoute.WifiShare)
-            PaletteCommand.PLUGINS -> showInAppPlugins = true
+            PaletteCommand.PLUGINS -> push(AtomicRoute.InAppPlugins)
             PaletteCommand.CONNECTIONS -> push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))
             PaletteCommand.SETTINGS, PaletteCommand.THEME -> navigateTab(NavigationTab.SETTINGS)
             PaletteCommand.ABOUT -> push(AtomicRoute.About)
@@ -584,8 +582,6 @@ fun AtomicAppContent(
     }
     if (showPalette) {
         CommandPaletteSheet(onRun = ::runCommand, onDismiss = { showPalette = false })
-    } else if (showInAppPlugins) {
-        InAppPluginsSheet(onDismiss = { showInAppPlugins = false })
     }
 
     BackHandler(enabled = !routes.isEmpty) { pop() }
@@ -605,7 +601,9 @@ fun AtomicAppContent(
             }
             return
         }
-        AtomicRoute.About -> return AboutRoute(onBack = ::pop, onOpenBundledTools = { showInAppPlugins = true })
+        AtomicRoute.About ->
+            return AboutRoute(onBack = ::pop, onOpenBundledTools = { push(AtomicRoute.InAppPlugins) })
+        AtomicRoute.InAppPlugins -> return InAppPluginsScreen(onBack = ::pop)
         AtomicRoute.RecentlyOpened -> return RecentlyOpenedScreen(onBack = ::pop)
         AtomicRoute.Search -> {
             SearchScreen(
@@ -1068,6 +1066,7 @@ private fun MainScreenContent(
                 destinations =
                     SettingsDestinations(
                         onOpenAbout = { callbacks.onOpenRoute(AtomicRoute.About) },
+                        onOpenPlugins = { callbacks.onOpenRoute(AtomicRoute.InAppPlugins) },
                         onOpenPrivateFiles = callbacks.onOpenPrivateFiles,
                         onOpenFiles = callbacks.onOpenFiles,
                     ),

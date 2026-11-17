@@ -1,5 +1,9 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -41,17 +45,22 @@ class SettingsScreenComposeTest {
     private var cacheClears = 0
     private val messages = mutableListOf<String>()
 
-    private fun show(destinations: SettingsDestinations = SettingsDestinations(onOpenAbout = {})) {
+    private fun show(destinations: SettingsDestinations = SettingsDestinations(onOpenAbout = {}, onOpenPlugins = {})) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                SettingsScreen(
-                    settingsRepository = repository,
-                    hasStorageAccess = true,
-                    onRequestStorageAccess = {},
-                    onClearScanCache = { cacheClears++ },
-                    onNotify = { messages += it },
-                    destinations = destinations,
-                )
+                var showPlugins by remember { mutableStateOf(false) }
+                if (showPlugins) {
+                    InAppPluginsScreen(onBack = { showPlugins = false })
+                } else {
+                    SettingsScreen(
+                        settingsRepository = repository,
+                        hasStorageAccess = true,
+                        onRequestStorageAccess = {},
+                        onClearScanCache = { cacheClears++ },
+                        onNotify = { messages += it },
+                        destinations = destinations.copy(onOpenPlugins = { showPlugins = true }),
+                    )
+                }
             }
         }
     }
@@ -84,7 +93,7 @@ class SettingsScreenComposeTest {
     @Test
     fun aboutOpensTheSharedDestination() {
         var aboutOpens = 0
-        show(SettingsDestinations(onOpenAbout = { aboutOpens++ }))
+        show(SettingsDestinations(onOpenAbout = { aboutOpens++ }, onOpenPlugins = {}))
         compose.onNodeWithContentDescription("About Atomic").performScrollTo().performClick()
         assertEquals(1, aboutOpens)
     }
@@ -92,7 +101,7 @@ class SettingsScreenComposeTest {
     @Test
     fun privateSettingsOnlyOpenTheShellDestinationOnExplicitAction() {
         var privateOpens = 0
-        show(SettingsDestinations(onOpenAbout = {}, onOpenPrivateFiles = { privateOpens++ }))
+        show(SettingsDestinations(onOpenAbout = {}, onOpenPlugins = {}, onOpenPrivateFiles = { privateOpens++ }))
         compose.onNodeWithContentDescription("Private files").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Lock private files").assertExists()
         assertEquals(0, privateOpens)
@@ -108,25 +117,23 @@ class SettingsScreenComposeTest {
         compose.onNodeWithContentDescription("In-app plugins").performScrollTo().performClick()
         val plugins =
             listOf(
-                "Image viewer",
-                "Video player",
-                "Audio player",
-                "PDF reader",
-                "Document reader",
-                "Code and text editor",
-                "Markdown viewer",
-                "Archive manager",
+                "image",
+                "video",
+                "audio",
+                "pdf",
+                "document",
+                "code",
+                "markdown",
+                "archive",
             )
-        plugins.forEachIndexed { index, plugin ->
-            compose.onNodeWithContentDescription(plugin).performScrollTo().performClick()
+        plugins.forEach { plugin ->
+            compose.onNodeWithTag("plugins_details_$plugin").performScrollTo().performClick()
             compose.onNodeWithText("Version v0.2").performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Current limitations").assertExists()
-            if (index < plugins.lastIndex) {
-                compose.onNodeWithContentDescription("Back to plugins").performClick()
-                compose.onNodeWithText("Version v0.2").assertDoesNotExist()
-            }
+            compose.onNodeWithContentDescription("Back to plugins").performClick()
+            compose.onNodeWithText("Version v0.2").assertDoesNotExist()
         }
-        compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("settings_screen").assertExists()
         compose.onNodeWithContentDescription("Back to plugins").assertDoesNotExist()
         assertEquals(initial, repository.settings.value)
