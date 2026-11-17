@@ -99,6 +99,21 @@ class SettingsScreenComposeTest {
     }
 
     @Test
+    fun cloudStatusExplainsUnavailableAccountsAndPointsToRealConnections() {
+        show()
+        val initial = repository.settings.value
+
+        compose.onNodeWithContentDescription("Cloud Connect").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Direct cloud access is planned").assertIsDisplayed()
+        compose.onNodeWithText("Storage → Connections").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Sign in").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Close settings dialog").performClick()
+
+        compose.onNodeWithTag("settings_preferences").assertDoesNotExist()
+        assertEquals(initial, repository.settings.value)
+    }
+
+    @Test
     fun privateSettingsOnlyOpenTheShellDestinationOnExplicitAction() {
         var privateOpens = 0
         show(SettingsDestinations(onOpenAbout = {}, onOpenPlugins = {}, onOpenPrivateFiles = { privateOpens++ }))
