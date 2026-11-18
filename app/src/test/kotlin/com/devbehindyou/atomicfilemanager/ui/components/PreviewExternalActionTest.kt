@@ -5,7 +5,9 @@ import android.content.Intent
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -26,6 +28,30 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = Application::class)
 class PreviewExternalActionTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun viewerUsesTheBundledAboutPanelAndHidesUnavailableActions() {
+        val shown = image("gallery-image.png")
+        compose.setContent {
+            AtomicTheme(darkTheme = false, wallpaperAccent = false) {
+                ViewerChrome(
+                    shown = shown,
+                    type = PreviewType.IMAGE,
+                    position = "2 of 3",
+                    actions = ViewerActions(onClose = {}, onShare = null, onOpenExternal = null),
+                    openingExternal = false,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("preview_details").assertIsDisplayed()
+        compose.onNodeWithTag("preview_share").assertDoesNotExist()
+        compose.onNodeWithTag("preview_open_external").assertDoesNotExist()
+        compose.onNodeWithTag("preview_about").performClick()
+        compose.onNodeWithText("Version v0.2").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Close plugin information").performClick()
+        compose.onNodeWithTag("plugins_about_dialog").assertDoesNotExist()
+    }
 
     @Test
     fun displayedImageCanBeOpenedExternallyAfterGalleryChangesItsIdentity() {
