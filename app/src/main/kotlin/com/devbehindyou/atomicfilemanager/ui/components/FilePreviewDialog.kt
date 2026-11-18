@@ -199,7 +199,11 @@ internal fun BuiltInFilePreviewPane(
         ViewerChrome(
             shown = recentSource,
             type = previewType,
-            position = images?.first?.let { list -> Gallery.position(list.indexOfFirst { it.id == shown.id }, list.size) },
+            position =
+                images?.first?.let {
+                        list ->
+                    Gallery.position(list.indexOfFirst { it.id == shown.id }, list.size)
+                },
             actions =
                 ViewerActions(
                     onClose = {

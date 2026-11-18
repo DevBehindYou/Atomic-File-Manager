@@ -102,9 +102,10 @@ internal fun ViewerChrome(
     }
 
     when (panel) {
-        ViewerPanel.ABOUT -> plugin?.let {
-            BuiltInPluginAboutDialog(it, "Close plugin information", onDismiss = { panel = null })
-        }
+        ViewerPanel.ABOUT ->
+            plugin?.let {
+                BuiltInPluginAboutDialog(it, "Close plugin information", onDismiss = { panel = null })
+            }
         ViewerPanel.DETAILS -> FileDetailsDialog(shown, onDismiss = { panel = null })
         null -> Unit
     }

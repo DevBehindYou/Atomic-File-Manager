@@ -43,7 +43,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
-import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
 import com.devbehindyou.atomicfilemanager.ui.components.BuiltInPlugin
 import com.devbehindyou.atomicfilemanager.ui.components.BuiltInPluginAboutDialog
