@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="docx_loading">Loading document text…</string>
-    <string name="docx_unavailable">This document could not be previewed. It may be damaged, encrypted, unsupported, or exceed the preview limits. Retry or open it in another app.</string>
+    <string name="docx_unavailable">This document could not be read. It may be damaged or the storage may be unavailable. Retry or open it in another app.</string>
+    <string name="docx_legacy_or_protected">This is an older Word file (.doc) or a password-protected document. The preview reads unprotected .docx files only; open it in another app.</string>
+    <string name="docx_not_a_package">This file is not a Word .docx package, so it cannot be previewed here. Open it in another app.</string>
+    <string name="docx_over_limits">This document is larger or more complex than the preview reads. Open it in another app to see all of it.</string>
     <string name="docx_retry">Retry</string>
     <string name="docx_text_layout_note">Read-only text preview. Paragraphs, basic emphasis and list markers are shown; table cells are read in order. Images, drawings, page layout, headers, footers and exact numbering need an Office app.</string>
     <string name="docx_find">Find in document</string>

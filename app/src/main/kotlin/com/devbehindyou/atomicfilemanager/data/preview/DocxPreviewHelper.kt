@@ -11,6 +11,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+import java.io.BufferedInputStream
 import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -41,6 +42,25 @@ internal data class DocxPreviewLimits(
     val depth: Int = 64,
 )
 
+/** Shown as the "format" of a Word file in the OLE container: legacy .doc, or a password-protected document. */
+const val DOCX_LEGACY_OR_PROTECTED = "legacy or password-protected Word document"
+
+/** Shown as the "format" of a file named or typed as DOCX that is not a ZIP package at all. */
+const val DOCX_NOT_A_PACKAGE = "not a Word package"
+
+/** Shown as the "format" of a DOCX that is larger or more complex than the preview reads. */
+const val DOCX_OVER_PREVIEW_LIMITS = "over the DOCX preview limits"
+
+/** A preview size or complexity bound was reached; the document itself may be fine. */
+internal class DocxLimitExceeded(message: String) : IOException(message)
+
+private inline fun withinLimit(
+    condition: Boolean,
+    message: () -> String,
+) {
+    if (!condition) throw DocxLimitExceeded(message())
+}
+
 /** Text-layout preview only. Never extracts ZIP entries or resolves relationships, images or external resources. */
 class DocxPreviewHelper(
     private val backendSelector: (FileNodeId) -> StorageBackend,
@@ -52,14 +72,19 @@ class DocxPreviewHelper(
                 when (val opened = backendSelector(id).openInput(id)) {
                     is FileResult.Failure -> opened
                     is FileResult.Success ->
-                        opened.value.stream().use {
-                            FileResult.Success(
-                                readDocx(it, coroutineContext),
-                            )
+                        opened.value.stream().use { raw ->
+                            val input = BufferedInputStream(raw)
+                            when (packageKind(input)) {
+                                PackageKind.ZIP -> FileResult.Success(readDocx(input, coroutineContext))
+                                PackageKind.OLE -> unsupported(DOCX_LEGACY_OR_PROTECTED)
+                                PackageKind.OTHER -> unsupported(DOCX_NOT_A_PACKAGE)
+                            }
                         }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (_: DocxLimitExceeded) {
+                FileResult.Failure(FileError.UnsupportedFormat(DOCX_OVER_PREVIEW_LIMITS))
             } catch (failure: Exception) {
                 FileResult.Failure(
                     FileError.IoFailure("DOCX text preview unavailable: ${failure.javaClass.simpleName}"),
@@ -67,6 +92,31 @@ class DocxPreviewHelper(
             }
         }
 }
+
+private enum class PackageKind { ZIP, OLE, OTHER }
+
+private fun unsupported(kind: String): FileResult<DocxDocument> = FileResult.Failure(FileError.UnsupportedFormat(kind))
+
+/** Reads the container signature without consuming it: ZIP for DOCX, OLE for .doc or protected Office files. */
+private fun packageKind(input: BufferedInputStream): PackageKind {
+    input.mark(OLE_SIGNATURE.size)
+    val head = ByteArray(OLE_SIGNATURE.size)
+    var filled = 0
+    while (filled < head.size) {
+        val read = input.read(head, filled, head.size - filled)
+        if (read < 0) break
+        filled += read
+    }
+    input.reset()
+    return when {
+        filled >= 4 && head[0] == 'P'.code.toByte() && head[1] == 'K'.code.toByte() -> PackageKind.ZIP
+        filled == OLE_SIGNATURE.size && head.contentEquals(OLE_SIGNATURE) -> PackageKind.OLE
+        else -> PackageKind.OTHER
+    }
+}
+
+private val OLE_SIGNATURE =
+    byteArrayOf(0xD0.toByte(), 0xCF.toByte(), 0x11, 0xE0.toByte(), 0xA1.toByte(), 0xB1.toByte(), 0x1A, 0xE1.toByte())
 
 internal fun readDocx(
     input: InputStream,
@@ -82,11 +132,11 @@ internal fun readDocx(
         while (true) {
             context.ensureActive()
             val entry = zip.nextEntry ?: break
-            require(++entries <= limits.entries) { "Too many ZIP entries" }
+            withinLimit(++entries <= limits.entries) { "Too many ZIP entries" }
             val entryInput =
                 PreviewBoundedInput(zip, limits.expandedBytes, context) { count ->
                     expanded += count
-                    require(expanded <= limits.expandedBytes) { "Expanded document exceeds preview limit" }
+                    withinLimit(expanded <= limits.expandedBytes) { "Expanded document exceeds preview limit" }
                 }
             if (entry.name == "word/document.xml") {
                 require(document == null && !entry.isDirectory) { "Duplicate document part" }
@@ -125,7 +175,7 @@ private class PreviewBoundedInput(
 
     private fun record(bytes: Int) {
         count += bytes
-        if (count > limit) throw IOException("Document exceeds preview byte limit")
+        if (count > limit) throw DocxLimitExceeded("Document exceeds preview byte limit")
         consumed(bytes)
     }
 }
@@ -158,7 +208,7 @@ private fun parseDocument(
     while (true) {
         context.ensureActive()
         val event = parser.nextToken()
-        require(++tokens <= limits.tokens && parser.depth <= limits.depth) { "Document is too complex" }
+        withinLimit(++tokens <= limits.tokens && parser.depth <= limits.depth) { "Document is too complex" }
         require(event != XmlPullParser.DOCDECL) { "DTD declarations are not supported" }
         if (event == XmlPullParser.END_DOCUMENT) break
         if (ignoredDepth > 0) {
@@ -210,7 +260,7 @@ private fun parseDocument(
                     "t" -> textDepth = 0
                     "r" -> if (text.isNotEmpty()) runs.add(DocxTextRun(text.toString(), bold, italic))
                     "p" -> {
-                        require(output.size < limits.paragraphs) { "Too many paragraphs" }
+                        withinLimit(output.size < limits.paragraphs) { "Too many paragraphs" }
                         output.add(DocxParagraph(runs.toList(), heading, list, tableDepth > 0))
                         paragraphDepth = 0
                     }
@@ -229,7 +279,7 @@ private fun parseDocument(
                 text.append(value)
             }
         }
-        require(characters <= limits.characters) { "Document text exceeds preview limit" }
+        withinLimit(characters <= limits.characters) { "Document text exceeds preview limit" }
     }
     require(sawDocument && sawBody && paragraphDepth == 0) { "Invalid DOCX document" }
     return DocxDocument(output.toList())

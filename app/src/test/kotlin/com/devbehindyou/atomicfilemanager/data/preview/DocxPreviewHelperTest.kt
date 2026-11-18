@@ -221,6 +221,52 @@ class DocxPreviewHelperTest {
         }
     }
 
+    @Test
+    fun helperNamesLegacyProtectedAndNonPackageFilesInsteadOfReportingDamage() =
+        runTest {
+            val ole =
+                byteArrayOf(0xD0.toByte(), 0xCF.toByte(), 0x11, 0xE0.toByte(), 0xA1.toByte(), 0xB1.toByte()) +
+                    byteArrayOf(0x1A, 0xE1.toByte()) + ByteArray(504)
+            val cases =
+                listOf(
+                    ole to FileError.UnsupportedFormat(DOCX_LEGACY_OR_PROTECTED),
+                    "Plain notes renamed to .docx".toByteArray() to FileError.UnsupportedFormat(DOCX_NOT_A_PACKAGE),
+                    ByteArray(0) to FileError.UnsupportedFormat(DOCX_NOT_A_PACKAGE),
+                    zip(*Array(257) { "part$it.xml" to "" }) to FileError.UnsupportedFormat(DOCX_OVER_PREVIEW_LIMITS),
+                )
+            for ((bytes, expected) in cases) {
+                assertEquals(expected, (readThroughHelper(bytes) as FileResult.Failure).error)
+            }
+            // A real package that is broken inside is still reported as unreadable, with Retry.
+            val missingPart = (readThroughHelper(zip("other.xml" to body(""))) as FileResult.Failure).error
+            assertTrue(missingPart is FileError.IoFailure)
+            assertTrue(readThroughHelper(zip("word/document.xml" to body("<w:p/>"))) is FileResult.Success)
+        }
+
+    @Test
+    fun everyPreviewBoundFailsAsALimitRatherThanAsDamage() {
+        val xml = body("<w:p><w:r><w:t>Content</w:t></w:r></w:p><w:p/>")
+        val bytes = zip("word/document.xml" to xml, "word/media/large.bin" to "x".repeat(20_000))
+        listOf(
+            DocxPreviewLimits(compressedBytes = 10),
+            DocxPreviewLimits(expandedBytes = 1024),
+            DocxPreviewLimits(entries = 1),
+            DocxPreviewLimits(documentBytes = 20),
+            DocxPreviewLimits(characters = 2),
+            DocxPreviewLimits(tokens = 3),
+            DocxPreviewLimits(depth = 2),
+            DocxPreviewLimits(paragraphs = 1),
+        ).forEach { limits -> assertThrows(DocxLimitExceeded::class.java) { parse(bytes, limits) } }
+    }
+
+    private suspend fun kotlinx.coroutines.test.TestScope.readThroughHelper(
+        bytes: ByteArray,
+    ): FileResult<DocxDocument> =
+        DocxPreviewHelper(
+            { backend { FileResult.Success(InputStreamProvider { ByteArrayInputStream(bytes) }) } },
+            StandardTestDispatcher(testScheduler),
+        ).read(ID)
+
     private fun backend(open: () -> FileResult<InputStreamProvider>): StorageBackend =
         object : StorageBackend by InMemoryBackend() {
             override suspend fun openInput(id: FileNodeId): FileResult<InputStreamProvider> = open()
