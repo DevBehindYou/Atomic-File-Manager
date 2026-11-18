@@ -127,7 +127,8 @@ internal fun BrowseBottomBar(
                 null
             }
         ClipboardActionBar(
-            status = "${clip.items.size} ready to " + if (clip.operation == ClipboardOp.COPY) "copy" else "move",
+            clip = clip,
+            destination = clipboardDestinationName(uiState),
             onCancel = onClearClipboard,
             onCompare = comparison,
             onPaste = onPaste,
@@ -138,11 +139,14 @@ internal fun BrowseBottomBar(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ClipboardActionBar(
-    status: String,
+    clip: ClipboardState,
+    destination: String,
     onCancel: () -> Unit,
     onCompare: (() -> Unit)?,
     onPaste: () -> Unit,
 ) {
+    val verb = if (clip.operation == ClipboardOp.COPY) "Copy" else "Move"
+    val source = clip.items.singleOrNull()?.let { it.displayName.ifBlank { "1 item" } } ?: "${clip.items.size} items"
     Column(Modifier.fillMaxWidth().background(Atomic.colors.background)) {
         AtomicDivider(strong = true)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -151,13 +155,13 @@ private fun ClipboardActionBar(
             if (maxWidth < inlineWidth) {
                 Column(content, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
                     // The action buttons must never squeeze the status text to a few pixels and grow the bar.
-                    AtomicText(status, AtomicTextRole.MonoLabel, maxLines = 2)
+                    ClipboardTransferSummary(verb, source, destination)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8, Alignment.End),
                         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
                     ) {
-                        ClipboardButtons(onCancel, onCompare, onPaste)
+                        ClipboardButtons(verb, clip.operation, onCancel, onCompare, onPaste)
                     }
                 }
             } else {
@@ -166,16 +170,38 @@ private fun ClipboardActionBar(
                     horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AtomicText(status, AtomicTextRole.MonoLabel, modifier = Modifier.weight(1f), maxLines = 2)
-                    ClipboardButtons(onCancel, onCompare, onPaste)
+                    ClipboardTransferSummary(verb, source, destination, Modifier.weight(1f))
+                    ClipboardButtons(verb, clip.operation, onCancel, onCompare, onPaste)
                 }
             }
         }
     }
 }
 
+// Folder loading may briefly leave the previous display name in state. Only show breadcrumbs for
+// the actual current destination, and never derive a display path from an opaque provider ID.
+private fun clipboardDestinationName(uiState: BrowseUiState): String =
+    uiState.breadcrumbs.takeIf { it.lastOrNull()?.path == uiState.currentFolderId.raw }
+        ?.joinToString(" / ") { it.name }
+        ?: "Current folder"
+
+@Composable
+private fun ClipboardTransferSummary(
+    verb: String,
+    source: String,
+    destination: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
+        AtomicText("$verb $source", AtomicTextRole.MonoLabel, maxLines = 2)
+        AtomicText("To $destination", AtomicTextRole.BodySecondary, maxLines = 2)
+    }
+}
+
 @Composable
 private fun ClipboardButtons(
+    verb: String,
+    operation: ClipboardOp,
     onCancel: () -> Unit,
     onCompare: (() -> Unit)?,
     onPaste: () -> Unit,
@@ -190,10 +216,10 @@ private fun ClipboardButtons(
         )
     }
     AtomicButton(
-        "Paste here",
+        "$verb here",
         onClick = onPaste,
         variant = AtomicButtonVariant.Solid,
-        leadingIcon = AtomicIcons.Paste,
+        leadingIcon = if (operation == ClipboardOp.COPY) AtomicIcons.Copy else AtomicIcons.Move,
         modifier = Modifier.testTag("paste_button"),
     )
 }
