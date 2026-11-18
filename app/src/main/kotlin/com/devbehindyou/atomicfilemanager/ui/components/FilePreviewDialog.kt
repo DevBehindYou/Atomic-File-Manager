@@ -233,7 +233,7 @@ internal fun BuiltInFilePreviewPane(
                 ImageGallery(images.first, images.second, container, onPageChange = ::showSource)
             } else {
                 when (previewType) {
-                    PreviewType.IMAGE -> ZoomableImage(node, container)
+                    PreviewType.IMAGE -> ImageViewerStage(node, container)
                     PreviewType.PDF -> PdfPreviewContent(node, container)
                     PreviewType.DOCX -> DocxPreviewContent(node, docxHelper::read)
                     PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = ::showSource)
