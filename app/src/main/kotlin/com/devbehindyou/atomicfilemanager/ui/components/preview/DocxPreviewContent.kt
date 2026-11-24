@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,8 +42,12 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextFiel
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicTypography
+import com.devbehindyou.atomicfilemanager.data.preview.DOCX_LEGACY_OR_PROTECTED
+import com.devbehindyou.atomicfilemanager.data.preview.DOCX_NOT_A_PACKAGE
+import com.devbehindyou.atomicfilemanager.data.preview.DOCX_OVER_PREVIEW_LIMITS
 import com.devbehindyou.atomicfilemanager.data.preview.DocxDocument
 import com.devbehindyou.atomicfilemanager.data.preview.DocxParagraph
+import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
@@ -74,11 +79,14 @@ private fun DocxSourceSession(
             Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 AtomicLoading(stringResource(R.string.docx_loading))
             }
-        is FileResult.Failure ->
+        is FileResult.Failure -> {
+            val failure = docxFailure(loaded.error)
             Column(modifier.padding(AtomicSpacing.s16)) {
-                AtomicText(stringResource(R.string.docx_unavailable), AtomicTextRole.Body)
-                AtomicButton(stringResource(R.string.docx_retry), onClick = { attempt++ })
+                AtomicText(stringResource(failure.message), AtomicTextRole.Body)
+                // Retrying cannot change what the file is; it only helps a failed read.
+                if (failure.canRetry) AtomicButton(stringResource(R.string.docx_retry), onClick = { attempt++ })
             }
+        }
         is FileResult.Success -> DocxDocumentContent(loaded.value, modifier)
     }
 }
@@ -237,3 +245,17 @@ internal fun findDocxMatches(
 
 private const val MAX_MATCHES = 1_000
 private const val MAX_QUERY_LENGTH = 200
+
+internal data class DocxFailure(
+    @StringRes val message: Int,
+    val canRetry: Boolean,
+)
+
+/** Says what kind of file this is when it is not a previewable DOCX, instead of suggesting damage. */
+internal fun docxFailure(error: FileError): DocxFailure =
+    when ((error as? FileError.UnsupportedFormat)?.mimeType) {
+        DOCX_LEGACY_OR_PROTECTED -> DocxFailure(R.string.docx_legacy_or_protected, canRetry = false)
+        DOCX_NOT_A_PACKAGE -> DocxFailure(R.string.docx_not_a_package, canRetry = false)
+        DOCX_OVER_PREVIEW_LIMITS -> DocxFailure(R.string.docx_over_limits, canRetry = false)
+        else -> DocxFailure(R.string.docx_unavailable, canRetry = true)
+    }
