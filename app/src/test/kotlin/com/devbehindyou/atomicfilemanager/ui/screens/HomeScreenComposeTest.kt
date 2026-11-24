@@ -46,11 +46,12 @@ class HomeScreenComposeTest {
     private fun show(
         hasAccess: Boolean = true,
         readiness: MutableState<StorageReadinessState>? = null,
+        volumes: List<StorageVolumeInfo> = listOf(phone),
     ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 HomeScreen(
-                    volumes = listOf(phone),
+                    volumes = volumes,
                     hasStorageAccess = hasAccess,
                     onNavigateToVolume = { events += "volume:${it.id}" },
                     onNavigateToCategory = { events += "category:$it" },
@@ -61,7 +62,7 @@ class HomeScreenComposeTest {
                     onViewOpenedHistory = { events += "opened" },
                     onManagePinnedLocations = { events += "manage pins" },
                     storageReadiness =
-                        readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
+                        readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, volumes)),
                     onRetryStorage = { events += "retry" },
                 )
             }
@@ -95,6 +96,22 @@ class HomeScreenComposeTest {
         compose.onNodeWithContentDescription("Explore storage").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Manage").performScrollTo().performClick()
         assertEquals(listOf("volume:primary", "details", "details", "manage pins"), events)
+    }
+
+    @Test
+    fun homeStorageCardsOpenTheSelectedVolume() {
+        val sd =
+            phone.copy(
+                id = "sd-card",
+                label = "SD card",
+                type = StorageType.SD_CARD,
+                isRemovable = true,
+                rootNodeId = FileNodeId.file("/storage/test-sd"),
+            )
+        show(volumes = listOf(sd, phone))
+        compose.onNodeWithTag("volume_item_primary").performScrollTo().performClick()
+        compose.onNodeWithTag("volume_item_sd-card").performScrollTo().performClick()
+        assertEquals(listOf("volume:primary", "volume:sd-card"), events)
     }
 
     @Test
