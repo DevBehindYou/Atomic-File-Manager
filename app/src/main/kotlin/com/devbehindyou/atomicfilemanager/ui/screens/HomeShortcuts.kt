@@ -2,6 +2,7 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +20,8 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.AtomicApp
@@ -52,6 +53,8 @@ import kotlinx.coroutines.withContext
 private const val RECENT_ROWS = 6
 private const val RECENT_MEDIA_DAYS = 7L
 private const val DAY_MILLIS = 24L * 60 * 60 * 1000
+private const val STACKED_FONT_SCALE = 1.5f
+private val twoColumnMinWidth = 800.dp
 
 /** Home shortcut cards backed by saved pins, open history and recent media. */
 @Composable
@@ -115,17 +118,7 @@ fun HomeShortcuts(
             onManagePinnedLocations = onManagePinnedLocations,
         )
     }
-    if (LocalConfiguration.current.screenWidthDp >= 1120) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s24)) {
-            Column(Modifier.weight(1.6f)) { history() }
-            Column(Modifier.weight(1f)) { pins() }
-        }
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24)) {
-            history()
-            pins()
-        }
-    }
+    HomeShortcutColumns(history, pins)
     if (addedRows.isNotEmpty()) {
         RecentShortcutCard(
             title = "Recent media",
@@ -158,6 +151,27 @@ fun HomeShortcuts(
     }
 
     preview?.let { FilePreviewDialog(node = it, onDismiss = { preview = null }) }
+}
+
+@Composable
+internal fun HomeShortcutColumns(
+    history: @Composable () -> Unit,
+    pins: @Composable () -> Unit,
+) {
+    val largeText = LocalDensity.current.fontScale >= STACKED_FONT_SCALE
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= twoColumnMinWidth && !largeText) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s24)) {
+                Column(Modifier.weight(1.6f)) { history() }
+                Column(Modifier.weight(1f)) { pins() }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24)) {
+                history()
+                pins()
+            }
+        }
+    }
 }
 
 @Composable
