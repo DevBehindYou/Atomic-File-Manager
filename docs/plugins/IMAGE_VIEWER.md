@@ -73,3 +73,5 @@ IMG-B05 to IMG-B06 (Claude Code C002, host-verified only). If File info closed w
 ### R08 native image presentation candidate — 18 November 2026
 
 The image viewer gains a bounded 4:3 stage, current gallery position, and a lazy filmstrip of real folder images. Zoom buttons use the same bounded transform as gestures. Existing fit modes, decoder limits, GIF Stop/Replay and source selection are preserved. The zoom-button regression is prepared. Current-head host and native checks and the visual matrix remain open. The plugin version stays v0.2.
+
+The pager now uses the zoom state reported by the active page for swipe eligibility. The native GIF fixture exercises retained zoom when a page becomes active again alongside playback, Stop and Replay.
