@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -93,7 +92,7 @@ class DocxSourceSessionComposeTest {
         val find = compose.onNodeWithTag("docx_find").getUnclippedBoundsInRoot()
         val reading = compose.onNodeWithTag("docx_reading_surface").getUnclippedBoundsInRoot()
         assertTrue(reading.top >= find.bottom)
-        assertTrue(reading.width > 0.dp)
+        assertTrue(reading.right > reading.left)
         assertEquals(1, first.get())
         assertEquals(1, second.get())
         assertEquals(2, closed.get())
