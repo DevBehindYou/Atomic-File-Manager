@@ -31,23 +31,22 @@ object AtomicFonts {
 
     /** Bebas Neue has no lowercase: use it only for short, app-authored text, never file names. */
     val display = FontFamily(Font(R.font.bebas_neue, FontWeight.Normal))
-    val body = FontFamily(hanken(400), hanken(500), hanken(700))
+    val body = FontFamily(hanken(400), hanken(500), hanken(600), hanken(700))
     val mono = FontFamily(mono(400), mono(500), mono(700))
 }
 
 /**
- * Atomic type roles (ATOMIC_UI_PLAN.md §4.2). Display roles are rendered uppercase by the
- * Atomic text atom; `name*` roles show file and folder names exactly as stored.
+ * Atomic type roles use the bundled Hanken family for headings, labels and file names.
  */
 object AtomicTypography {
     private val displayBase =
-        TextStyle(fontFamily = AtomicFonts.display, fontWeight = FontWeight.Normal, lineHeight = 0.95.em)
+        TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.SemiBold, lineHeight = 1.2.em)
 
-    val displayHero = displayBase.copy(fontSize = 46.sp, letterSpacing = 0.5.sp)
-    val displayTitle = displayBase.copy(fontSize = 40.sp, letterSpacing = 0.5.sp)
-    val displayPushed = displayBase.copy(fontSize = 30.sp, letterSpacing = 0.5.sp)
-    val displayCard = displayBase.copy(fontSize = 22.sp, lineHeight = 1.0.em)
-    val displayButton = displayBase.copy(fontSize = 20.sp, lineHeight = 1.0.em, letterSpacing = 0.6.sp)
+    val displayHero = displayBase.copy(fontSize = 36.sp)
+    val displayTitle = displayBase.copy(fontSize = 28.sp)
+    val displayPushed = displayBase.copy(fontSize = 24.sp)
+    val displayCard = displayBase.copy(fontSize = 18.sp)
+    val displayButton = displayBase.copy(fontSize = 16.sp)
 
     val nameLarge =
         TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp)
@@ -57,16 +56,16 @@ object AtomicTypography {
         TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp)
     val bodySecondary = body.copy(fontSize = 15.sp, lineHeight = 22.sp)
 
-    /** Uppercased by the text atom; 12 sp minimum (spec §4.4.7). */
+    /** Compact sentence-case labels. Legacy role name retained for call-site compatibility. */
     val monoLabel =
         TextStyle(
-            fontFamily = AtomicFonts.mono,
+            fontFamily = AtomicFonts.body,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
-            letterSpacing = 1.4.sp,
+            letterSpacing = 0.sp,
         )
     val monoMeta =
-        TextStyle(fontFamily = AtomicFonts.mono, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp)
+        TextStyle(fontFamily = AtomicFonts.body, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 16.sp)
 
     /**
      * Bridge for Material widgets not yet rebuilt. Every Material role stays in Hanken Grotesk

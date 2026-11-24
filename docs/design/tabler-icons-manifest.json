@@ -1,0 +1,315 @@
+{
+  "repository": "https://github.com/tabler/tabler-icons",
+  "revision": "3951a41ba543ca79c87cdaf00de7f16370d855e7",
+  "license": "MIT",
+  "icons": {
+    "Back": {
+      "source": "icons/outline/arrow-left.svg",
+      "sha256": "12af90f1bb49b7ae62792ecf38d2fa8b39daa4753e39ebc3520d07482a90704f"
+    },
+    "Forward": {
+      "source": "icons/outline/arrow-right.svg",
+      "sha256": "7e602a26d53e78ceb788f38cb89ec1d1091130c56d7829ca294b7ed0642277c6"
+    },
+    "Home": {
+      "source": "icons/outline/home.svg",
+      "sha256": "069600f461f3e967685765723a851af7b35f24b715e03d41a2928152cf75644c"
+    },
+    "Files": {
+      "source": "icons/outline/folder.svg",
+      "sha256": "acdf398775addb8104673e5a8ef29d01d40184c6a5b3c62a93f10309cf9ef253"
+    },
+    "FolderOpen": {
+      "source": "icons/outline/folder-open.svg",
+      "sha256": "eed6d7ccbb5452986fa4f1083cc8d1afdee8f49a68af5c875f0689cdf5fb93a4"
+    },
+    "NewFolder": {
+      "source": "icons/outline/folder-plus.svg",
+      "sha256": "29cca183967b0384a48ada6638c72bc0258086b76e3ae497f12d402b2c7b36d5"
+    },
+    "Storage": {
+      "source": "icons/outline/server.svg",
+      "sha256": "6c4aa71ca6fd11a738abf7972ad893f808e2e25d6181b5b329784050f95490d2"
+    },
+    "Network": {
+      "source": "icons/outline/network.svg",
+      "sha256": "41a8ff03ae456bdbb860aa664ec2c572ef316a60e86bab223e6037b841403d78"
+    },
+    "Settings": {
+      "source": "icons/outline/settings.svg",
+      "sha256": "ef9cf42d822c00b4fad5bc5eeceddd4e1ec3774bb7ddd09891d0fba274bc3e95"
+    },
+    "Search": {
+      "source": "icons/outline/search.svg",
+      "sha256": "3dd53b9606283dfa0adcb0b10a7d9a4432369d4bebcfacf67f80fbe358381c34"
+    },
+    "More": {
+      "source": "icons/outline/dots-vertical.svg",
+      "sha256": "7f23a3911c7f4bddfb27c7b181ef0d483c14d3b1d2dea3a81573c2beeb9794d8"
+    },
+    "MoreHorizontal": {
+      "source": "icons/outline/dots.svg",
+      "sha256": "798ff2bd35fdb045535872ed5d5e93e39a289c6fd0faaf01639ae84180e54dae"
+    },
+    "Add": {
+      "source": "icons/outline/plus.svg",
+      "sha256": "9cc497d4cc1eb38cf9daae18f41ffdc1a5e2a8431d70247b0854978f303f28d6"
+    },
+    "Close": {
+      "source": "icons/outline/x.svg",
+      "sha256": "9350785360414c39450c3505f17d1745e55a7534edace8548e30cf49e3727d43"
+    },
+    "Check": {
+      "source": "icons/outline/check.svg",
+      "sha256": "e206067a7d570997b5b3a7d30ab287c0b15a492787649a8b96dff8fad2862fbe"
+    },
+    "CheckCircle": {
+      "source": "icons/outline/circle-check.svg",
+      "sha256": "c4cb2e026be5f4c217c3ff9b0ccefb9a26b7a135bc82eef28a8bead0cc02a958"
+    },
+    "Unchecked": {
+      "source": "icons/outline/circle.svg",
+      "sha256": "d7e7e7ec68e225eabf75483881ce12a290a746d0e4ebb56b874c05e068438d0b"
+    },
+    "SelectAll": {
+      "source": "icons/outline/select-all.svg",
+      "sha256": "e96ce4ff4318ae3ca93538491957617013e7916bdf0a506d5f6b38df3d68f03c"
+    },
+    "Info": {
+      "source": "icons/outline/info-circle.svg",
+      "sha256": "48b7dddf34a6b87e93843a42b14781ce01794cf69274c458249ed8bfc01b6e4d"
+    },
+    "Tasks": {
+      "source": "icons/outline/arrows-exchange.svg",
+      "sha256": "67be2e2afc04e53c70a4b81f58b18c232edd5b6124eff81a285fcd513f857016"
+    },
+    "Download": {
+      "source": "icons/outline/download.svg",
+      "sha256": "c13f6f9cf87deee99e331622169efd59cd764b376994540347e50d6bb5e2e0ef"
+    },
+    "Theme": {
+      "source": "icons/outline/palette.svg",
+      "sha256": "d9c39bf1ce00d10694015d9d736ae6006a7e7b2f0df776dd206e1058a9a700a7"
+    },
+    "InvertSelection": {
+      "source": "icons/outline/select.svg",
+      "sha256": "04a671ef40f3fe23625d3f8630a806527f609ad94e6c22c419eb73246330c0e1"
+    },
+    "SelectSameType": {
+      "source": "icons/outline/filter.svg",
+      "sha256": "69bbcca665588bd0b64c44c42ced4538b3e3c75a59e3fc46e58b1f10d99d15ec"
+    },
+    "Refresh": {
+      "source": "icons/outline/refresh.svg",
+      "sha256": "9dd8ab8cac268489501cbb0a106d93cc3f367add493d20c47ec1e1d9804c760a"
+    },
+    "Replay": {
+      "source": "icons/outline/rotate-clockwise.svg",
+      "sha256": "df4126db6c4a8ef7fc713b2497e21d3b8c70bac9a9fb45db1f58e5dd486f467d"
+    },
+    "Stop": {
+      "source": "icons/outline/player-stop.svg",
+      "sha256": "9ed8cfd7b7cffbc925dae2c28ad5fb5115f3db451511acc47348e01cb862e291"
+    },
+    "Restore": {
+      "source": "icons/outline/history.svg",
+      "sha256": "5f8a5a975a8136a4755380c18db1fe533acf7dc4e34250ceae0272c5d2cb7312"
+    },
+    "Undo": {
+      "source": "icons/outline/arrow-back-up.svg",
+      "sha256": "42a20a833068ac155cc2e3a4176a9e80a918cc62c8bf48d3f826a2c47bde739d"
+    },
+    "Redo": {
+      "source": "icons/outline/arrow-forward-up.svg",
+      "sha256": "fd66d62f72c9c638108fbb97738d9ca1f969b4cf2cb54ece6f79b44d586409ad"
+    },
+    "OpenExternally": {
+      "source": "icons/outline/external-link.svg",
+      "sha256": "95de8d4e3e77d34b39a94e157ff26b5a860015c6ce3056794f63dd3a55805bbc"
+    },
+    "Preview": {
+      "source": "icons/outline/eye.svg",
+      "sha256": "45bdbd35bb18e9997a86dad8db6eb90931d1d53884484baf2c65e34d6f6e4f93"
+    },
+    "WrapText": {
+      "source": "icons/outline/text-wrap.svg",
+      "sha256": "754eb01b8dae67c5f1d184f21c8ae61444b4fe76643482aa1e52f964c24bbc51"
+    },
+    "DualPane": {
+      "source": "icons/outline/layout-columns.svg",
+      "sha256": "9faef89c597b34d62faaa604d557e44cecace461e9e64322a381939889162e8b"
+    },
+    "Sort": {
+      "source": "icons/outline/sort-descending.svg",
+      "sha256": "b101508dfc34cf4a9e56afed63b2ff94ea86a3964eb4ef666ba2824466782d60"
+    },
+    "Copy": {
+      "source": "icons/outline/copy.svg",
+      "sha256": "3a455a299db4ec939fd0473d15c81c1d3f30f65dec81a7de816317c989b06073"
+    },
+    "Cut": {
+      "source": "icons/outline/cut.svg",
+      "sha256": "44b8992321eec304e9a18a81a765ce220ef30426b984074d67e53640ecbb9418"
+    },
+    "Paste": {
+      "source": "icons/outline/clipboard.svg",
+      "sha256": "46bcd71c2d4a42d8ad6c59ef07a9cfce09af42843aac908a0829c3bdfb44d8ae"
+    },
+    "Move": {
+      "source": "icons/outline/folder-symlink.svg",
+      "sha256": "d513d390792dde1781262e40313fb9319c1bbaed26b2e11487ed8217a2aaabce"
+    },
+    "Rename": {
+      "source": "icons/outline/edit.svg",
+      "sha256": "0881791f500a9e4a6a791f7798ae0d31d303f978167505e0e1adbe4ac5a965b5"
+    },
+    "Favourite": {
+      "source": "icons/outline/star.svg",
+      "sha256": "c0b4afc60d311585f7c79c2ffd68d58eb5c1e3a3cd6d626cdc7792c5d3bbb49b"
+    },
+    "Extract": {
+      "source": "icons/outline/archive.svg",
+      "sha256": "f6a87827b2402644e13e854c6c0574232212b98e66e8eb51dde3589d4dcc6ffa"
+    },
+    "Share": {
+      "source": "icons/outline/share.svg",
+      "sha256": "31df66b0cdca73ae6bfe8b3afc30488e53db354d4de418190512d9023b23675e"
+    },
+    "Trash": {
+      "source": "icons/outline/trash.svg",
+      "sha256": "4b90fa07a6d980736951d9e83b91432972b2bcecf81be4578608a0983f2ebc9d"
+    },
+    "Cleanup": {
+      "source": "icons/outline/brush.svg",
+      "sha256": "3067f83bfe52f9e09b631b0ef414b4c7c072cab6dd8bb5f4aed167de5d37ab97"
+    },
+    "Bubble": {
+      "source": "icons/outline/layers-intersect.svg",
+      "sha256": "5bbc8a450c6b6d1bc236e9e8397670c1dc2c18cbe8de5cba7287bb3d8f517332"
+    },
+    "Image": {
+      "source": "icons/outline/photo.svg",
+      "sha256": "67d9b3ec02867e98ad17739380919a2d82287d15d3463161f450e17047ed319b"
+    },
+    "Video": {
+      "source": "icons/outline/movie.svg",
+      "sha256": "c060349bd89cf44c1542de982d06c61f81240868a336eb5ce670d048f564554f"
+    },
+    "Camera": {
+      "source": "icons/outline/video.svg",
+      "sha256": "dd2b56843d8eb7cca074e63a74f6394a787f55bc2f19d0500d2c496d877bd567"
+    },
+    "Audio": {
+      "source": "icons/outline/music.svg",
+      "sha256": "afd2fe98e580e1d4e9bf45d88165894b0e683e9141f63c312585d778b73d02c5"
+    },
+    "AudioFile": {
+      "source": "icons/outline/file-music.svg",
+      "sha256": "aa0221d9651fedd31262a2ad31ea0fcd4360f90b6f78ed33dd7fd2fc9305359f"
+    },
+    "Document": {
+      "source": "icons/outline/file-text.svg",
+      "sha256": "afc807ae397fc2419ac5cbca6a1e085a5f761277397682cbad3d907ca78693f5"
+    },
+    "Pdf": {
+      "source": "icons/outline/file-type-pdf.svg",
+      "sha256": "36ef668b02762697eb2d3e360ec13580651908ded26c08facfe3b99fc96ccebf"
+    },
+    "Text": {
+      "source": "icons/outline/file-text.svg",
+      "sha256": "afc807ae397fc2419ac5cbca6a1e085a5f761277397682cbad3d907ca78693f5"
+    },
+    "Ebook": {
+      "source": "icons/outline/book.svg",
+      "sha256": "1f55b129a72746a98e1aaffc55ae7b43d004db036968afb022b3f9fbd7da87c9"
+    },
+    "Font": {
+      "source": "icons/outline/typography.svg",
+      "sha256": "dbd02a0c7c4794f692ee17139b9c1b9672a9bf873bcf28d14caa5f2a3dbab896"
+    },
+    "Spreadsheet": {
+      "source": "icons/outline/table.svg",
+      "sha256": "4e5361445165142336fe34566d43906a323765906bfc3bb26571121807ace3f7"
+    },
+    "Presentation": {
+      "source": "icons/outline/presentation.svg",
+      "sha256": "076b83103b75ecfc5bb4cb441e16b610817d84a22a6adb1cefb7118b2e78db65"
+    },
+    "GenericFile": {
+      "source": "icons/outline/file.svg",
+      "sha256": "c3995cdcfc6b74ff439efd5a8817c14ac4f821ae4435c0d2e6c021e3f39a6808"
+    },
+    "Archive": {
+      "source": "icons/outline/file-zip.svg",
+      "sha256": "0dc8b74962e79d9e5aed2496bfe3542d87ab4eca21ca8a22c0c5579d0fffb740"
+    },
+    "Apk": {
+      "source": "icons/outline/brand-android.svg",
+      "sha256": "cb31e0a80f7b2504b114172d69da4bd7bd2be53dba2f88b932545b7de01577c1"
+    },
+    "Lock": {
+      "source": "icons/outline/lock.svg",
+      "sha256": "407856048124fdd63239f75a3640ca8f20a9acbc1f49cac9de0bcdb1cb42ec5f"
+    },
+    "Security": {
+      "source": "icons/outline/shield-lock.svg",
+      "sha256": "9fc37c3b11a297a81371652d89407b2bd19c17dfdffe0ff500d3426d96236d13"
+    },
+    "Hide": {
+      "source": "icons/outline/photo-off.svg",
+      "sha256": "9d554e2af91bb4bec9878543edc2f5ce454767205c2635b494bff8c37956b683"
+    },
+    "Visible": {
+      "source": "icons/outline/eye.svg",
+      "sha256": "45bdbd35bb18e9997a86dad8db6eb90931d1d53884484baf2c65e34d6f6e4f93"
+    },
+    "Hidden": {
+      "source": "icons/outline/eye-off.svg",
+      "sha256": "7fd56939026b76c23b64597bab2ad0b6aab824eef4e0edd772626126b8b20433"
+    },
+    "Play": {
+      "source": "icons/outline/player-play.svg",
+      "sha256": "e2bff69284f1dc77224c47c03798017206a29d4ef665549db724b0a4534d8e5c"
+    },
+    "Pause": {
+      "source": "icons/outline/player-pause.svg",
+      "sha256": "d9be9ab25e52cdcae17def18d41edc0855fa44caa8492cde2b5b8cd085e8c5a6"
+    },
+    "Rewind10": {
+      "source": "icons/outline/rewind-backward-10.svg",
+      "sha256": "c69ccc4003ea7fe685c43637df99e22dc0a98e6fe5b6c1cf2fd7d3d15aea07a2"
+    },
+    "Forward10": {
+      "source": "icons/outline/rewind-forward-10.svg",
+      "sha256": "557b75f6e47ae533fc7d119af03d4c9a6f83f0609049ee74b99f431a09c1d0c3"
+    },
+    "Code": {
+      "source": "icons/outline/code.svg",
+      "sha256": "ff3d40c83c1a908bc3aa173671232e5015dba2f7f3538edc23fa2218a3d329e2"
+    },
+    "List": {
+      "source": "icons/outline/list.svg",
+      "sha256": "79565264d22054914ebbe856931325cb5118fabd6fc75409628d7f4bd2f623a0"
+    },
+    "Grid": {
+      "source": "icons/outline/layout-grid.svg",
+      "sha256": "91f923bcca6e9201ccedd2a10bb5d5a7eb3dbb5fa5a26af394d362f35c935237"
+    },
+    "Sun": {
+      "source": "icons/outline/sun.svg",
+      "sha256": "6677490605af8987d55d6e4185b1f6c241eced65b63ccfece68cadb7ce90fbb5"
+    },
+    "Plug": {
+      "source": "icons/outline/plug.svg",
+      "sha256": "b6df03adcf16818c31c1a96f1006557634da1f5a2aa4846cdc6dbcba713e3c6b"
+    },
+    "ChevronRight": {
+      "source": "icons/outline/chevron-right.svg",
+      "sha256": "83733bb6e03e1d20fd2674d06a493642c8ea6eef76c44ebb2239b9ef17dedff7"
+    },
+    "Cloud": {
+      "source": "icons/outline/cloud.svg",
+      "sha256": "abbbc58eb9bdd3e5b1f41b28b1d9743274d79762d248c88d72455c47f674f8e2"
+    }
+  }
+}

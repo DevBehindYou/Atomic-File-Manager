@@ -2,9 +2,13 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,9 +27,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
@@ -34,23 +41,29 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicPushedHeader
+import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicInfoSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.model.getOrNull
 import com.devbehindyou.atomicfilemanager.domain.usecase.CompareEntry
 import com.devbehindyou.atomicfilemanager.domain.usecase.CompareState
 import com.devbehindyou.atomicfilemanager.domain.usecase.FolderComparer
+import com.devbehindyou.atomicfilemanager.domain.usecase.GetNodeUseCase
 import com.devbehindyou.atomicfilemanager.domain.usecase.SyncMode
 import com.devbehindyou.atomicfilemanager.domain.usecase.SyncPlan
 import com.devbehindyou.atomicfilemanager.domain.usecase.SyncPlanner
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
+import kotlinx.coroutines.CancellationException
 
 /** A saved mode is acknowledged only after its metadata write succeeds. */
 data class FolderCompareSaveState(val savedMode: SyncMode?, val saving: Boolean = false, val failed: Boolean = false)
@@ -60,6 +73,7 @@ data class FolderCompareSaveState(val savedMode: SyncMode?, val saving: Boolean 
  * any two storages, and a one-way sync from left to right. The plan is always shown before it
  * runs; mirror deletes go to Trash. Nothing runs in the background on its own.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FolderCompareScreen(
     left: FileNodeId,
@@ -74,22 +88,35 @@ fun FolderCompareScreen(
     onSave: ((SyncMode) -> Unit)? = null,
     saveState: FolderCompareSaveState? = null,
     onModeChanged: ((SyncMode) -> Unit)? = null,
+    getNode: GetNodeUseCase? = null,
 ) {
     BackHandler(onBack = onBack)
-    var reloads by remember { mutableIntStateOf(0) }
-    var result by remember { mutableStateOf<FileResult<List<CompareEntry>>?>(null) }
+    val initiallySaved = if (saveState != null) saveState.savedMode != null else savedMode != null
+    var requests by rememberSaveable(left, right) { mutableIntStateOf(if (initiallySaved) 1 else 0) }
+    var result by remember(left, right, requests) { mutableStateOf<FileResult<List<CompareEntry>>?>(null) }
+    var inspectedEntry by remember(left, right, requests) { mutableStateOf<CompareEntry?>(null) }
     var filter by rememberSaveable(left, right) { mutableStateOf<CompareState?>(null) }
     var mode by rememberSaveable(left, right) { mutableStateOf(savedMode ?: SyncMode.COPY_NEW) }
     var savedAs by rememberSaveable(left, right) { mutableStateOf(savedMode) }
     var reviewing by rememberSaveable(left, right) { mutableStateOf(false) }
     val confirmedMode = if (saveState != null) saveState.savedMode else savedAs
 
-    LaunchedEffect(left, right, reloads) {
-        result = null
-        result = comparer.compare(left, right)
+    LaunchedEffect(left, right, requests) {
+        if (requests > 0) result = comparer.compare(left, right)
     }
     val entries = (result as? FileResult.Success<List<CompareEntry>>)?.value
-    val shown = entries?.let { CompareText.visible(it, filter) }
+    val shown = remember(entries, filter) { entries?.let { CompareText.visible(it, filter) } }
+    val counts = remember(entries) { entries.orEmpty().groupingBy { it.state }.eachCount() }
+    val differences = (entries?.size ?: 0) - (counts[CompareState.SAME] ?: 0)
+    val comparing = requests > 0 && result == null
+    val leftLocation = compareLocationLabel(left, getNode)
+    val rightLocation = compareLocationLabel(right, getNode)
+
+    fun compare() {
+        filter = null
+        reviewing = false
+        requests++
+    }
 
     Column(
         modifier
@@ -99,45 +126,42 @@ fun FolderCompareScreen(
             .navigationBarsPadding()
             .testTag("folder_compare"),
     ) {
-        AtomicPushedHeader(
-            onBack = onBack,
-            title = stringResource(R.string.compare_title),
-            eyebrow = "${CompareText.folderName(left.raw)} → ${CompareText.folderName(right.raw)}",
-        )
-        if (entries != null) {
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s4),
-                horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
-            ) {
-                AtomicChip(
-                    "Differences ${entries.count { it.state != CompareState.SAME }}",
-                    selected = filter == null,
-                    onSelectedChange = { filter = null },
+        AtomicPushedHeader(onBack = onBack, title = stringResource(R.string.compare_title))
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth().testTag("folder_compare_entries"),
+            contentPadding = PaddingValues(AtomicSpacing.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+        ) {
+            item {
+                CompareLocations(
+                    left = leftLocation,
+                    right = rightLocation,
+                    comparing = comparing,
+                    compared = entries != null,
+                    onCompare = ::compare,
                 )
-                CompareState.entries.forEach { state ->
-                    val count = entries.count { it.state == state }
-                    if (count > 0) {
-                        AtomicChip(
-                            "${CompareText.state(state)} $count",
-                            selected = filter == state,
-                            onSelectedChange = { filter = state },
-                        )
-                    }
+            }
+            if (entries != null) {
+                item {
+                    CompareResultFilters(differences, counts, filter) { filter = it }
                 }
             }
-        }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(AtomicSpacing.s16)) {
             when {
-                result == null -> item { AtomicLoading("Comparing…") }
+                comparing -> item { AtomicLoading("Comparing…") }
+                requests == 0 ->
+                    item {
+                        AtomicEmptyState(
+                            message = "No changes made",
+                            detail = "A comparison reads both locations. Sync requires a separate confirmation.",
+                        )
+                    }
                 result is FileResult.Failure ->
                     item {
                         AtomicEmptyState(
                             message = "Couldn't read one of the folders.",
                             detail = "Check that both are still there and reachable, then try again.",
                             actionLabel = "Try again",
-                            onAction = { reloads++ },
+                            onAction = ::compare,
                         )
                     }
                 shown.isNullOrEmpty() -> item { AtomicEmptyState(message = CompareText.NOTHING_DIFFERS) }
@@ -147,7 +171,7 @@ fun FolderCompareScreen(
                             name = entry.path,
                             meta = CompareText.meta(entry),
                             icon = CompareText.icon(entry),
-                            onClick = {},
+                            onClick = { inspectedEntry = entry },
                         )
                     }
             }
@@ -157,7 +181,10 @@ fun FolderCompareScreen(
                 Modifier.padding(AtomicSpacing.s16),
                 verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+                    verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+                ) {
                     SyncMode.entries.forEach { option ->
                         AtomicChip(
                             CompareText.mode(option),
@@ -193,7 +220,7 @@ fun FolderCompareScreen(
                     }
                 }
                 AtomicButton(
-                    "Review sync",
+                    "Review left → right",
                     onClick = { reviewing = true },
                     variant = AtomicButtonVariant.Solid,
                     modifier = Modifier.fillMaxWidth().testTag("review_sync_button"),
@@ -202,9 +229,20 @@ fun FolderCompareScreen(
         }
     }
 
+    inspectedEntry?.let { entry ->
+        AtomicInfoSheet(
+            label = "Difference details",
+            headline = entry.path,
+            body = CompareText.meta(entry),
+            onDismiss = { inspectedEntry = null },
+        )
+    }
+
     if (reviewing && entries != null) {
         val plan = remember(entries, mode) { SyncPlanner.plan(entries, mode) }
         AtomicSheet(label = CompareText.mode(mode), onDismiss = { reviewing = false }) {
+            AtomicText("Source: $leftLocation", AtomicTextRole.BodySecondary)
+            AtomicText("Destination: $rightLocation", AtomicTextRole.BodySecondary)
             AtomicText(CompareText.summary(plan), AtomicTextRole.Body)
             CompareText.preview(plan).forEach { AtomicText(it, AtomicTextRole.BodySecondary) }
             if (plan.isEmpty) {
@@ -225,6 +263,109 @@ fun FolderCompareScreen(
                     variant = AtomicButtonVariant.Ghost,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun compareLocationLabel(
+    id: FileNodeId,
+    getNode: GetNodeUseCase?,
+): String {
+    var displayName by remember(id, getNode) { mutableStateOf<String?>(null) }
+    LaunchedEffect(id, getNode) {
+        if (getNode == null || id.prefix == FileNodeId.Prefix.FILE) return@LaunchedEffect
+        displayName =
+            try {
+                getNode(id).getOrNull()?.displayName
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+    }
+    val location = CompareText.location(id)
+    val name = displayName
+    return if (name.isNullOrBlank() || location == name) location else "$location / $name"
+}
+
+@Composable
+private fun CompareLocations(
+    left: String,
+    right: String,
+    comparing: Boolean,
+    compared: Boolean,
+    onCompare: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+        AtomicText("Compare first. Review the direction before copying.", AtomicTextRole.BodySecondary)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val sideBySide = maxWidth >= 520.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+            if (sideBySide) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+                    CompareLocationCard("Left location", left, "Source", Modifier.weight(1f))
+                    CompareLocationCard("Right location", right, "Destination", Modifier.weight(1f))
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+                    CompareLocationCard("Left location", left, "Source")
+                    CompareLocationCard("Right location", right, "Destination")
+                }
+            }
+        }
+        AtomicButton(
+            text = if (compared) "Compare again" else "Compare folders",
+            onClick = onCompare,
+            enabled = !comparing,
+            modifier = Modifier.align(Alignment.CenterHorizontally).testTag("run_folder_compare"),
+        )
+    }
+}
+
+@Composable
+private fun CompareLocationCard(
+    title: String,
+    path: String,
+    side: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Atomic.colors
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(colors.surfaceCard, AtomicShape.lg)
+            .border(AtomicBorder.hair, colors.borderHair, AtomicShape.lg)
+            .padding(AtomicSpacing.s16),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+    ) {
+        AtomicText(title, AtomicTextRole.DisplayCard)
+        AtomicText(path, AtomicTextRole.Name, maxLines = 3)
+        AtomicText(side, AtomicTextRole.MonoMeta)
+    }
+}
+
+@Composable
+private fun CompareResultFilters(
+    differences: Int,
+    counts: Map<CompareState, Int>,
+    filter: CompareState?,
+    onFilter: (CompareState?) -> Unit,
+) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+    ) {
+        AtomicChip(
+            "Differences $differences",
+            selected = filter == null,
+            onSelectedChange = { onFilter(null) },
+        )
+        CompareState.entries.forEach { state ->
+            val count = counts[state] ?: 0
+            if (count > 0) {
+                val label = CompareText.state(state)
+                AtomicChip("$label $count", selected = filter == state, onSelectedChange = { onFilter(state) })
             }
         }
     }
@@ -281,17 +422,35 @@ internal object CompareText {
     /** The first few changes, so the user sees what will happen before it runs. */
     fun preview(plan: SyncPlan): List<String> {
         val lines =
-            plan.copies.map { "+ ${it.path}" } +
-                plan.replacements.map { "↻ ${it.path}" } +
-                plan.trash.map { "− ${it.name}" }
-        if (lines.size <= PREVIEW_LINES) return lines
-        return lines.take(PREVIEW_LINES) + "and ${lines.size - PREVIEW_LINES} more"
+            (
+                plan.copies.asSequence().map { "+ ${it.path}" } +
+                    plan.replacements.asSequence().map { "↻ ${it.path}" } +
+                    plan.trash.asSequence().map { "− ${it.name}" }
+            ).take(PREVIEW_LINES).toList()
+        val remaining = plan.copies.size + plan.replacements.size + plan.trash.size - lines.size
+        return if (remaining > 0) lines + "and $remaining more" else lines
     }
 
     fun folderName(raw: String): String =
         raw.substringAfter(
             ':',
         ).trimEnd('/').substringAfterLast('/').ifBlank { "Storage" }
+
+    fun location(id: FileNodeId): String =
+        when (id.prefix) {
+            FileNodeId.Prefix.FILE -> id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme)
+            FileNodeId.Prefix.SAF -> "Linked folder"
+            FileNodeId.Prefix.USB -> "USB storage"
+            FileNodeId.Prefix.SHIZUKU -> "Restricted folder"
+            FileNodeId.Prefix.MEDIA -> "Shared storage"
+            FileNodeId.Prefix.FTP,
+            FileNodeId.Prefix.FTPS,
+            FileNodeId.Prefix.SFTP,
+            FileNodeId.Prefix.SMB,
+            FileNodeId.Prefix.WEBDAV,
+            -> "Network folder"
+            null -> "Selected folder"
+        }
 
     private fun facts(node: FileNode): String =
         if (node.isDirectory) {

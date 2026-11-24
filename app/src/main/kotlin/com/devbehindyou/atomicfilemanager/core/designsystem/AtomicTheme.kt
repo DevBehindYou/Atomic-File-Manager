@@ -114,7 +114,7 @@ fun AtomicTheme(
         LocalReducedMotion provides reducedMotion,
     ) {
         MaterialTheme(
-            colorScheme = colors.toMaterial(),
+            colorScheme = colors.toMaterial(Color(if (darkTheme) accent.light.text else accent.dark.text)),
             typography = AtomicTypography.material,
             shapes = AtomicShape.material,
             content = content,
@@ -123,21 +123,19 @@ fun AtomicTheme(
 }
 
 /**
- * Material mapping. Material uses `primary` as a text colour (text buttons, links), so on dark it
- * is the readable accent variant: Signal text on ink fails contrast (spec §3.6). Atomic components
- * use [AtomicColors.accent] fills with white text directly. `surfaceTint` is transparent so no
- * tonal elevation tint appears (the spec has no tonal surfaces).
+ * Material uses primary for both text and fills. Atomic components can use the brighter brand
+ * fill separately because they specify their own foreground.
  */
-private fun AtomicColors.toMaterial(): ColorScheme {
-    val primary = if (isDark) accentText else accent
-    val onPrimary = if (isDark) background else onAccent
+private fun AtomicColors.toMaterial(inverseAccentText: Color): ColorScheme {
+    val primary = accentText
+    val onPrimary = if (isDark) background else Color.White
     return if (isDark) {
         darkColorScheme(
             primary = primary,
             onPrimary = onPrimary,
             primaryContainer = surfaceInset,
             onPrimaryContainer = content,
-            inversePrimary = accent,
+            inversePrimary = inverseAccentText,
             secondary = content,
             onSecondary = background,
             secondaryContainer = surfaceInset,
@@ -172,7 +170,7 @@ private fun AtomicColors.toMaterial(): ColorScheme {
             onPrimary = onPrimary,
             primaryContainer = surfaceInset,
             onPrimaryContainer = content,
-            inversePrimary = accentText,
+            inversePrimary = inverseAccentText,
             secondary = content,
             onSecondary = background,
             secondaryContainer = surfaceInset,

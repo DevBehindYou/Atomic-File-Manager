@@ -17,6 +17,26 @@ sealed interface AtomicRoute {
         override fun encode() = OPERATIONS
     }
 
+    /** App version, help and bundled notices. */
+    data object About : AtomicRoute {
+        override fun encode() = ABOUT
+    }
+
+    /** The catalog of tools included with the installed app. */
+    data object InAppPlugins : AtomicRoute {
+        override fun encode() = PLUGINS
+    }
+
+    /** Files opened through this application. */
+    data object RecentlyOpened : AtomicRoute {
+        override fun encode() = RECENTLY_OPENED
+    }
+
+    /** Manage the file and folder shortcuts saved from Browse. */
+    data object PinnedLocations : AtomicRoute {
+        override fun encode() = PINNED_LOCATIONS
+    }
+
     /** Search across all storage. */
     data object Search : AtomicRoute {
         override fun encode() = SEARCH
@@ -59,11 +79,21 @@ sealed interface AtomicRoute {
         override fun encode() = "$COMPARE$SEPARATOR$leftRaw$PAIR$rightRaw"
     }
 
+    /** A dedicated tool reached from the Storage tab. */
+    data class StorageTool(val page: StorageToolPage) : AtomicRoute {
+        override fun encode() = "$STORAGE_TOOL$SEPARATOR${page.name}"
+    }
+
     companion object {
+        private const val STORAGE_TOOL = "storage-tool"
         private const val PRIVATE = "private"
+        private const val PINNED_LOCATIONS = "pinned-locations"
         private const val OPERATIONS = "operations"
         private const val TRASH = "trash"
+        private const val RECENTLY_OPENED = "recently-opened"
         private const val SEARCH = "search"
+        private const val ABOUT = "about"
+        private const val PLUGINS = "plugins"
         private const val APPS = "apps"
         private const val WIFI_SHARE = "wifi-share"
         private const val CATEGORY = "category"
@@ -77,9 +107,13 @@ sealed interface AtomicRoute {
         /** Returns null for anything it does not recognise, so a stale bundle never crashes. */
         fun decode(value: String): AtomicRoute? {
             if (value == PRIVATE) return PrivateFiles
+            if (value == PINNED_LOCATIONS) return PinnedLocations
             if (value == OPERATIONS) return Operations
             if (value == TRASH) return Trash
+            if (value == RECENTLY_OPENED) return RecentlyOpened
             if (value == SEARCH) return Search
+            if (value == ABOUT) return About
+            if (value == PLUGINS) return InAppPlugins
             if (value == APPS) return Apps
             if (value == WIFI_SHARE) return WifiShare
             val kind = value.substringBefore(SEPARATOR, missingDelimiterValue = "")
@@ -88,6 +122,7 @@ sealed interface AtomicRoute {
             return when (kind) {
                 CATEGORY -> Category(argument)
                 ANALYSIS -> Analysis(argument)
+                STORAGE_TOOL -> StorageToolPage.entries.firstOrNull { it.name == argument }?.let(::StorageTool)
                 COMPARE -> {
                     val left = argument.substringBefore(PAIR, missingDelimiterValue = "")
                     val right = argument.substringAfter(PAIR, missingDelimiterValue = "")
@@ -98,6 +133,8 @@ sealed interface AtomicRoute {
         }
     }
 }
+
+enum class StorageToolPage { CONNECTIONS, FOLDER_COMPARE, STORAGE_ACCESS, SHIZUKU_LABS }
 
 /**
  * Immutable back stack of [AtomicRoute]s. The top entry is the visible screen; an empty stack

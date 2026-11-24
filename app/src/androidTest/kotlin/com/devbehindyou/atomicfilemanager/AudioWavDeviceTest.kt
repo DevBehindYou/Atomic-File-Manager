@@ -3,7 +3,6 @@ package com.devbehindyou.atomicfilemanager
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -108,7 +107,7 @@ class AudioWavDeviceTest {
     }
 
     private fun positionMs(): Float =
-        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+        compose.onNodeWithContentDescription("Playback position")
             .fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current
 
     private fun awaitPlayingPosition(minimumMs: Float) {

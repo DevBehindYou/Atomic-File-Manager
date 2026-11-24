@@ -47,11 +47,16 @@ class RouteStackTest {
             RouteStack()
                 .push(AtomicRoute.Analysis("saf:content://tree/primary:Download"))
                 .push(AtomicRoute.Category("VIDEOS"))
+                .push(AtomicRoute.RecentlyOpened)
                 .push(AtomicRoute.PrivateFiles)
                 .push(AtomicRoute.Operations)
+                .push(AtomicRoute.PinnedLocations)
                 .push(AtomicRoute.Apps)
+                .push(AtomicRoute.About)
+                .push(AtomicRoute.InAppPlugins)
                 .push(AtomicRoute.FolderCompare("file:/storage/emulated/0/DCIM", "sftp:nas:/home/me/Photos"))
                 .push(AtomicRoute.WifiShare)
+                .push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))
 
         assertEquals(stack, RouteStack.decode(stack.encode()))
     }

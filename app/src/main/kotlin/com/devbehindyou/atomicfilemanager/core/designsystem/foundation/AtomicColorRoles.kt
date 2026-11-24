@@ -5,20 +5,20 @@ package com.devbehindyou.atomicfilemanager.core.designsystem.foundation
  * Screens never use these directly; they read semantic roles from [AtomicColorRoles].
  */
 internal object AtomicPalette {
-    const val INK = 0xFF15171B.toInt()
-    const val PAPER = 0xFFF4F5F1.toInt()
+    const val INK = 0xFF1B1B1B.toInt()
+    const val PAPER = 0xFFF6F6F6.toInt()
     const val WHITE = 0xFFFFFFFF.toInt()
-    const val BLACK = 0xFF000000.toInt()
-    const val SURFACE = 0xFFEDEEE8.toInt()
-    const val RAISED = 0xFFF9FAF4.toInt()
-    const val SIGNAL = 0xFF3A2FF0.toInt()
-    const val SIGNAL_HOVER = 0xFF2A20C9.toInt()
-    const val SIGNAL_DEEP = 0xFF1D14A0.toInt()
-    const val SIGNAL_LIGHT = 0xFF8F88FF.toInt()
-    const val SLATE = 0xFF4A4D55.toInt()
-    const val LINE = 0xFFC6C6CB.toInt()
-    const val TRACK = 0xFFE8E9E3.toInt()
-    const val CARD_DARK = 0xFF1E2026.toInt()
+    const val BLACK = 0xFF010101.toInt()
+    const val SURFACE = 0xFFE5E5E5.toInt()
+    const val SIGNAL = 0xFFFE6902.toInt()
+    const val SIGNAL_HOVER = 0xFFED5F00.toInt()
+    const val SIGNAL_DEEP = 0xFF974300.toInt()
+    const val SLATE = 0xFF5B5959.toInt()
+    const val LINE = 0xFFC5C3C3.toInt()
+    const val CHARCOAL = 0xFF262626.toInt()
+    const val STONE = 0xFF393737.toInt()
+    const val DARK_LINE = 0xFF555353.toInt()
+    const val DARK_METADATA = 0xFFB9B9B9.toInt()
     const val ERROR = 0xFFBA1A1A.toInt()
     const val ERROR_CONTAINER = 0xFFFFDAD6.toInt()
     const val ON_ERROR_CONTAINER = 0xFF93000A.toInt()
@@ -28,13 +28,13 @@ internal object AtomicPalette {
     const val ON_ERROR_DARK = 0xFF690005.toInt()
     const val ERROR_CONTAINER_DARK = 0xFF93000A.toInt()
     const val ON_ERROR_CONTAINER_DARK = 0xFFFFDAD6.toInt()
-    const val ENERGY_HIGH = 0xFFEB7D00.toInt()
+    const val ENERGY_HIGH = 0xFFB51A0B.toInt()
     const val LIVE = 0xFF3DDC84.toInt()
 }
 
 /** The accent family. Only this group changes when wallpaper colours are on (ATOMIC_UI_PLAN.md §4.5). */
 data class AccentSet(
-    /** Fill for primary buttons, selected borders, meters. White ([onFill]) text sits on it. */
+    /** Fill for primary buttons, selected borders and meters, paired with [onFill]. */
     val fill: Int,
     val onFill: Int,
     /** Pressed/hover fill, about 15 % darker. */
@@ -76,13 +76,13 @@ object AtomicColorFactory {
     val signalLight =
         AccentSet(
             fill = AtomicPalette.SIGNAL,
-            onFill = AtomicPalette.WHITE,
+            onFill = AtomicPalette.BLACK,
             pressed = AtomicPalette.SIGNAL_HOVER,
             deep = AtomicPalette.SIGNAL_DEEP,
-            text = AtomicPalette.SIGNAL,
+            text = AtomicPalette.SIGNAL_DEEP,
         )
 
-    val signalDark = signalLight.copy(text = AtomicPalette.SIGNAL_LIGHT)
+    val signalDark = signalLight.copy(text = AtomicPalette.SIGNAL)
 
     fun light(accent: AccentSet = signalLight): AtomicColorRoles =
         AtomicColorRoles(
@@ -90,7 +90,7 @@ object AtomicColorFactory {
             background = AtomicPalette.PAPER,
             surfaceCard = AtomicPalette.WHITE,
             surfaceInset = AtomicPalette.SURFACE,
-            surfaceRaised = AtomicPalette.RAISED,
+            surfaceRaised = AtomicPalette.WHITE,
             content = AtomicPalette.INK,
             contentSecondary = AtomicPalette.SLATE,
             contentMuted = AtomicPalette.SLATE,
@@ -105,26 +105,23 @@ object AtomicColorFactory {
                     AtomicPalette.ERROR_CONTAINER,
                     AtomicPalette.ON_ERROR_CONTAINER,
                 ),
-            meter = MeterSet(accent.fill, AtomicPalette.ENERGY_HIGH, AtomicPalette.TRACK, AtomicPalette.LIVE),
+            meter = MeterSet(accent.text, AtomicPalette.ENERGY_HIGH, AtomicPalette.SURFACE, AtomicPalette.LIVE),
         )
 
-    /** Atomic Dark (spec §13.9 suggestion; ATOMIC_UI_PLAN.md §4.1). Paper overlays follow spec §3.5. */
-    fun dark(accent: AccentSet = signalDark): AtomicColorRoles {
-        fun paperOverInk(alpha: Float) = ColorMath.mix(AtomicPalette.INK, AtomicPalette.PAPER, alpha)
-        return AtomicColorRoles(
+    fun dark(accent: AccentSet = signalDark): AtomicColorRoles =
+        AtomicColorRoles(
             isDark = true,
-            background = AtomicPalette.INK,
-            surfaceCard = AtomicPalette.CARD_DARK,
-            surfaceInset = paperOverInk(0.05f),
-            surfaceRaised = paperOverInk(0.08f),
+            background = AtomicPalette.BLACK,
+            surfaceCard = AtomicPalette.INK,
+            surfaceInset = AtomicPalette.CHARCOAL,
+            surfaceRaised = AtomicPalette.CHARCOAL,
             content = AtomicPalette.PAPER,
-            contentSecondary = paperOverInk(0.78f),
-            contentMuted = paperOverInk(0.62f),
+            contentSecondary = AtomicPalette.DARK_METADATA,
+            contentMuted = AtomicPalette.DARK_METADATA,
             accent = accent,
-            borderStrong = paperOverInk(0.6f),
-            borderHair = paperOverInk(0.16f),
-            // On dark backgrounds the hard shadow is the accent (spec §6.3).
-            shadow = accent.fill,
+            borderStrong = AtomicPalette.DARK_METADATA,
+            borderHair = AtomicPalette.DARK_LINE,
+            shadow = AtomicPalette.BLACK,
             error =
                 ErrorSet(
                     AtomicPalette.ERROR_DARK,
@@ -132,7 +129,6 @@ object AtomicColorFactory {
                     AtomicPalette.ERROR_CONTAINER_DARK,
                     AtomicPalette.ON_ERROR_CONTAINER_DARK,
                 ),
-            meter = MeterSet(accent.text, AtomicPalette.ENERGY_HIGH, paperOverInk(0.16f), AtomicPalette.LIVE),
+            meter = MeterSet(accent.text, AtomicPalette.ERROR_DARK, AtomicPalette.STONE, AtomicPalette.LIVE),
         )
-    }
 }

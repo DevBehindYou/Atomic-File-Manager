@@ -59,7 +59,7 @@ private fun BrowsePaneVisibility(
 /**
  * The secondary pane belongs to this Browse composition, not the Activity. Keep it while
  * switching between browse and preview on a wide layout; release it on leaving Browse,
- * changing tab/root, or returning to a single pane. Compact layouts never call [factory].
+ * changing tab/root, or leaving the wide viewport. Compact layouts never call [factory].
  */
 @Composable
 internal fun rememberSecondaryBrowseViewModel(

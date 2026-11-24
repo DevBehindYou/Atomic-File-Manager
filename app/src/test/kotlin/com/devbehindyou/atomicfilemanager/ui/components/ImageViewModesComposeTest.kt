@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.doubleClick
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
@@ -112,6 +114,18 @@ class ImageViewModesComposeTest {
         compose.onNodeWithTag("image_mode_width").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithTag("image_mode_limit").assertExists()
         compose.onNodeWithTag("image_mode_fit").assertIsOn()
+    }
+
+    @Test
+    fun zoomButtonsAdjustTheSameBoundedScaleAsGestures() {
+        show(100, 400)
+
+        compose.onNodeWithTag("image_zoom_out").assertIsNotEnabled()
+        compose.onNodeWithTag("image_zoom_in").performClick()
+        compose.onNodeWithText("125%").assertIsDisplayed()
+        compose.onNodeWithTag("image_zoom_out").performClick()
+        compose.onNodeWithText("100%").assertIsDisplayed()
+        compose.onNodeWithTag("image_zoom_out").assertIsNotEnabled()
     }
 
     @Test

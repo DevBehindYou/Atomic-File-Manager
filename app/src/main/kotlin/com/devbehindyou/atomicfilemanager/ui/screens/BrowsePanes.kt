@@ -125,7 +125,7 @@ internal fun DualPaneBrowseContent(
                 onHide = actions.onHide,
                 onNewFolder = actions.onNewFolder,
                 onPaneActivated = actions.onPrimaryActivated,
-                viewMode = viewMode,
+                presentation = FileListPresentation(viewMode),
             )
         }
         Box(Modifier.fillMaxHeight().width(AtomicBorder.rule).background(Atomic.colors.borderStrong))
@@ -165,7 +165,7 @@ internal fun DualPaneBrowseContent(
                         onHide = actions.onHide,
                         onNewFolder = actions.onNewFolder,
                         onPaneActivated = actions.onSecondaryActivated,
-                        viewMode = viewMode,
+                        presentation = FileListPresentation(viewMode),
                     )
                 }
             } else {
@@ -228,6 +228,11 @@ internal fun OperationBanner(
     }
 }
 
+internal data class FileListPresentation(
+    val viewMode: FileViewMode = FileViewMode.LIST,
+    val showBreadcrumbs: Boolean = true,
+)
+
 @Composable
 internal fun FileListContent(
     uiState: BrowseUiState,
@@ -243,7 +248,7 @@ internal fun FileListContent(
     onNewFolder: () -> Unit,
     modifier: Modifier = Modifier,
     onPaneActivated: () -> Unit = {},
-    viewMode: FileViewMode = FileViewMode.LIST,
+    presentation: FileListPresentation = FileListPresentation(),
 ) {
     val isSelectionMode = uiState.selectedIds.isNotEmpty()
     val favourites = (LocalContext.current.applicationContext as AtomicApp).container.favouritesRepository
@@ -252,7 +257,7 @@ internal fun FileListContent(
     val favouriteIds = remember(favouriteList) { favouriteList.mapTo(HashSet()) { it.id } }
     val favouriteScope = rememberCoroutineScope()
     Column(modifier = modifier.fillMaxSize()) {
-        if (uiState.breadcrumbs.isNotEmpty()) {
+        if (presentation.showBreadcrumbs && uiState.breadcrumbs.isNotEmpty()) {
             BreadcrumbBar(
                 breadcrumbs = uiState.breadcrumbs,
                 onBreadcrumbClick = {
@@ -314,7 +319,7 @@ internal fun FileListContent(
                     }
                 FileBrowserLayout(
                     nodes = uiState.filteredItems,
-                    viewMode = viewMode,
+                    viewMode = presentation.viewMode,
                     dragController = dragController,
                 ) { node ->
                     val isSelected = node.id in uiState.selectedIds
@@ -412,7 +417,7 @@ internal fun FileListContent(
                                 .then(dropMod),
                         presentation =
                             FileItemPresentation(
-                                viewMode = viewMode,
+                                viewMode = presentation.viewMode,
                                 favourite =
                                     FavouriteToggle(node.id in favouriteIds) {
                                         favouriteScope.launch {

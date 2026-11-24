@@ -46,11 +46,12 @@ class HomeScreenComposeTest {
     private fun show(
         hasAccess: Boolean = true,
         readiness: MutableState<StorageReadinessState>? = null,
+        volumes: List<StorageVolumeInfo> = listOf(phone),
     ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 HomeScreen(
-                    volumes = listOf(phone),
+                    volumes = volumes,
                     hasStorageAccess = hasAccess,
                     onNavigateToVolume = { events += "volume:${it.id}" },
                     onNavigateToCategory = { events += "category:$it" },
@@ -58,8 +59,10 @@ class HomeScreenComposeTest {
                     onRequestStorageAccess = { events += "grant" },
                     onOpenPrivateFiles = { events += "private" },
                     onOpenStorageDetails = { events += "details" },
+                    onViewOpenedHistory = { events += "opened" },
+                    onManagePinnedLocations = { events += "manage pins" },
                     storageReadiness =
-                        readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, listOf(phone))),
+                        readiness?.value ?: StorageReadinessState.Ready(StorageSnapshot(hasAccess, volumes)),
                     onRetryStorage = { events += "retry" },
                 )
             }
@@ -87,8 +90,28 @@ class HomeScreenComposeTest {
     fun storageCardAndDetailsOpenTheirDestinations() {
         show()
         compose.onNodeWithTag("volume_item_primary").performClick()
-        compose.onNodeWithContentDescription("Details →").performClick()
-        assertEquals(listOf("volume:primary", "details"), events)
+        compose.onNodeWithContentDescription("See storage").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Recently opened").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Pinned locations").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Explore storage").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Manage").performScrollTo().performClick()
+        assertEquals(listOf("volume:primary", "details", "details", "manage pins"), events)
+    }
+
+    @Test
+    fun homeStorageCardsOpenTheSelectedVolume() {
+        val sd =
+            phone.copy(
+                id = "sd-card",
+                label = "SD card",
+                type = StorageType.SD_CARD,
+                isRemovable = true,
+                rootNodeId = FileNodeId.file("/storage/test-sd"),
+            )
+        show(volumes = listOf(sd, phone))
+        compose.onNodeWithTag("volume_item_primary").performScrollTo().performClick()
+        compose.onNodeWithTag("volume_item_sd-card").performScrollTo().performClick()
+        assertEquals(listOf("volume:primary", "volume:sd-card"), events)
     }
 
     @Test
@@ -98,6 +121,13 @@ class HomeScreenComposeTest {
         compose.onNodeWithTag("category_more").performScrollTo().performClick()
         compose.onNodeWithTag("app_private_storage_item").performScrollTo().performClick()
         assertEquals(listOf("category:${FileCategory.IMAGE}", "category:${FileCategory.OTHER}", "private"), events)
+    }
+
+    @Test
+    fun viewAllUnderRecentlyOpenedOpensHistory() {
+        show()
+        compose.onNodeWithContentDescription("View all").performScrollTo().performClick()
+        assertEquals(listOf("opened"), events)
     }
 
     @Test

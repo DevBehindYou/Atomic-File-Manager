@@ -1,7 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicBorder
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicFileTypeColors
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
@@ -58,8 +56,7 @@ fun FileThumbnail(
         Box(
             modifier =
                 Modifier.size(size)
-                    .background(Atomic.colors.background, AtomicShape.sm)
-                    .border(AtomicBorder.structure, Atomic.colors.borderStrong, AtomicShape.sm)
+                    .background(Atomic.colors.surfaceInset, AtomicShape.sm)
                     .testTag("file_type_icon_${node.id.raw}"),
             contentAlignment = Alignment.Center,
         ) {

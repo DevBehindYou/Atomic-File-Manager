@@ -9,8 +9,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarningBox
 
@@ -24,7 +23,7 @@ fun StorageReadinessContent(
     if (state is StorageReadinessState.Ready) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
         if (state is StorageReadinessState.Loading) {
-            AtomicText(
+            AtomicLoading(
                 stringResource(
                     if (state.snapshot == null) {
                         R.string.storage_readiness_loading
@@ -32,7 +31,6 @@ fun StorageReadinessContent(
                         R.string.storage_readiness_refreshing
                     },
                 ),
-                AtomicTextRole.BodySecondary,
                 modifier = Modifier.testTag("storage_readiness_loading"),
             )
         } else {

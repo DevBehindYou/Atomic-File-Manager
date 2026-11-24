@@ -2,17 +2,14 @@ package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.app.Application
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSize
-import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.OperationId
@@ -34,24 +31,13 @@ class TasksPanelComposeTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun popupFitsItsHostWindowWhenTheWindowChangesSize() {
-        val availableWidth = mutableStateOf(AtomicSize.popupMaxWidth)
+    fun popupUsesTheSharedCenteredWidth() {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
-                val size =
-                    with(LocalDensity.current) {
-                        IntSize(
-                            availableWidth.value.roundToPx(),
-                            (AtomicSize.popupMaxHeight + AtomicSpacing.s74).roundToPx(),
-                        )
-                    }
-                TasksPanel(null, emptyList(), emptyList(), {}, {}, {}, {}, windowSize = size)
+                TasksPanel(null, emptyList(), emptyList(), {}, {}, {}, {})
             }
         }
-        compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth - AtomicSpacing.s32)
-        assertCenteredHeader()
-        compose.runOnIdle { availableWidth.value += AtomicSpacing.s32 }
-        compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(AtomicSize.popupMaxWidth)
+        compose.onNodeWithTag("tasks_popup").assertWidthIsEqualTo(420.dp)
         assertCenteredHeader()
     }
 
@@ -85,8 +71,8 @@ class TasksPanelComposeTest {
             assertEquals(operation, cancelled)
             active.value = null
         }
-        compose.onNodeWithText("No tasks running").assertExists()
-        compose.onNodeWithContentDescription("All operations →").performClick()
+        compose.onNodeWithContentDescription("No tasks running").assertExists()
+        compose.onNodeWithContentDescription("Task history").performClick()
         compose.runOnIdle { assertEquals(1, opened) }
     }
 

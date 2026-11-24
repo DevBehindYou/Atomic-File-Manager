@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -64,7 +65,7 @@ import java.util.concurrent.atomic.AtomicInteger
 /** Real wide BrowseScreen consumers, with independent primary and secondary listing counters. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "w840dp-h800dp", application = AtomicApp::class)
+@Config(sdk = [34], qualifiers = "w1120dp-h800dp", application = AtomicApp::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SecondaryBrowseScreenVisibilityComposeTest {
     @get:Rule val compose = createComposeRule()
@@ -72,6 +73,7 @@ class SecondaryBrowseScreenVisibilityComposeTest {
     @Test
     fun aComposedStoppedWideScreenDoesNotStartItsSecondaryListing() {
         withScreen(Lifecycle.State.CREATED) { fixture ->
+            toggleDualPane()
             compose.waitForIdle()
             shadowOf(Looper.getMainLooper()).idle()
             assertEquals("Stopped secondary pane must stay paused from construction", 0, fixture.started.get())
@@ -81,6 +83,7 @@ class SecondaryBrowseScreenVisibilityComposeTest {
     @Test
     fun switchingTheRealWideScreenToPreviewStopsItsRetainedSecondaryListing() {
         withScreen(Lifecycle.State.STARTED) { fixture ->
+            toggleDualPane()
             awaitCondition { fixture.emitted.get() == 1 }
             compose.onNodeWithContentDescription("Switch to preview pane").performClick()
             compose.waitForIdle()
@@ -92,6 +95,7 @@ class SecondaryBrowseScreenVisibilityComposeTest {
     @Test
     fun managingHiddenFilesPausesBothBrowsePanesAndBackRefreshesEachOnlyOnce() {
         withScreen(Lifecycle.State.STARTED) { fixture ->
+            toggleDualPane()
             awaitCondition { fixture.emitted.get() == 1 && fixture.primaryEmitted.get() == 1 }
             compose.onNodeWithTag("browse_options_button").performClick()
             compose.onNodeWithText("Manage hidden files").performClick()
@@ -115,6 +119,37 @@ class SecondaryBrowseScreenVisibilityComposeTest {
                 assertEquals(2, fixture.started.get())
             }
         }
+    }
+
+    @Test
+    fun widePaneDoesNotObserveUntilEnabledAndStopsWhenDisabled() {
+        withScreen(Lifecycle.State.STARTED) { fixture ->
+            awaitCondition { fixture.primaryEmitted.get() == 1 }
+            assertEquals(0, fixture.started.get())
+            toggleDualPane()
+            awaitCondition { fixture.emitted.get() == 1 }
+            toggleDualPane()
+            awaitCondition { fixture.cancelled.get() == 1 }
+            assertEquals(1, fixture.primaryStarted.get())
+            toggleDualPane()
+            awaitCondition { fixture.emitted.get() == 2 }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w1119dp-h800dp")
+    fun dualPaneIsUnavailableBelowTheWideBreakpoint() {
+        withScreen(Lifecycle.State.STARTED) { fixture ->
+            awaitCondition { fixture.primaryEmitted.get() == 1 }
+            compose.onNodeWithTag("browse_options_button").performClick()
+            compose.onNodeWithText("Dual pane").assertDoesNotExist()
+            assertEquals(0, fixture.started.get())
+        }
+    }
+
+    private fun toggleDualPane() {
+        compose.onNodeWithTag("browse_options_button").performClick()
+        compose.onNodeWithText("Dual pane").performScrollTo().performClick()
     }
 
     private fun withScreen(
