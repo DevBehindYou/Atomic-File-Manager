@@ -97,6 +97,7 @@ internal fun AnimatedGifImage(
                 node,
                 Size(drawable.intrinsicWidth.toFloat(), drawable.intrinsicHeight.toFloat()),
                 onZoomChange,
+                isActive = isActive,
             ) { imageModifier ->
                 AndroidView(
                     factory = { context ->

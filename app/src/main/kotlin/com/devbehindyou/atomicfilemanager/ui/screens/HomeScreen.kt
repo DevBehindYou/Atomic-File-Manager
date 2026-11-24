@@ -44,6 +44,7 @@ import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
 private const val LARGE_FONT_SCALE = 1.5f
 private val TWO_COLUMN_MAX = 340.dp
 private val THREE_COLUMN_MAX = 560.dp
+private val TWO_VOLUME_MIN = 680.dp
 private const val WIDE_COLUMNS = 5
 
 private class HomeTile(
@@ -74,6 +75,8 @@ fun HomeScreen(
     privateLocked: Boolean = false,
     storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
     onRetryStorage: () -> Unit = {},
+    onViewOpenedHistory: (() -> Unit)? = null,
+    onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -104,8 +107,7 @@ fun HomeScreen(
             }
         }
 
-        val primaryVolume = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED } ?: volumes.firstOrNull()
-        primaryVolume?.let { volume -> VolumeCard(volume, onBrowse = { onNavigateToVolume(volume) }) }
+        HomeStorageVolumes(volumes, onNavigateToVolume)
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
             AtomicSectionLabel("Browse by type", actionLabel = "See storage", onAction = onOpenStorageDetails)
@@ -119,14 +121,12 @@ fun HomeScreen(
             )
         }
 
-        val additionalVolumes = volumes.filter { it.id != primaryVolume?.id }
-        if (additionalVolumes.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-                AtomicSectionLabel("Connected storage")
-                additionalVolumes.forEach { volume -> VolumeCard(volume, onBrowse = { onNavigateToVolume(volume) }) }
-            }
-        }
-        HomeShortcuts(onOpenFolder = onNavigateToFolder)
+        HomeShortcuts(
+            onOpenFolder = onNavigateToFolder,
+            onExploreStorage = onOpenStorageDetails,
+            onViewOpenedHistory = onViewOpenedHistory,
+            onManagePinnedLocations = onManagePinnedLocations,
+        )
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
             AtomicSectionLabel("Folders")
@@ -136,11 +136,25 @@ fun HomeScreen(
 }
 
 @Composable
-private fun VolumeCard(
-    volume: StorageVolumeInfo,
-    onBrowse: () -> Unit,
+private fun HomeStorageVolumes(
+    volumes: List<StorageVolumeInfo>,
+    onBrowse: (StorageVolumeInfo) -> Unit,
 ) {
-    HomeStorageCard(volume, onBrowse)
+    val primary = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED } ?: volumes.firstOrNull() ?: return
+    val orderedVolumes = listOf(primary) + volumes.filter { it.id != primary.id }
+    val largeFont = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val cardsPerRow = if (maxWidth >= TWO_VOLUME_MIN && !largeFont) 2 else 1
+        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+            orderedVolumes.chunked(cardsPerRow).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+                    row.forEach { volume ->
+                        HomeStorageCard(volume, onBrowse = { onBrowse(volume) }, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun categoryTiles(

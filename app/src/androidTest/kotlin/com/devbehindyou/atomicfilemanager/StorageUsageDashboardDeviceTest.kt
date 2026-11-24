@@ -13,9 +13,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -127,7 +129,7 @@ class StorageUsageDashboardDeviceTest {
             compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
             compose.onNodeWithTag("storage_capacity_summary").performScrollTo().assertIsDisplayed()
             openAnalysis()
-            assertAnalysisIsUnrequested()
+            assertAnalysisIsUnrequested(hasPreviousResult = false)
             stage("request-file-types")
             compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled().performClick()
             awaitTerminalBreakdown()
@@ -145,13 +147,13 @@ class StorageUsageDashboardDeviceTest {
             compose.onNodeWithTag("storage_screen").assertIsDisplayed()
             compose.onNodeWithTag("storage_usage_dashboard").assertDoesNotExist()
             openAnalysis()
-            assertAnalysisIsUnrequested()
-            stage("recreate-unrequested-analysis")
+            assertAnalysisIsUnrequested(hasPreviousResult = true)
+            stage("recreate-analysis-with-previous-result")
             recreateActivity()
             compose.activityRule.scenario.onActivity {
                 it.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
-            assertAnalysisIsUnrequested()
+            assertAnalysisIsUnrequested(hasPreviousResult = true)
             stage("leave-analysis")
             compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
             compose.onNodeWithTag("tab_home").performClick()
@@ -176,7 +178,7 @@ class StorageUsageDashboardDeviceTest {
         compose.onNodeWithTag("storage_intelligence_screen").assertIsDisplayed()
     }
 
-    private fun assertAnalysisIsUnrequested() {
+    private fun assertAnalysisIsUnrequested(hasPreviousResult: Boolean) {
         compose.waitUntil(15_000) {
             val button = compose.onAllNodesWithTag("refresh_storage_usage").fetchSemanticsNodes().singleOrNull()
             button != null && !button.config.contains(SemanticsProperties.Disabled)
@@ -184,9 +186,21 @@ class StorageUsageDashboardDeviceTest {
         compose.onNodeWithTag("storage_intelligence_screen").assertIsDisplayed()
         compose.onNodeWithTag("refresh_storage_usage").performScrollTo().assertIsEnabled()
             .assertContentDescriptionEquals("Analyze file types")
-        compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
-        StorageUsageCategory.entries.forEach {
-            compose.onNodeWithTag("storage_usage_${it.name}").assertDoesNotExist()
+        compose.onNodeWithTag("storage_usage_status").assertTextEquals("Analyze file types when you need a breakdown.")
+        if (hasPreviousResult) {
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithTag("storage_readable_total").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Showing the previous", substring = true).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("storage_readable_total").performScrollTo().assertIsDisplayed()
+            StorageUsageCategory.entries.forEach {
+                compose.onNodeWithTag("storage_usage_${it.name}").performScrollTo().assertIsDisplayed()
+            }
+        } else {
+            compose.onNodeWithTag("storage_readable_total").assertDoesNotExist()
+            StorageUsageCategory.entries.forEach {
+                compose.onNodeWithTag("storage_usage_${it.name}").assertDoesNotExist()
+            }
         }
     }
 

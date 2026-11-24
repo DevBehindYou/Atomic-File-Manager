@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicColorFactory
@@ -93,6 +95,55 @@ class MobileNavigationDeviceTest {
         compose.onNodeWithTag("operations_screen").assertIsDisplayed()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun commandsReachExistingStorageToolsAndBundledPlugins() {
+        val toolCommands =
+            listOf(
+                "palette_connections" to "Connections",
+                "palette_folder_compare" to "Folder compare",
+            )
+        for ((tag, title) in toolCommands) {
+            compose.onNodeWithTag("home_palette_button").performClick()
+            compose.onNodeWithTag(tag).performScrollTo().performClick()
+            compose.onNodeWithTag("storage_tool_screen").assertIsDisplayed()
+            compose.onNodeWithContentDescription(title).assertIsDisplayed()
+            compose.onNodeWithContentDescription("Back").performClick()
+            compose.onNodeWithTag("home_screen").assertIsDisplayed()
+        }
+
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_plugins").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Included with Atomic").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun commandsOpenAboutAndBackReturnsHome() {
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_query").performTextInput("about")
+        compose.onNodeWithTag("palette_about").performScrollTo().performClick()
+        compose.onNodeWithTag("about_screen").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Help & notices").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithTag("home_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun newFolderCommandOpensFormOnceAndCanBeCancelled() {
+        compose.onNodeWithTag("home_palette_button").performClick()
+        compose.onNodeWithTag("palette_new_folder").performScrollTo().performClick()
+
+        compose.onNodeWithTag("new_folder_input").assertIsDisplayed()
+        compose.onNodeWithTag("confirm_create_folder_button").assertIsNotEnabled()
+        compose.onNodeWithTag("cancel_create_folder_button").performClick()
+        compose.onNodeWithTag("new_folder_input").assertDoesNotExist()
+
+        compose.onNodeWithTag("tab_home").performClick()
+        compose.onNodeWithTag("tab_browse").performClick()
+        compose.onNodeWithTag("new_folder_input").assertDoesNotExist()
     }
 
     @Test

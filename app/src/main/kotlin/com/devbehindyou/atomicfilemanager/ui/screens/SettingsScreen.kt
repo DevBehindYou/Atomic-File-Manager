@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -24,7 +23,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicChoi
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDangerZone
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicInfoSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 import com.devbehindyou.atomicfilemanager.domain.model.DEFAULT_HIDDEN_FOLDER
 import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
@@ -70,6 +68,8 @@ private val themeChoices =
 
 /** Native navigation owned by the application shell. */
 data class SettingsDestinations(
+    val onOpenAbout: () -> Unit,
+    val onOpenPlugins: () -> Unit,
     val onOpenPrivateFiles: (() -> Unit)? = null,
     val onOpenFiles: (() -> Unit)? = null,
 )
@@ -99,15 +99,11 @@ fun SettingsScreen(
     onNotify: (String) -> Unit,
     modifier: Modifier = Modifier,
     storageAccessStatus: String? = null,
-    destinations: SettingsDestinations = SettingsDestinations(),
+    destinations: SettingsDestinations,
 ) {
     val settings by settingsRepository.settings.collectAsState()
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val context = LocalContext.current
-    val version =
-        remember(context) {
-            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
-        }
     val hideChoices = hideModeChoices(settings.hiddenFolder)
 
     // Existing guard: changing the lock requires successful authentication, not a visual toggle alone.
@@ -126,7 +122,13 @@ fun SettingsScreen(
     }
 
     var hideParent by rememberSaveable { mutableStateOf(SettingsSheet.HIDDEN) }
-    SettingsRootContent(settings, modifier) { sheet = it }
+    SettingsRootContent(settings, modifier) { destination ->
+        when (destination) {
+            SettingsSheet.ABOUT -> destinations.onOpenAbout()
+            SettingsSheet.PLUGINS -> destinations.onOpenPlugins()
+            else -> sheet = destination
+        }
+    }
 
     when (sheet) {
         SettingsSheet.APPEARANCE ->
@@ -274,15 +276,19 @@ fun SettingsScreen(
             }
         SettingsSheet.CLOUD ->
             SettingsPreferencesDialog("Cloud Connect", { sheet = null }) {
-                AtomicText("Planned · no live sign-in available", AtomicTextRole.Name)
+                AtomicText("Direct cloud access is planned", AtomicTextRole.DisplayCard)
                 AtomicText(
-                    "Cloud Connect is a separate bundled-plugin track. Provider accounts and live transfers " +
-                        "are not available here yet. Linked folders and network storage remain in Connections.",
+                    "Direct cloud accounts, sign-in, uploads and downloads are unavailable in this version.",
+                    AtomicTextRole.BodySecondary,
+                )
+                AtomicText("Storage → Connections", AtomicTextRole.Name)
+                AtomicText(
+                    "Open Connections from the Storage tab to link a folder with Android’s folder picker " +
+                        "or use a saved network location.",
                     AtomicTextRole.BodySecondary,
                 )
             }
         SettingsSheet.OPENING -> FileOpeningSettingsSheet(settingsRepository, onDismiss = { sheet = null })
-        SettingsSheet.PLUGINS -> InAppPluginsSheet(onDismiss = { sheet = null })
         SettingsSheet.HIDE_METHOD ->
             AtomicSheet(label = "Default hiding method", onDismiss = { sheet = hideParent }) {
                 hideChoices.forEach { choice ->
@@ -306,18 +312,7 @@ fun SettingsScreen(
                     sheet = hideParent
                 },
             )
-        SettingsSheet.ABOUT ->
-            AtomicInfoSheet(
-                label = "About & licences",
-                headline = "Atomic File Manager",
-                body =
-                    "Version ${version ?: "unknown"}. Offline-first and private: no account, no ads, no tracking. " +
-                        "Fonts: Bebas Neue, Hanken Grotesk and JetBrains Mono, under the SIL Open Font " +
-                        "License 1.1. Icons: Tabler Icons, MIT (copyright 2020-2026 Paweł Kuna). " +
-                        "Additional Material Icons, Apache License 2.0.",
-                onDismiss = { sheet = null },
-            )
-        null -> Unit
+        SettingsSheet.ABOUT, SettingsSheet.PLUGINS, null -> Unit
     }
 }
 

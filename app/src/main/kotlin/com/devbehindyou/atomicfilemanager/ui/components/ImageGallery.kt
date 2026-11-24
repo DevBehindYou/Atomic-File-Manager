@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -13,14 +14,24 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,11 +40,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -45,23 +58,37 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.data.preview.ImagePreviewHelper
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.normalizedFileMime
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private const val DOUBLE_TAP_ZOOM = 2.5f
+private const val IMAGE_STAGE_RATIO = 4f / 3f
+private const val ZOOM_STEP = 0.25f
+private val maxImageStageHeight = 510.dp
+private val filmstripTileWidth = 68.dp
+private val filmstripTileHeight = 62.dp
+private val filmstripThumbnailSize = 52.dp
 
 /**
  * Swipes through the images of one folder (ALL_IN_ONE_PLAN.md 1.5). Each page pinches and
@@ -75,23 +102,119 @@ internal fun ImageGallery(
     onPageChange: (FileNode) -> Unit,
 ) {
     val pager = rememberPagerState(initialPage = startIndex) { images.size }
-    var zoomed by remember { mutableStateOf(false) }
+    var zoomedPage by remember { mutableIntStateOf(-1) }
     LaunchedEffect(pager, images) {
         snapshotFlow { pager.currentPage }.collect { page -> images.getOrNull(page)?.let(onPageChange) }
     }
-    HorizontalPager(
-        state = pager,
-        userScrollEnabled = !zoomed,
-        beyondViewportPageCount = 1,
-        key = { images[it].id.raw },
-        modifier = Modifier.fillMaxSize().testTag("image_gallery"),
-    ) { page ->
-        ZoomableImage(
-            node = images[page],
-            container = container,
-            onZoomChange = { if (page == pager.currentPage) zoomed = it },
-            isActive = page == pager.currentPage,
+    val scope = rememberCoroutineScope()
+    BoxWithConstraints(Modifier.fillMaxSize().padding(AtomicSpacing.s16)) {
+        val stageHeight = (maxHeight - filmstripTileHeight - AtomicSpacing.s12).coerceAtLeast(0.dp)
+        Column(
+            Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+        ) {
+            ImageStage(Modifier.fillMaxWidth().heightIn(max = stageHeight)) {
+                HorizontalPager(
+                    state = pager,
+                    userScrollEnabled = zoomedPage != pager.currentPage,
+                    beyondViewportPageCount = 1,
+                    key = { images[it].id.raw },
+                    modifier = Modifier.fillMaxSize().testTag("image_gallery"),
+                ) { page ->
+                    ZoomableImage(
+                        node = images[page],
+                        container = container,
+                        onZoomChange = { zoomed ->
+                            if (page == pager.currentPage) zoomedPage = if (zoomed) page else -1
+                        },
+                        isActive = page == pager.currentPage,
+                    )
+                }
+                AtomicText(
+                    Gallery.position(pager.currentPage, images.size),
+                    AtomicTextRole.MonoMeta,
+                    modifier =
+                        Modifier.align(Alignment.TopStart)
+                            .padding(AtomicSpacing.s8)
+                            .background(Atomic.colors.surfaceInset, AtomicShape.lg)
+                            .padding(horizontal = AtomicSpacing.s12, vertical = AtomicSpacing.s4)
+                            .testTag("image_gallery_position"),
+                )
+            }
+            ImageFilmstrip(images, pager.currentPage) { page ->
+                scope.launch {
+                    pager.scrollToPage(page)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ImageViewerStage(
+    node: FileNode,
+    container: AppContainer,
+) {
+    ImageStage(Modifier.fillMaxSize().padding(AtomicSpacing.s16)) {
+        ZoomableImage(node, container)
+    }
+}
+
+@Composable
+private fun ImageStage(
+    modifier: Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    BoxWithConstraints(modifier, contentAlignment = Alignment.TopCenter) {
+        val width = minOf(maxWidth, maxHeight.coerceAtMost(maxImageStageHeight) * IMAGE_STAGE_RATIO)
+        Box(
+            modifier =
+                Modifier.size(width, width / IMAGE_STAGE_RATIO)
+                    .clip(AtomicShape.lg)
+                    .background(Atomic.colors.surfaceInset)
+                    .testTag("image_viewer_stage"),
+            content = content,
         )
+    }
+}
+
+@Composable
+private fun ImageFilmstrip(
+    images: List<FileNode>,
+    page: Int,
+    onSelect: (Int) -> Unit,
+) {
+    val strip = rememberLazyListState(initialFirstVisibleItemIndex = page)
+    LaunchedEffect(page) {
+        if (strip.layoutInfo.visibleItemsInfo.none { it.index == page }) strip.scrollToItem(page)
+    }
+    LazyRow(
+        modifier = Modifier.fillMaxWidth().testTag("image_gallery_filmstrip"),
+        state = strip,
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8, Alignment.CenterHorizontally),
+    ) {
+        itemsIndexed(images, key = { _, node -> node.id.raw }) { index, node ->
+            val selected = index == page
+            val label = "${node.name}, ${Gallery.position(index, images.size)}"
+            Box(
+                modifier =
+                    Modifier.width(filmstripTileWidth).height(filmstripTileHeight)
+                        .clip(AtomicShape.sm)
+                        .background(Atomic.colors.surfaceInset)
+                        .border(
+                            AtomicSpacing.s2,
+                            if (selected) Atomic.colors.accent else Atomic.colors.surfaceInset,
+                            AtomicShape.sm,
+                        )
+                        .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
+                        .semantics { contentDescription = label }
+                        .testTag("image_gallery_thumbnail_$index"),
+                contentAlignment = Alignment.Center,
+            ) {
+                FileThumbnail(node, size = filmstripThumbnailSize)
+            }
+        }
     }
 }
 
@@ -159,27 +282,56 @@ internal fun ZoomableImageSurface(
     node: FileNode,
     imageSize: Size,
     onZoomChange: (Boolean) -> Unit,
+    isActive: Boolean = true,
     content: @Composable (Modifier) -> Unit,
 ) {
     var transform by remember { mutableStateOf(ImageTransform()) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
-    ImageGestureSurface(
-        node,
-        transform,
-        currentTransform = { transform },
-        onViewportChange = { size ->
-            viewport = size
-            transform =
-                transform.copy(
-                    offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
-                )
-        },
-        onTransform = { value, focus, pan ->
-            transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
-            onZoomChange(transform.scale > 1f)
-        },
-        content = content,
-    )
+
+    LaunchedEffect(isActive, transform.scale) {
+        if (isActive) onZoomChange(transform.scale > 1f)
+    }
+
+    fun updateTransform(
+        value: Float,
+        focus: Offset,
+        pan: Offset,
+    ) {
+        transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
+        onZoomChange(transform.scale > 1f)
+    }
+    Box(Modifier.fillMaxSize()) {
+        ImageGestureSurface(
+            node,
+            transform,
+            currentTransform = { transform },
+            onViewportChange = { size ->
+                viewport = size
+                transform =
+                    transform.copy(
+                        offset =
+                            ImageTransformGeometry.clamp(
+                                transform.offset,
+                                transform.scale,
+                                imageSize,
+                                size.toSize(),
+                            ),
+                    )
+            },
+            onTransform = ::updateTransform,
+            content = content,
+        )
+        if (viewport.width > 0 && viewport.height > 0) {
+            ImageZoomControls(
+                transform.scale,
+                minimumScale = 1f,
+                onZoom = { zoom ->
+                    updateTransform(zoom, Offset(viewport.width / 2f, viewport.height / 2f), Offset.Zero)
+                },
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
+        }
+    }
 }
 
 @Composable
@@ -195,6 +347,26 @@ private fun ZoomableStillImageSurface(
 
     fun currentTransform(): ImageTransform = ImageViewModes.transform(view, imageSize, viewport.toSize())
 
+    fun updateTransform(
+        value: Float,
+        focus: Offset,
+        pan: Offset,
+    ) {
+        val viewportSize = viewport.toSize()
+        val updated =
+            ImageTransformGeometry.update(
+                currentTransform(),
+                value,
+                focus,
+                pan,
+                imageSize,
+                viewportSize,
+                minimumScale = ImageViewModes.minimumScale(imageSize, viewportSize),
+            )
+        view = ImageViewModes.custom(updated, imageSize, viewportSize)
+        onZoomChange(updated.scale > 1f)
+    }
+
     val transform = currentTransform()
     LaunchedEffect(isActive, transform.scale) {
         if (isActive) onZoomChange(transform.scale > 1f)
@@ -205,23 +377,19 @@ private fun ZoomableStillImageSurface(
             transform,
             currentTransform = ::currentTransform,
             onViewportChange = { viewport = it },
-            onTransform = { value, focus, pan ->
-                val viewportSize = viewport.toSize()
-                val updated =
-                    ImageTransformGeometry.update(
-                        currentTransform(),
-                        value,
-                        focus,
-                        pan,
-                        imageSize,
-                        viewportSize,
-                        minimumScale = ImageViewModes.minimumScale(imageSize, viewportSize),
-                    )
-                view = ImageViewModes.custom(updated, imageSize, viewportSize)
-                onZoomChange(updated.scale > 1f)
-            },
+            onTransform = ::updateTransform,
             content = content,
         )
+        if (viewport.width > 0 && viewport.height > 0) {
+            ImageZoomControls(
+                transform.scale,
+                minimumScale = ImageViewModes.minimumScale(imageSize, viewport.toSize()),
+                onZoom = { zoom ->
+                    updateTransform(zoom, Offset(viewport.width / 2f, viewport.height / 2f), Offset.Zero)
+                },
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
+        }
         // A sibling above the image pointer target keeps control gestures separate from image pan.
         ImageViewControls(
             view,
@@ -284,6 +452,35 @@ private fun ImageGestureSurface(
                 translationX = transform.offset.x,
                 translationY = transform.offset.y,
             ),
+        )
+    }
+}
+
+@Composable
+private fun ImageZoomControls(
+    scale: Float,
+    minimumScale: Float,
+    onZoom: (Float) -> Unit,
+    modifier: Modifier,
+) {
+    Row(
+        modifier.padding(AtomicSpacing.s8).background(Atomic.colors.surfaceInset, AtomicShape.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AtomicButton(
+            "−",
+            onClick = { onZoom(scale - ZOOM_STEP) },
+            modifier = Modifier.semantics { contentDescription = "Zoom out" }.testTag("image_zoom_out"),
+            variant = AtomicButtonVariant.Text,
+            enabled = scale > minimumScale,
+        )
+        AtomicText("${(scale * 100).roundToInt()}%", AtomicTextRole.MonoMeta)
+        AtomicButton(
+            "+",
+            onClick = { onZoom(scale + ZOOM_STEP) },
+            modifier = Modifier.semantics { contentDescription = "Zoom in" }.testTag("image_zoom_in"),
+            variant = AtomicButtonVariant.Text,
+            enabled = scale < ImageViewModes.MAX_SCALE,
         )
     }
 }

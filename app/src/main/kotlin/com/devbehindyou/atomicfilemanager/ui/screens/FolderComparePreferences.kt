@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
@@ -164,6 +165,7 @@ internal fun StoredFolderCompareScreen(
                 onSave = preferences::save,
                 saveState = state.save,
                 onModeChanged = preferences::select,
+                getNode = (context.applicationContext as? AtomicApp)?.container?.getNodeUseCase,
             )
         } else {
             BackHandler(onBack = onBack)

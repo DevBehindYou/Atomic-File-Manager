@@ -69,3 +69,9 @@ Mode plus numerical source-normalized zoom/translation are saveable within the s
 ### 7 November C002 slice — File info details and clean-copy cancellation
 
 IMG-B05 to IMG-B06 (Claude Code C002, host-verified only). If File info closed while **Share without location / metadata** was running, an unowned clean copy was left in the cache. That copy is now deleted when the caller is cancelled. Photo details now reset when the image or its revision changes, so a replaced image never shows the previous camera or location. A rewritten file at the same path is read again. There are 25 focused host tests, each defect has a failing control on unchanged logic, and ktlint and detekt pass. See [C002 validation](../testing/PREVIEW_DETAILS_CANCELLATION_C002.md). No device run and no IMG group credit are claimed. Version stays v0.2.
+
+### R08 native image presentation candidate — 18 November 2026
+
+The image viewer gains a bounded 4:3 stage, current gallery position, and a lazy filmstrip of real folder images. Zoom buttons use the same bounded transform as gestures. Existing fit modes, decoder limits, GIF Stop/Replay and source selection are preserved. The zoom-button regression is prepared. Current-head host and native checks and the visual matrix remain open. The plugin version stays v0.2.
+
+The pager now uses the zoom state reported by the active page for swipe eligibility. The native GIF fixture exercises retained zoom when a page becomes active again alongside playback, Stop and Replay.
