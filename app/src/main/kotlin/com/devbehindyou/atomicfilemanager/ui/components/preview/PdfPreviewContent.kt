@@ -161,8 +161,6 @@ private fun PdfReader(
             }
         }
         if (pageCount > 0 && openError == null) {
-            // The label belongs to the displayed bitmap, never to an uncompleted request.
-            val displayedIndex = state.rendered?.index ?: state.requested
             Row(
                 Modifier.widthIn(max = 520.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -174,10 +172,12 @@ private fun PdfReader(
                     { request(page - 1) },
                     enabled = page > 0,
                 )
-                AtomicText(
-                    stringResource(R.string.pdf_page_label, displayedIndex + 1, pageCount),
-                    AtomicTextRole.MonoLabel,
-                )
+                if (rendered != null) {
+                    AtomicText(
+                        stringResource(R.string.pdf_page_label, rendered.index + 1, pageCount),
+                        AtomicTextRole.MonoLabel,
+                    )
+                }
                 AtomicIconButton(AtomicIcons.Forward, stringResource(R.string.pdf_next), {
                     request(page + 1)
                 }, enabled = page < pageCount - 1)
