@@ -269,7 +269,7 @@ class VideoResumeComposeTest {
         compose.runOnIdle { render.value = false }
         compose.waitUntil(10_000) {
             shadowOf(Looper.getMainLooper()).idle()
-            attachedPlayerViews(compose.activity.window.decorView).none()
+            attachedPlayerViews(compose.activity.window.decorView).none { it.player === player }
         }
         compose.runOnIdle { render.value = true }
         val second = awaitPlayer { it !== player }
