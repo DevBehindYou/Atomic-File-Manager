@@ -13,8 +13,10 @@ internal fun resolvePreviewType(node: FileNode): PreviewType {
     return when {
         node.isDirectory -> PreviewType.GENERIC
         extension == "docx" || mime == DOCX_MIME -> PreviewType.DOCX
+        // RTF is markup, not prose: showing its control words as a text preview misrepresents it.
         extension in OFFICE_EXTENSIONS || mime.startsWith("application/vnd.openxmlformats-officedocument.") ||
-            mime.startsWith("application/vnd.ms-") || mime == "application/msword" -> PreviewType.GENERIC
+            mime.startsWith("application/vnd.ms-") || mime == "application/msword" ||
+            mime in RTF_MIMES -> PreviewType.GENERIC
         Gallery.isImage(node) -> PreviewType.IMAGE
         mime.startsWith("audio/") || extension in AUDIO_EXTENSIONS -> PreviewType.AUDIO
         mime.startsWith("video/") || extension in VIDEO_EXTENSIONS -> PreviewType.VIDEO
@@ -29,7 +31,8 @@ internal fun resolvePreviewType(node: FileNode): PreviewType {
 
 private const val DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 private val OFFICE_EXTENSIONS =
-    setOf("doc", "docm", "dotx", "dotm", "xls", "xlsx", "xlsm", "ppt", "pptx", "pptm", "odt", "ods", "odp")
+    setOf("doc", "docm", "dotx", "dotm", "xls", "xlsx", "xlsm", "ppt", "pptx", "pptm", "odt", "ods", "odp", "rtf")
+private val RTF_MIMES = setOf("application/rtf", "text/rtf", "text/richtext", "application/x-rtf")
 private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "opus")
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm", "avi", "mov", "3gp", "m4v")
 private val ARCHIVE_MIMES = setOf("application/zip", "application/x-zip-compressed", "application/x-7z-compressed")
