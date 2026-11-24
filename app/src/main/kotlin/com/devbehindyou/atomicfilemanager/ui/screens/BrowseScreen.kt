@@ -193,12 +193,11 @@ fun BrowseScreen(
 
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
-    val onNewFolderRequestHandled = entryRequest.onNewFolderHandled
-    LaunchedEffect(onNewFolderRequestHandled != null) {
-        if (onNewFolderRequestHandled != null) {
+    LaunchedEffect(entryRequest.onNewFolderHandled != null) {
+        entryRequest.onNewFolderHandled?.let { onHandled ->
             showHiddenScreen = false
             showNewFolderDialog = true
-            onNewFolderRequestHandled()
+            onHandled()
         }
     }
     val coroutineScope = rememberCoroutineScope()
