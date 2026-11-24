@@ -1,10 +1,12 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,17 +25,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.devbehindyou.atomicfilemanager.AtomicApp
 import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicEmptyState
+import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicErrorState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSettingsRow
@@ -74,7 +80,7 @@ internal fun StorageConnections(
     var serversLoadingFailed by remember(credentials) { mutableStateOf(false) }
     var serversBusy by remember(credentials) { mutableStateOf(false) }
     var serversLoadRound by remember(credentials) { mutableIntStateOf(0) }
-    var showAddServerDialog by rememberSaveable { mutableStateOf(false) }
+    var protocolToAdd by rememberSaveable { mutableStateOf<NetworkProtocol?>(null) }
     var serverToDelete by remember { mutableStateOf<NetworkServerConfig?>(null) }
 
     LaunchedEffect(credentials, serversLoadRound) {
@@ -91,71 +97,23 @@ internal fun StorageConnections(
     Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24)) {
         LinkedFoldersSection(onBrowseFolder = onBrowseFolder, onNotify = onNotify)
 
-        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-            AtomicSectionLabel("Network locations")
-            val servers = savedServers
-            if (servers == null) {
-                AtomicText(
-                    stringResource(
-                        if (serversLoadingFailed) {
-                            R.string.storage_servers_load_error
-                        } else {
-                            R.string.storage_servers_loading
-                        },
-                    ),
-                    AtomicTextRole.BodySecondary,
-                )
-                if (serversLoadingFailed) {
-                    AtomicButton(stringResource(R.string.action_retry), onClick = {
-                        serversLoadRound++
-                    }, variant = AtomicButtonVariant.Text)
-                }
-            } else if (servers.isEmpty()) {
-                AtomicEmptyState(
-                    message = "No servers yet.",
-                    detail = "Connect to FTP, FTPS or WebDAV to browse and move files on another machine.",
-                )
-            } else {
-                Column {
-                    servers.forEach { server ->
-                        AtomicFileRow(
-                            name = server.name,
-                            meta = "${server.protocol.name} · ${serverAddress(server)}",
-                            icon = AtomicIcons.Network,
-                            onClick = { onBrowseFolder(server.toRootNodeId()) },
-                            trailing = {
-                                AtomicIconButton(
-                                    AtomicIcons.Trash,
-                                    "Remove ${server.name}",
-                                    onClick = { serverToDelete = server },
-                                    variant = AtomicIconButtonVariant.Destructive,
-                                    enabled = !serversBusy,
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-            AtomicButton(
-                "Add server",
-                onClick = { showAddServerDialog = true },
-                variant = AtomicButtonVariant.Ghost,
-                leadingIcon = AtomicIcons.Add,
-                enabled = servers != null && !serversBusy,
-                modifier = Modifier.fillMaxWidth().testTag("add_network_server_button"),
-            )
-            AtomicText(
-                "SFTP, SMB, FTP, FTPS and WebDAV. For SMB, put the share in the path, like /Photos.",
-                AtomicTextRole.MonoMeta,
-            )
-        }
+        NetworkLocationsSection(
+            servers = savedServers,
+            loadingFailed = serversLoadingFailed,
+            busy = serversBusy,
+            onRetry = { serversLoadRound++ },
+            onBrowse = { onBrowseFolder(it.toRootNodeId()) },
+            onRemove = { serverToDelete = it },
+            onAdd = { protocolToAdd = it },
+        )
     }
 
-    if (showAddServerDialog) {
+    protocolToAdd?.let { protocol ->
         AddNetworkServerDialog(
+            initialProtocol = protocol,
             saving = serversBusy,
             ready = savedServers != null,
-            onDismiss = { if (!serversBusy) showAddServerDialog = false },
+            onDismiss = { if (!serversBusy) protocolToAdd = null },
             onSave = { config, password ->
                 if (!serversBusy && savedServers != null) {
                     serversBusy = true
@@ -166,7 +124,7 @@ internal fun StorageConnections(
                                     store.saveServer(config, password) to store.getAllServers()
                                 }
                             savedServers = updated
-                            showAddServerDialog = false
+                            protocolToAdd = null
                             if (!passwordSaved) {
                                 onNotify(passwordUnavailable)
                             }
@@ -216,27 +174,120 @@ internal fun StorageConnections(
     }
 }
 
+@Composable
+internal fun NetworkLocationsSection(
+    servers: List<NetworkServerConfig>?,
+    loadingFailed: Boolean,
+    busy: Boolean,
+    onRetry: () -> Unit,
+    onBrowse: (NetworkServerConfig) -> Unit,
+    onRemove: (NetworkServerConfig) -> Unit,
+    onAdd: (NetworkProtocol) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+        AtomicSectionLabel("Network locations")
+        when {
+            loadingFailed ->
+                AtomicErrorState(
+                    title = stringResource(R.string.storage_servers_load_error),
+                    message = "Retry to open or add a saved connection.",
+                    actionLabel = stringResource(R.string.action_retry),
+                    onAction = onRetry,
+                )
+            servers == null -> AtomicLoading(stringResource(R.string.storage_servers_loading))
+            servers.isEmpty() ->
+                AtomicEmptyState(
+                    message = "No saved servers",
+                    detail = "Choose a protocol to set up a connection.",
+                )
+            else ->
+                Column(
+                    Modifier.fillMaxWidth()
+                        .background(Atomic.colors.surfaceCard, AtomicShape.lg)
+                        .padding(horizontal = AtomicSpacing.s12),
+                ) {
+                    servers.forEach { server ->
+                        AtomicFileRow(
+                            name = server.name,
+                            meta = savedServerSummary(server),
+                            icon = AtomicIcons.Network,
+                            onClick = { onBrowse(server) },
+                            trailing = {
+                                AtomicIconButton(
+                                    AtomicIcons.Trash,
+                                    "Remove " + server.name,
+                                    onClick = { onRemove(server) },
+                                    variant = AtomicIconButtonVariant.Destructive,
+                                    enabled = !busy,
+                                )
+                            },
+                        )
+                    }
+                }
+        }
+        if (servers != null && !loadingFailed && !busy) {
+            NetworkProtocolChoices(onAdd)
+        }
+    }
+}
+
+@Composable
+private fun NetworkProtocolChoices(onAdd: (NetworkProtocol) -> Unit) {
+    AtomicSectionLabel("Add server")
+    Column(
+        Modifier.fillMaxWidth()
+            .background(Atomic.colors.surfaceCard, AtomicShape.lg)
+            .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
+    ) {
+        val protocols =
+            listOf(
+                NetworkProtocol.SMB,
+                NetworkProtocol.SFTP,
+                NetworkProtocol.FTP,
+                NetworkProtocol.FTPS,
+                NetworkProtocol.WEBDAV,
+            )
+        protocols.forEachIndexed { index, protocol ->
+            if (index > 0) StorageToolDivider()
+            StorageToolRow(
+                title = protocol.displayName,
+                subtitle =
+                    when (protocol) {
+                        NetworkProtocol.SMB -> "Windows share or NAS"
+                        NetworkProtocol.SFTP -> "SSH file transfer"
+                        NetworkProtocol.FTP -> "Unencrypted connection"
+                        NetworkProtocol.FTPS -> "FTP with explicit TLS"
+                        NetworkProtocol.WEBDAV -> "Server address and remote path"
+                    },
+                icon = AtomicIcons.Network,
+                onClick = { onAdd(protocol) },
+            )
+        }
+    }
+}
+
 private const val SCAN_MS = 15_000L
 
-private fun serverAddress(server: NetworkServerConfig): String {
+private fun savedServerSummary(server: NetworkServerConfig): String {
     val user =
         when {
             server.anonymous -> "anonymous@"
             server.username.isNotEmpty() -> "${server.username}@"
             else -> ""
         }
-    return "$user${server.host}:${server.port}${server.remotePath}"
+    return "${server.protocol.name} · $user${server.host}:${server.port}${server.remotePath}"
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddNetworkServerDialog(
+    initialProtocol: NetworkProtocol,
     onDismiss: () -> Unit,
     onSave: (NetworkServerConfig, String?) -> Unit,
     saving: Boolean = false,
     ready: Boolean = true,
 ) {
-    var selectedProtocol by rememberSaveable { mutableStateOf(NetworkProtocol.FTP) }
+    var selectedProtocol by rememberSaveable(initialProtocol) { mutableStateOf(initialProtocol) }
     var name by rememberSaveable { mutableStateOf("") }
     var host by rememberSaveable { mutableStateOf("") }
     var portText by rememberSaveable { mutableStateOf(selectedProtocol.defaultPort.toString()) }
