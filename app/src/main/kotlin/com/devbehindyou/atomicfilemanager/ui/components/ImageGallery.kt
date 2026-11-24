@@ -284,7 +284,12 @@ internal fun ZoomableImageSurface(
 ) {
     var transform by remember { mutableStateOf(ImageTransform()) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
-    fun updateTransform(value: Float, focus: Offset, pan: Offset) {
+
+    fun updateTransform(
+        value: Float,
+        focus: Offset,
+        pan: Offset,
+    ) {
         transform = ImageTransformGeometry.update(transform, value, focus, pan, imageSize, viewport.toSize())
         onZoomChange(transform.scale > 1f)
     }
@@ -295,9 +300,10 @@ internal fun ZoomableImageSurface(
             currentTransform = { transform },
             onViewportChange = { size ->
                 viewport = size
-                transform = transform.copy(
-                    offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
-                )
+                transform =
+                    transform.copy(
+                        offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
+                    )
             },
             onTransform = ::updateTransform,
             content = content,
@@ -328,7 +334,11 @@ private fun ZoomableStillImageSurface(
 
     fun currentTransform(): ImageTransform = ImageViewModes.transform(view, imageSize, viewport.toSize())
 
-    fun updateTransform(value: Float, focus: Offset, pan: Offset) {
+    fun updateTransform(
+        value: Float,
+        focus: Offset,
+        pan: Offset,
+    ) {
         val viewportSize = viewport.toSize()
         val updated =
             ImageTransformGeometry.update(
