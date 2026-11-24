@@ -49,7 +49,10 @@ class PdfSourceSessionDeviceTest {
             fixture.awaitPage(count = 3, page = 1)
             val stage = compose.onNodeWithTag("pdf_reading_stage").getUnclippedBoundsInRoot()
             val page = compose.onNodeWithTag("pdf_page").getUnclippedBoundsInRoot()
-            assertTrue("The raster should sit inside the stage margins: $stage vs $page", stage.left < page.left && stage.right > page.right)
+            assertTrue(
+                "The raster should sit inside the stage margins: $stage vs $page",
+                stage.left < page.left && stage.right > page.right,
+            )
             val width = (page.right - page.left).value
             val height = (page.bottom - page.top).value
             assertEquals(200f / 280f, width / height, 0.02f)
