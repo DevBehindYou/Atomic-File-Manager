@@ -51,8 +51,8 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P15 | Folder compare | FolderCompareScreen / sync pairs | Two locations; comparison CTA; differences; direction review; saved pairs | Seven focused tests passed. USB verified the Folder compare entry without running a real sync. Visual matrix open. |
 | P16 | Apps | AppManagerScreen | App icon/name/package; applicable app actions; empty/error | Three App manager rule tests passed. USB verified Commands, installed app listing and Back. Visual matrix open. |
 | P17 | Wi-Fi share | WifiShareScreen | Start/stop state; real URL/session; access instructions; transfer status | Fifteen focused tests passed. USB verified the idle page without starting a session. Visual matrix open. |
-| P18 | Connections | Storage linked folders / network server controls | Separate routed page for linked locations and existing server CRUD; capability/error states | Pending |
-| P19 | Cloud Connect | Cloud records / future inventory surface | Honest bundled/planned capability presentation; no fake sign-in/download controls | Pending |
+| P18 | Connections | Storage linked folders / network server controls | Separate routed page for linked locations and existing server CRUD; capability/error states | Feature integration merged after standard and emulator checks. Visual matrix open. |
+| P19 | Cloud Connect | Cloud records / future inventory surface | Honest bundled/planned capability presentation; no fake sign-in/download controls | Planned-capability status integrated after standard and emulator checks. Visual matrix open. |
 | P20 | Storage access | Existing permission / SAF entry points | Status rows; real Android grant/link flows; revoked/disconnected states | Narrow host test and USB status navigation passed. Android grant changes were outside the smoke scope. Visual matrix open. |
 | P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Seven focused tests passed. USB verified folder details and Close. Open, Share and Rename remain open. |
 | P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | Fourteen focused host tests passed. USB verified Settings and Commands entry, help, credits, bundled tools and Back. Visual matrix open. |
@@ -65,7 +65,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P29 | Text/code editor | ui/components/TextEditorDialog.kt + TextEditorSession.kt | Editor toolbar; text/source stage; Find; wrap; undo/redo; guarded Save and dirty exit | Pending |
 | P30 | Markdown viewer | ui/components/preview/MarkdownPreviewContent.kt + MarkdownBlocks.kt | Rendered/Raw segments; reading surface; bounded native subset; link safety | Pending |
 | P31 | Archive manager | ui/components/FilePreviewDialog.kt::ArchivePreviewContent | Summary; entry list/path; supported creation/extraction; encrypted/unsupported errors | Pending |
-| P32 | Component catalogue | Debug/test-only Compose catalogue | All production component variants, tokens and states for visual comparison; not a fake production destination | Pending |
+| P32 | Component catalogue | Debug/test-only Compose catalogue | All production component variants, tokens and states for visual comparison; not a fake production destination | Debug catalogue candidate covers shared controls, colors, file rows and feedback. Visual verification pending. |
 
 ## 4. Secondary surfaces and state coverage
 
@@ -161,3 +161,6 @@ Current R06 evidence
 
 - R07 verification: [Privacy #148](https://github.com/DevBehindYou/Atomic-File-Manager/pull/148) merged into feature integration as `ebb28bf2`. [Wi-Fi share #149](https://github.com/DevBehindYou/Atomic-File-Manager/pull/149), [Folder compare #150](https://github.com/DevBehindYou/Atomic-File-Manager/pull/150), [Storage access #151](https://github.com/DevBehindYou/Atomic-File-Manager/pull/151) and the [clipboard destination #152](https://github.com/DevBehindYou/Atomic-File-Manager/pull/152) shared a 28-test local run, with formatting, Detekt and packaging. USB confirmed idle Wi-Fi, the Folder compare entry and Storage access on APK SHA-256 `263390E19D4D435FAAEAA002BE51885EBBD9A7065D7C6F169D7FCCD4471D9249`.
 - Implementation estimate is 19 of 32 substantial surfaces, with about 41% remaining by surface count. Full visual acceptance is still 0 of 32. The separate feature and plugin acceptance denominators are unchanged.
+
+- [Connections #153](https://github.com/DevBehindYou/Atomic-File-Manager/pull/153) and [Cloud Connect status #154](https://github.com/DevBehindYou/Atomic-File-Manager/pull/154) merged into feature integration as `3cca8362` and `6e17f05e`. The PR checks and full emulator suites passed and both merge trials matched the tested trees. [Connections emulator](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/44359584762) · [Cloud Connect emulator](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/44360270124)
+- The implementation estimate is now 21 of 32 substantial surfaces, with about 34% remaining by surface count. Full visual acceptance stays at 0 of 32. Shared viewer controls, image and audio UI, and the debug component catalogue are in validation.
