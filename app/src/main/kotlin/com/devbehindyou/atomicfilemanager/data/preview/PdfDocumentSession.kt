@@ -27,6 +27,12 @@ interface PdfDocumentSession<T> {
     ): FileResult<T>
 }
 
+/**
+ * [FileError.UnsupportedFormat] marker for a PDF whose renderer requires a password or an unsupported
+ * security handler. The reader cannot unlock documents, so this is a feature limit, not damage.
+ */
+const val PDF_PASSWORD_PROTECTED = "password-protected PDF"
+
 internal data class PdfPageSize(val width: Int, val height: Int)
 
 internal fun pdfPageSize(
@@ -119,7 +125,7 @@ internal class PdfDocumentLoader<T>(
                     }
                 }
                 currentCoroutineContext().ensureActive()
-                rasterizer = openRenderer(file)
+                rasterizer = openStaged(file)
                 session = OwnedPdfSession(checkNotNull(rasterizer), dispatcher)
                 if (session!!.pageCount <= 0) throw PdfLoadFailure(FileError.UnsupportedFormat("application/pdf"))
             }
@@ -135,6 +141,17 @@ internal class PdfDocumentLoader<T>(
             }
         }
     }
+
+    /**
+     * PdfRenderer throws SecurityException only from document construction, for a password or an
+     * unsupported security handler. Staging is already complete, so provider grant failures cannot reach here.
+     */
+    private fun openStaged(file: File): PdfRasterizer<T> =
+        try {
+            openRenderer(file)
+        } catch (_: SecurityException) {
+            throw PdfLoadFailure(FileError.UnsupportedFormat(PDF_PASSWORD_PROTECTED))
+        }
 }
 
 private class PdfLoadFailure(val error: FileError) : Exception()
