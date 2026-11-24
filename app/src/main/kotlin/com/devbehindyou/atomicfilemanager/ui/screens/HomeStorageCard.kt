@@ -34,6 +34,7 @@ import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 internal fun HomeStorageCard(
     volume: StorageVolumeInfo,
     onBrowse: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = Atomic.colors
     val featured = volume.type == StorageType.INTERNAL_SHARED && volume.isMounted
@@ -42,7 +43,7 @@ internal fun HomeStorageCard(
     val used = (volume.totalBytes - volume.freeBytes).coerceIn(0L, volume.totalBytes.coerceAtLeast(0L))
     val fraction = if (volume.isMounted) used.toFloat() / volume.totalBytes.coerceAtLeast(1L) else 0f
     Column(
-        Modifier.fillMaxWidth().testTag("volume_item_${volume.id}")
+        modifier.fillMaxWidth().testTag("volume_item_${volume.id}")
             .clip(AtomicShape.lg)
             .background(if (featured) colors.accent else colors.surfaceCard)
             .clickable(role = Role.Button, onClick = onBrowse)
