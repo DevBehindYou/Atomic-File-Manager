@@ -131,11 +131,11 @@ private fun PdfReader(
     ) {
         Box(
             Modifier.weight(1f).widthIn(max = 720.dp).fillMaxWidth()
+                .testTag("pdf_reading_stage")
                 .clip(AtomicShape.lg)
                 .background(Atomic.colors.surfaceInset)
                 .padding(AtomicSpacing.s12)
-                .clipToBounds()
-                .testTag("pdf_reading_stage"),
+                .clipToBounds(),
             contentAlignment = Alignment.Center,
         ) {
             when {
