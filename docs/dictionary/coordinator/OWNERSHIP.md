@@ -42,3 +42,7 @@ Update the task's status, branch, PR when created and remaining dependencies, th
 Both agents fetch and inspect remote PR claims before starting. Within these linked worktrees the lease script is authoritative for local exclusion. For another clone/machine, obtain the documented acknowledgment described in README before shared edits; Git branches alone do not prevent duplicate ownership.
 
 After tests or review fail, retain the branch and evidence, update remaining work and continue that owner’s repair. Do not reset another worktree, prune old branches, alter artwork, overwrite local settings or sweep ignored signing/tools files. Release source areas only after merge or explicit handoff. A stopped session retains a durable reservation until the resume check reconciles it.
+
+## 10 November 2026 — Codex execution handoff
+
+The owner asked Codex to continue independently. Codex owns the current C005, C012 and C027 repair slices on #118/#120, #119 and #126. Claude's saved WIP branches remain preserved. Review dependencies in tasks.json before integrating any related work.

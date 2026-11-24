@@ -62,7 +62,6 @@ class BrowseTabSessionDeviceTest {
             Log.i("TabSessionTest", "stage=open-highest-tab")
             openInNewTab(fixture.targetId)
 
-            awaitItem(fixture.targetSourceId)
             longPressItem(fixture.targetSourceId)
             compose.onNodeWithContentDescription("Copy").performClick()
             compose.onNodeWithTag("paste_button").assertExists()
@@ -135,7 +134,6 @@ class BrowseTabSessionDeviceTest {
     }
 
     private fun openInNewTab(folder: FileNodeId) {
-        awaitItem(folder)
         longPressItem(folder)
         val more = compose.activity.getString(R.string.selection_more_actions)
         compose.onNodeWithContentDescription(more).performClick()
@@ -143,15 +141,14 @@ class BrowseTabSessionDeviceTest {
     }
 
     private fun clickItem(id: FileNodeId) {
-        awaitItem(id)
-        compose.onNodeWithTag("file_item_${id.raw}").performClick()
+        awaitItem(id).performClick()
     }
 
     private fun longPressItem(id: FileNodeId) {
-        compose.onNodeWithTag("file_item_${id.raw}").performTouchInput { longClick() }
+        awaitItem(id).performTouchInput { longClick() }
     }
 
-    private fun awaitItem(id: FileNodeId) = awaitTag("file_item_${id.raw}")
+    private fun awaitItem(id: FileNodeId) = compose.revealBrowseItem(id, timeoutMillis = 10_000)
 
     private fun awaitDescription(description: String) {
         compose.waitUntil(10_000) {

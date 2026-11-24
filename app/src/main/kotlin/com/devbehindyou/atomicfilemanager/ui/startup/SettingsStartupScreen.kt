@@ -17,6 +17,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
@@ -38,11 +39,13 @@ internal fun SettingsStartupScreen(
                     .testTag("settings_startup_screen"),
             verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterVertically),
         ) {
-            AtomicText(
-                stringResource(if (loading) R.string.settings_startup_loading else R.string.settings_startup_failed),
-                AtomicTextRole.DisplayTitle,
-            )
-            if (!loading) {
+            if (loading) {
+                AtomicLoading(
+                    stringResource(R.string.settings_startup_loading),
+                    modifier = Modifier.testTag("settings_startup_loading"),
+                )
+            } else {
+                AtomicText(stringResource(R.string.settings_startup_failed), AtomicTextRole.DisplayTitle)
                 AtomicText(stringResource(R.string.settings_startup_failed_detail), AtomicTextRole.Body)
                 AtomicButton(
                     stringResource(R.string.action_retry),

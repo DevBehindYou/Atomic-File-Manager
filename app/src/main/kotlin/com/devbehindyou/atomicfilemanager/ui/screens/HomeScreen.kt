@@ -15,30 +15,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicFileType
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicFileTypeColors
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicCategoryTile
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicSectionLabel
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicWarningBox
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStorageCard
 import com.devbehindyou.atomicfilemanager.domain.model.FileCategory
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessContent
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageReadinessState
 import com.devbehindyou.atomicfilemanager.ui.startup.StorageSnapshot
-import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 
 private const val LARGE_FONT_SCALE = 1.5f
 private val TWO_COLUMN_MAX = 340.dp
 private val THREE_COLUMN_MAX = 560.dp
+private val TWO_VOLUME_MIN = 680.dp
 private const val WIDE_COLUMNS = 5
 
 private class HomeTile(
@@ -69,16 +75,22 @@ fun HomeScreen(
     privateLocked: Boolean = false,
     storageReadiness: StorageReadinessState = StorageReadinessState.Ready(StorageSnapshot(hasStorageAccess, volumes)),
     onRetryStorage: () -> Unit = {},
+    onViewOpenedHistory: (() -> Unit)? = null,
+    onManagePinnedLocations: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
             modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s16)
+                .padding(horizontal = AtomicSpacing.screenMargin, vertical = AtomicSpacing.s16)
                 .testTag("home_screen"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s24),
     ) {
+        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
+            AtomicText("A place for everything.", AtomicTextRole.DisplayPushed)
+            AtomicText("Your files, right where you need them.", AtomicTextRole.BodySecondary)
+        }
         StorageReadinessContent(storageReadiness, onRetryStorage)
         if (storageReadiness is StorageReadinessState.Ready && !hasStorageAccess) {
             Column(
@@ -95,13 +107,10 @@ fun HomeScreen(
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16)) {
-            AtomicSectionLabel("Storage", actionLabel = "Details →", onAction = onOpenStorageDetails)
-            volumes.forEach { volume -> VolumeCard(volume, onBrowse = { onNavigateToVolume(volume) }) }
-        }
+        HomeStorageVolumes(volumes, onNavigateToVolume)
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-            AtomicSectionLabel("Categories", trailingText = "All storage")
+            AtomicSectionLabel("Browse by type", actionLabel = "See storage", onAction = onOpenStorageDetails)
             CategoryGrid(
                 tiles =
                     categoryTiles(
@@ -112,7 +121,12 @@ fun HomeScreen(
             )
         }
 
-        HomeShortcuts(onOpenFolder = onNavigateToFolder)
+        HomeShortcuts(
+            onOpenFolder = onNavigateToFolder,
+            onExploreStorage = onOpenStorageDetails,
+            onViewOpenedHistory = onViewOpenedHistory,
+            onManagePinnedLocations = onManagePinnedLocations,
+        )
 
         Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
             AtomicSectionLabel("Folders")
@@ -122,29 +136,25 @@ fun HomeScreen(
 }
 
 @Composable
-private fun VolumeCard(
-    volume: StorageVolumeInfo,
-    onBrowse: () -> Unit,
+private fun HomeStorageVolumes(
+    volumes: List<StorageVolumeInfo>,
+    onBrowse: (StorageVolumeInfo) -> Unit,
 ) {
-    val total = volume.totalBytes.coerceAtLeast(1L)
-    val used = (volume.totalBytes - volume.freeBytes).coerceIn(0L, total)
-    val fraction = used.toFloat() / total
-    val percent = (fraction * 100).toInt()
-    AtomicStorageCard(
-        name = volume.label,
-        usage =
-            if (volume.isMounted) {
-                "${FileUtils.formatBytes(volume.freeBytes)} free · " +
-                    "${FileUtils.formatBytes(used)} / ${FileUtils.formatBytes(volume.totalBytes)}"
-            } else {
-                "Not mounted"
-            },
-        fraction = if (volume.isMounted) fraction else 0f,
-        meterDescription = "${volume.label}, $percent percent used",
-        onBrowse = onBrowse,
-        nearlyFullLabel = "Nearly full",
-        modifier = Modifier.testTag("volume_item_${volume.id}"),
-    )
+    val primary = volumes.firstOrNull { it.type == StorageType.INTERNAL_SHARED } ?: volumes.firstOrNull() ?: return
+    val orderedVolumes = listOf(primary) + volumes.filter { it.id != primary.id }
+    val largeFont = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val cardsPerRow = if (maxWidth >= TWO_VOLUME_MIN && !largeFont) 2 else 1
+        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+            orderedVolumes.chunked(cardsPerRow).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
+                    row.forEach { volume ->
+                        HomeStorageCard(volume, onBrowse = { onBrowse(volume) }, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun categoryTiles(
@@ -156,16 +166,16 @@ private fun categoryTiles(
         HomeTile("Images", "JPG · PNG", AtomicIcons.Image, "category_image") { onCategory(FileCategory.IMAGE) },
         HomeTile("Videos", "MP4 · MKV", AtomicIcons.Video, "category_video") { onCategory(FileCategory.VIDEO) },
         HomeTile("Audio", "MP3 · FLAC", AtomicIcons.Audio, "category_audio") { onCategory(FileCategory.AUDIO) },
-        HomeTile("Docs", "PDF · DOCX", AtomicIcons.Document, "category_document") {
+        HomeTile("Documents", "PDF · DOCX", AtomicIcons.Document, "category_document") {
             onCategory(FileCategory.DOCUMENT)
         },
         HomeTile("Archives", "ZIP · 7Z", AtomicIcons.Archive, "category_archive") {
             onCategory(FileCategory.ARCHIVE)
         },
-        HomeTile("APKs", "Installers", AtomicIcons.Apk, "category_apk") { onCategory(FileCategory.APK) },
-        HomeTile("Downloads", "Folder", AtomicIcons.Files, "category_download") {
+        HomeTile("Downloads", "Folder", AtomicIcons.Download, "category_download") {
             onCategory(FileCategory.DOWNLOAD)
         },
+        HomeTile("APKs", "Installers", AtomicIcons.Apk, "category_apk") { onCategory(FileCategory.APK) },
         HomeTile(
             label = "Private",
             meta = if (privateLocked) "Locked" else "App storage",
@@ -189,9 +199,9 @@ private fun CategoryGrid(tiles: List<HomeTile>) {
                 maxWidth < THREE_COLUMN_MAX -> 3
                 else -> WIDE_COLUMNS
             }
-        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s10)) {
             tiles.chunked(columns).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s10)) {
                     row.forEach { tile ->
                         AtomicCategoryTile(
                             label = tile.label,
@@ -199,6 +209,7 @@ private fun CategoryGrid(tiles: List<HomeTile>) {
                             icon = tile.icon,
                             onClick = tile.onClick,
                             inverted = tile.inverted,
+                            tint = Color(AtomicFileTypeColors.icon(categoryColor(tile.testTag), Atomic.colors.isDark)),
                             modifier = Modifier.weight(1f).testTag(tile.testTag),
                         )
                     }
@@ -226,3 +237,14 @@ private fun QuickAccessFolders(onFolderClick: (FileNodeId) -> Unit) {
         }
     }
 }
+
+private fun categoryColor(tag: String): AtomicFileType =
+    when (tag) {
+        "category_image", "category_download" -> AtomicFileType.IMAGE
+        "category_video" -> AtomicFileType.VIDEO
+        "category_audio" -> AtomicFileType.AUDIO
+        "category_document" -> AtomicFileType.DOCUMENT
+        "category_archive" -> AtomicFileType.ARCHIVE
+        "category_apk" -> AtomicFileType.APK
+        else -> AtomicFileType.GENERIC
+    }

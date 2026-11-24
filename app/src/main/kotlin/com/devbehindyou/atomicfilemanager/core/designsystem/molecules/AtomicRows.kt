@@ -73,7 +73,7 @@ fun AtomicFileRow(
     val frame =
         if (selected) {
             Modifier
-                .background(colors.surfaceCard, AtomicShape.sm)
+                .background(colors.accent.copy(alpha = 0.14f), AtomicShape.sm)
                 .border(AtomicBorder.selected, colors.accent, AtomicShape.sm)
                 .padding(horizontal = AtomicSpacing.s12)
         } else {
@@ -84,7 +84,7 @@ fun AtomicFileRow(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = AtomicSize.touchTarget)
+                    .heightIn(min = AtomicSpacing.s74)
                     .then(frame)
                     .combinedClickable(onClick = onClick, onLongClick = onLongClick)
                     .semantics { if (selectionMode) this.selected = selected }
@@ -101,7 +101,6 @@ fun AtomicFileRow(
             trailing?.invoke()
             if (selectionMode) AtomicCheckbox(checked = selected, onCheckedChange = null)
         }
-        if (!selected) AtomicDivider()
     }
 }
 
@@ -125,7 +124,7 @@ fun AtomicSettingsRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s2)) {
-                AtomicText(title, AtomicTextRole.DisplayCard)
+                AtomicText(title, AtomicTextRole.DisplayButton)
                 if (value != null) AtomicText(value, AtomicTextRole.MonoMeta)
             }
             if (trailing != null) trailing() else AtomicText("→", AtomicTextRole.MonoMeta, color = colors.accentText)
@@ -151,7 +150,7 @@ fun AtomicToggleCard(
                 .fillMaxWidth()
                 .background(colors.surfaceInset, AtomicShape.sm)
                 .border(
-                    if (checked) AtomicBorder.selected else AtomicBorder.structure,
+                    AtomicBorder.hair,
                     if (checked) colors.accent else colors.borderHair,
                     AtomicShape.sm,
                 ).toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
@@ -160,7 +159,7 @@ fun AtomicToggleCard(
         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4)) {
-            AtomicText(title, AtomicTextRole.DisplayCard)
+            AtomicText(title, AtomicTextRole.DisplayButton)
             AtomicText(description, AtomicTextRole.BodySecondary)
         }
         AtomicSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
@@ -186,7 +185,7 @@ fun AtomicChoiceCard(
                 .fillMaxWidth()
                 .background(colors.surfaceInset, AtomicShape.sm)
                 .border(
-                    if (selected) AtomicBorder.selected else AtomicBorder.structure,
+                    AtomicBorder.hair,
                     if (selected) colors.accent else colors.borderHair,
                     AtomicShape.sm,
                 ).selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)

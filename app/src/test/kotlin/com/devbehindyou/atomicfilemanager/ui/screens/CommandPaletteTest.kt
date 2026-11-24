@@ -20,6 +20,7 @@ class CommandPaletteTest {
     @Test
     fun `keywords find commands by other words`() {
         assertEquals(listOf(PaletteCommand.THEME), CommandPalette.match("dark"))
+        assertEquals(listOf(PaletteCommand.NEW_FOLDER), CommandPalette.match("mkdir"))
         assertEquals(PaletteCommand.ARCHIVES, CommandPalette.match("zip").first())
         assertTrue(PaletteCommand.TRASH in CommandPalette.match("recycle bin"))
     }

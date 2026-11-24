@@ -16,7 +16,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
-import com.devbehindyou.atomicfilemanager.core.designsystem.preview.AtomicAtomsCatalog
+import com.devbehindyou.atomicfilemanager.core.designsystem.preview.AtomicComponentCatalog
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +32,7 @@ class AtomicAtomsComposeTest {
     val compose = createComposeRule()
 
     @Test
-    fun displayTextIsShownUppercaseButReadInOriginalCaseAndNamesKeepTheirCase() {
+    fun displayLabelsRemainAccessibleAndFileNamesKeepTheirCase() {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 Column {
@@ -104,7 +104,7 @@ class AtomicAtomsComposeTest {
     @Test
     fun catalogRendersInLightAndDark() {
         var dark by mutableStateOf(false)
-        compose.setContent { AtomicAtomsCatalog(darkTheme = dark) }
+        compose.setContent { AtomicComponentCatalog(darkTheme = dark) }
         compose.onNodeWithContentDescription("Move to trash").assertExists()
         dark = true
         compose.waitForIdle()

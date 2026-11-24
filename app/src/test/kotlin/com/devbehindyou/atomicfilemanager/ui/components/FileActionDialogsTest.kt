@@ -47,10 +47,10 @@ class FileActionDialogsTest {
     fun `file facts give exact bytes, mono path and access`() {
         val facts = fileFacts(node(219_136)).associate { it.label to it.value }
 
-        assertEquals("/storage/emulated/0/Download/Boarding-pass-BLR.pdf", facts["Path"])
+        assertEquals("/storage/emulated/0/Download/Boarding-pass-BLR.pdf", facts["Location"])
         assertEquals("214.0 KB (219,136 bytes)", facts["Size"])
         assertEquals("Read", facts["Access"])
-        assertEquals("—", facts["Modified"])
+        assertEquals("Unknown", facts["Modified"])
     }
 
     @Test
@@ -58,7 +58,30 @@ class FileActionDialogsTest {
         assertEquals("Unknown", fileFacts(node(-1)).first { it.label == "Size" }.value)
         val folder = fileFacts(node(-1, directory = true)).associate { it.label to it.value }
         assertEquals("3", folder["Items"])
-        assertNull(folder["Size"])
+        assertEquals("Not calculated", folder["Size"])
+    }
+
+    @Test
+    fun `provider identifiers stay intact and do not masquerade as paths`() {
+        val provider = FileNodeId.saf("content://documents/tree/p%3A/document/p%3Asecret")
+        val linked = node(-1).copy(id = provider, mimeType = null, access = AccessFlags.NONE)
+        val facts = fileFacts(linked).associate { it.label to it.value }
+
+        assertEquals(provider.raw, displayPath(linked))
+        assertEquals("Unavailable", facts["Location"])
+        assertEquals("Unknown", facts["Type"])
+        assertEquals("None", facts["Access"])
+    }
+
+    @Test
+    fun `details distinguish actual folder data from unavailable values`() {
+        val details = node(0, directory = true).copy(childCount = null, access = AccessFlags.FULL)
+        val facts = fileFacts(details).associate { it.label to it.value }
+
+        assertEquals("Folder", facts["Type"])
+        assertEquals("0 B (0 bytes)", facts["Size"])
+        assertEquals("Not counted", facts["Items"])
+        assertEquals("Read · Write · Rename · Delete", facts["Access"])
     }
 
     @Test

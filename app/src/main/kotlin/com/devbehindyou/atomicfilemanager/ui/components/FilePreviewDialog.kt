@@ -51,7 +51,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVa
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicDivider
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
@@ -197,46 +196,25 @@ internal fun BuiltInFilePreviewPane(
         resolvePreviewExternalAction(node, shown, onOpenExternal, onOpenExternalForNode, openExternal)
 
     Column(modifier.background(colors.background).testTag("file_preview_pane")) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = AtomicSpacing.s10, end = AtomicSpacing.s16, top = AtomicSpacing.s4),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
-        ) {
-            AtomicIconButton(
-                AtomicIcons.Close,
-                "Close preview",
-                onClick = {
-                    preparationRequest.dispose()
-                    onClose()
+        ViewerChrome(
+            shown = recentSource,
+            type = previewType,
+            position =
+                images?.first?.let {
+                        list ->
+                    Gallery.position(list.indexOfFirst { it.id == shown.id }, list.size)
                 },
-                variant = AtomicIconButtonVariant.Back,
-                modifier = Modifier.testTag("preview_close"),
-            )
-            Column(Modifier.weight(1f)) {
-                AtomicText(shown.name, AtomicTextRole.Name, maxLines = 1)
-                val list = images?.first
-                val position = list?.let { Gallery.position(it.indexOfFirst { n -> n.id == shown.id }, it.size) }
-                val size = "${FileUtils.formatBytes(shown.size)} · ${FileUtils.formatDate(shown.modifiedAt)}"
-                AtomicText(
-                    if (position != null) "$position · $size" else size,
-                    AtomicTextRole.MonoMeta,
-                    maxLines = 1,
-                )
-            }
-            if (onShare != null && actsOnShown) {
-                AtomicIconButton(
-                    AtomicIcons.Share,
-                    "Share file",
-                    onClick = onShare,
-                    modifier = Modifier.testTag("preview_share"),
-                )
-            }
-            PreviewExternalAction(
-                onOpen = shownOpenExternal,
-                busy = openingExternal,
-            )
-        }
-        AtomicDivider(strong = true, modifier = Modifier.padding(top = AtomicSpacing.s4))
+            actions =
+                ViewerActions(
+                    onClose = {
+                        preparationRequest.dispose()
+                        onClose()
+                    },
+                    onShare = onShare.takeIf { actsOnShown },
+                    onOpenExternal = shownOpenExternal,
+                ),
+            openingExternal = openingExternal,
+        )
         if (openingExternal) {
             ExternalPreparationStatus(
                 preparation,
@@ -255,7 +233,7 @@ internal fun BuiltInFilePreviewPane(
                 ImageGallery(images.first, images.second, container, onPageChange = ::showSource)
             } else {
                 when (previewType) {
-                    PreviewType.IMAGE -> ZoomableImage(node, container)
+                    PreviewType.IMAGE -> ImageViewerStage(node, container)
                     PreviewType.PDF -> PdfPreviewContent(node, container)
                     PreviewType.DOCX -> DocxPreviewContent(node, docxHelper::read)
                     PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = ::showSource)
@@ -646,11 +624,22 @@ internal fun GenericFileExternalAction(
  * read as an app. Installing is left to "Open with" so Atomic File Manager needs no install permission.
  */
 @Composable
-private fun ApkSummary(node: FileNode) {
-    val context = LocalContext.current
-    val reader = remember { ApkInfoReader(context.applicationContext) }
+internal fun ApkSummary(
+    node: FileNode,
+    reader: ApkInfoReader =
+        LocalContext.current.applicationContext.let { context -> remember(context) { ApkInfoReader(context) } },
+) {
+    // A replaced APK starts from "Reading…", never from the previous file's details or verdict.
+    key(node.id, node.modifiedAt, node.size) { ApkSummaryRevision(node, reader) }
+}
+
+@Composable
+private fun ApkSummaryRevision(
+    node: FileNode,
+    reader: ApkInfoReader,
+) {
     // First: finished reading; second: what was read (null when it isn't a readable app).
-    val read by produceState<Pair<Boolean, ApkInfo?>>(false to null, node.id) {
+    val read by produceState<Pair<Boolean, ApkInfo?>>(false to null) {
         value = true to reader.read(node.id.raw.removePrefix(FileNodeId.Prefix.FILE.scheme))
     }
     val (done, apk) = read

@@ -5,11 +5,14 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -20,7 +23,11 @@ import java.io.IOException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class FolderThumbnailReaderTest {
     @TempDir
@@ -177,6 +184,55 @@ class FolderThumbnailReaderTest {
             assertFalse(published)
         }
 
+    @Test
+    fun `visible rows share a small peek bound and rows scrolled away before starting never open`() =
+        runBlocking {
+            val image = Files.createFile(directory.resolve("photo.jpg"))
+            val bound = FolderThumbnailReader.MAX_CONCURRENT_PEEKS
+            val release = CountDownLatch(1)
+            val boundReached = CountDownLatch(bound)
+            val beyondBound = CountDownLatch(bound + 1)
+            val active = AtomicInteger()
+            val maxActive = AtomicInteger()
+            val opened = ConcurrentLinkedQueue<Int>()
+            try {
+                Executors.newFixedThreadPool(ROWS).asCoroutineDispatcher().use { io ->
+                    // One reader per row, as each FileThumbnail remembers its own instance.
+                    val rows =
+                        (0 until ROWS).map { row ->
+                            FolderThumbnailReader(io) {
+                                maxActive.accumulateAndGet(active.incrementAndGet(), ::maxOf)
+                                opened += row
+                                boundReached.countDown()
+                                beyondBound.countDown()
+                                try {
+                                    check(release.await(5, TimeUnit.SECONDS)) { "Slow fixture was never released" }
+                                    stream(listOf(image))
+                                } finally {
+                                    active.decrementAndGet()
+                                }
+                            }
+                        }
+                    val peeks = rows.map { reader -> async { reader.read(folder()) } }
+                    yield()
+                    assertTrue(boundReached.await(5, TimeUnit.SECONDS))
+                    assertFalse(beyondBound.await(300, TimeUnit.MILLISECONDS), "A peek beyond the bound started")
+                    val scrolledAway = peeks.takeLast(SCROLLED_AWAY)
+                    scrolledAway.forEach { it.cancel() }
+                    release.countDown()
+                    val visible = peeks.dropLast(SCROLLED_AWAY).awaitAll()
+                    scrolledAway.forEach { it.join() }
+                    assertTrue(scrolledAway.all { it.isCancelled })
+                    assertTrue(visible.all { it.size == 1 })
+                    assertEquals(bound, maxActive.get())
+                    assertEquals((0 until ROWS - SCROLLED_AWAY).toList(), opened.sorted())
+                    assertEquals(0, active.get())
+                }
+            } finally {
+                release.countDown()
+            }
+        }
+
     private fun folder() =
         thumbnailNode(
             FileNodeId.file(directory.toString()),
@@ -205,4 +261,9 @@ class FolderThumbnailReaderTest {
 
             override fun close() = onClose()
         }
+
+    private companion object {
+        const val ROWS = 12
+        const val SCROLLED_AWAY = 4
+    }
 }

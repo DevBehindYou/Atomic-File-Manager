@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
+import com.devbehindyou.atomicfilemanager.domain.model.FileViewMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -35,7 +36,7 @@ class BrowseFolderTitleComposeTest {
     @Test
     fun storageNameUsesTheWholeFirstRowAndMetadataIsBelowAtTheRight() {
         val title = "Internal shared storage"
-        show(title, 320.dp)
+        show(title, 320.dp, showControls = true)
         val layout = titleLayout()
         assertEquals(1, layout.lineCount)
         assertFalse(layout.isLineEllipsized(0))
@@ -52,16 +53,32 @@ class BrowseFolderTitleComposeTest {
         assertRowsAndAccessibleSummary(title)
     }
 
+    @Test
+    fun largeTextKeepsTheSummaryAboveUsableViewControlsInACompactWindow() {
+        val title = "Project files"
+        show(title, 300.dp, fontScale = 2f, showControls = true)
+        assertRowsAndAccessibleSummary(title)
+        val summary = compose.onNodeWithTag("browse_folder_summary").fetchSemanticsNode().boundsInRoot
+        val list = compose.onNodeWithTag("browse_view_list").fetchSemanticsNode().boundsInRoot
+        val grid = compose.onNodeWithTag("browse_view_grid").fetchSemanticsNode().boundsInRoot
+        assertTrue(summary.bottom <= list.top)
+        assertTrue(list.width > 0f && grid.width > 0f)
+        assertTrue(list.right <= grid.left)
+    }
+
     private fun show(
         title: String,
         width: Dp,
         fontScale: Float = 1f,
+        showControls: Boolean = false,
     ) {
         compose.setContent {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                    BrowseFolderTitle(title, 13, SortOption.DATE_MODIFIED, Modifier.width(width))
+                    BrowseFolderTitle(title, 13, SortOption.DATE_MODIFIED, Modifier.width(width)) {
+                        if (showControls) BrowseViewControls(FileViewMode.LIST) {}
+                    }
                 }
             }
         }

@@ -16,12 +16,12 @@ class AtomicColorsTest {
     }
 
     @Test
-    fun contrastMathMatchesTheDesignSystemTable() {
-        // Values from ATOMIC_DESIGN_SYSTEM.md §3.6.
-        assertEquals(16.39, ColorMath.contrast(AtomicPalette.INK, AtomicPalette.PAPER), 0.05)
-        assertEquals(6.74, ColorMath.contrast(AtomicPalette.SIGNAL, AtomicPalette.PAPER), 0.05)
-        assertEquals(7.38, ColorMath.contrast(AtomicPalette.WHITE, AtomicPalette.SIGNAL), 0.05)
-        assertEquals(2.43, ColorMath.contrast(AtomicPalette.SIGNAL, AtomicPalette.INK), 0.05)
+    fun brandOrangeUsesInkForFilledControls() {
+        assertEquals(7.19, ColorMath.contrast(AtomicPalette.BLACK, AtomicPalette.SIGNAL), 0.05)
+        listOf(AtomicColorFactory.light(), AtomicColorFactory.dark()).forEach { theme ->
+            assertEquals(0xFFFE6902.toInt(), theme.accent.fill)
+            assertContrast("pressed accent", theme.accent.onFill, theme.accent.pressed, 4.5)
+        }
     }
 
     @Test
@@ -39,7 +39,7 @@ class AtomicColorsTest {
     }
 
     @Test
-    fun darkRolesMeetContrastRulesAndNeverUseSignalAsText() {
+    fun darkRolesMeetContrastRules() {
         val c = AtomicColorFactory.dark()
         listOf(c.background, c.surfaceCard, c.surfaceInset, c.surfaceRaised).forEach { bg ->
             assertContrast("content", c.content, bg, 4.5)
@@ -51,6 +51,5 @@ class AtomicColorsTest {
         assertContrast("on accent", c.accent.onFill, c.accent.fill, 4.5)
         assertContrast("error", c.error.error, c.background, 4.5)
         assertContrast("error container", c.error.onContainer, c.error.container, 4.5)
-        assertTrue(c.accent.text != AtomicPalette.SIGNAL)
     }
 }

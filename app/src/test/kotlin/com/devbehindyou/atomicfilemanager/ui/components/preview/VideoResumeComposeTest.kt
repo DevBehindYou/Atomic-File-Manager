@@ -266,7 +266,12 @@ class VideoResumeComposeTest {
             player.seekTo(40_000)
             player.pause()
         }
-        reopen()
+        compose.runOnIdle { render.value = false }
+        compose.waitUntil(10_000) {
+            shadowOf(Looper.getMainLooper()).idle()
+            attachedPlayerViews(compose.activity.window.decorView).isEmpty()
+        }
+        compose.runOnIdle { render.value = true }
         val second = awaitPlayer { it !== player }
         compose.runOnIdle {
             assertEquals(0L, second.currentPosition)

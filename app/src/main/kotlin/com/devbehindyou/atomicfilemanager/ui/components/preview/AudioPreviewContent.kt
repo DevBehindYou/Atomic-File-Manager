@@ -2,25 +2,24 @@ package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -34,26 +33,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicChip
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
@@ -177,17 +179,16 @@ private fun AudioPlayerView(
     Column(
         modifier =
             modifier
+                .widthIn(max = 520.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s16),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterVertically),
     ) {
         PlaybackFailure(player)
         AudioArtworkCard(artwork = media.metadata.artwork)
-        Spacer(modifier = Modifier.height(24.dp))
         AudioTrackInfo(node = node, media = media)
-        Spacer(modifier = Modifier.height(20.dp))
         AudioProgressBar(
             currentMs = if (isUserSeeking) seekPositionMs.toLong() else currentPositionMs,
             totalMs = durationMs,
@@ -202,7 +203,6 @@ private fun AudioPlayerView(
                 currentPositionMs = seekPositionMs.toLong()
             },
         )
-        Spacer(modifier = Modifier.height(16.dp))
         AudioPlaybackControls(
             isPlaying = isPlaying,
             onTogglePlayPause = { if (player.isPlaying) player.pause() else player.play() },
@@ -216,7 +216,6 @@ private fun AudioPlayerView(
                 currentPositionMs = player.currentPosition
             },
         )
-        Spacer(modifier = Modifier.height(8.dp))
         AtomicChip(
             label = "Speed ${PlaybackSpeeds.label(speed)}",
             selected = speed != 1f,
@@ -229,7 +228,6 @@ private fun AudioPlayerView(
         val details = AudioTagText.facts(media.metadata)
         if (details.isNotEmpty()) {
             var showDetails by remember(node.id) { mutableStateOf(false) }
-            Spacer(modifier = Modifier.height(8.dp))
             AtomicButton(
                 if (showDetails) "Hide details" else "Details",
                 onClick = { showDetails = !showDetails },
@@ -242,30 +240,40 @@ private fun AudioPlayerView(
 }
 
 @Composable
-private fun AudioArtworkCard(
-    artwork: Bitmap?,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.size(200.dp),
-        tonalElevation = 6.dp,
+private fun AudioArtworkCard(artwork: Bitmap?) {
+    val colors = Atomic.colors
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 260.dp)
+                .background(colors.surfaceInset, AtomicShape.lg)
+                .padding(AtomicSpacing.s24)
+                .testTag("audio_artwork_stage"),
+        contentAlignment = Alignment.Center,
     ) {
-        if (artwork != null) {
-            Image(
-                bitmap = artwork.asImageBitmap(),
-                contentDescription = "Album Artwork",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .widthIn(max = 140.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(AtomicShape.lg)
+                .background(colors.accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (artwork != null) {
+                Image(
+                    bitmap = artwork.asImageBitmap(),
+                    contentDescription = "Album Artwork",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
                 Icon(
                     imageVector = AtomicIcons.Audio,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(72.dp),
+                    tint = colors.accentText,
+                    modifier = Modifier.size(64.dp),
                 )
             }
         }
@@ -276,29 +284,22 @@ private fun AudioArtworkCard(
 private fun AudioTrackInfo(
     node: FileNode,
     media: PreparedMedia,
-    modifier: Modifier = Modifier,
 ) {
     val title = media.metadata.title ?: node.displayName
     val artist = media.metadata.artist ?: "Unknown Artist"
     val album = media.metadata.album?.takeIf { it.isNotBlank() }
 
-    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+    Column(
+        Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
+    ) {
+        AtomicText(title, AtomicTextRole.NameLarge, textAlign = TextAlign.Center, maxLines = 2)
+        AtomicText(
+            if (album != null) "$artist • $album" else artist,
+            AtomicTextRole.BodySecondary,
             textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = if (album != null) "$artist • $album" else artist,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
+            maxLines = 2,
         )
     }
 }
@@ -310,30 +311,28 @@ private fun AudioProgressBar(
     sliderValue: Float,
     onSeekChange: (Float) -> Unit,
     onSeekFinished: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    val elapsed = FileUtils.formatDuration(currentMs)
+    val total = totalMs.takeIf { it > 0 }?.let(FileUtils::formatDuration)
+    Column(Modifier.fillMaxWidth()) {
+        AtomicText("Playback position", AtomicTextRole.BodySecondary)
         Slider(
             value = sliderValue.coerceIn(0f, totalMs.toFloat().coerceAtLeast(1f)),
             onValueChange = onSeekChange,
             onValueChangeFinished = onSeekFinished,
             valueRange = 0f..totalMs.toFloat().coerceAtLeast(1f),
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .testTag("audio_seek")
+                    .semantics {
+                        contentDescription = "Playback position"
+                        stateDescription = if (total == null) elapsed else "$elapsed of $total"
+                    },
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = FileUtils.formatDuration(currentMs),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = FileUtils.formatDuration(totalMs),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            AtomicText(elapsed, AtomicTextRole.MonoMeta)
+            AtomicText(total ?: "Unknown duration", AtomicTextRole.MonoMeta)
         }
     }
 }
@@ -344,22 +343,30 @@ private fun AudioPlaybackControls(
     onTogglePlayPause: () -> Unit,
     onRewind: () -> Unit,
     onForward: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
+    val colors = Atomic.colors
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AtomicIconButton(AtomicIcons.Rewind10, "Back 10 seconds", onClick = onRewind)
-        Spacer(modifier = Modifier.width(AtomicSpacing.s16))
-        AtomicIconButton(
-            if (isPlaying) AtomicIcons.Pause else AtomicIcons.Play,
-            if (isPlaying) "Pause" else "Play",
+        IconButton(
             onClick = onTogglePlayPause,
-            variant = AtomicIconButtonVariant.Accent,
-        )
-        Spacer(modifier = Modifier.width(AtomicSpacing.s16))
+            modifier =
+                Modifier
+                    .size(68.dp)
+                    .clip(CircleShape)
+                    .background(colors.accent)
+                    .semantics { contentDescription = if (isPlaying) "Pause" else "Play" },
+        ) {
+            Icon(
+                imageVector = if (isPlaying) AtomicIcons.Pause else AtomicIcons.Play,
+                contentDescription = null,
+                tint = colors.onAccent,
+                modifier = Modifier.size(28.dp),
+            )
+        }
         AtomicIconButton(AtomicIcons.Forward10, "Forward 10 seconds", onClick = onForward)
     }
 }

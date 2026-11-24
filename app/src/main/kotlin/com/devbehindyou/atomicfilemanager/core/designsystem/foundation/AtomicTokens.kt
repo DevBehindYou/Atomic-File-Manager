@@ -27,16 +27,16 @@ object AtomicSpacing {
     val s74 = 74.dp
 
     /** Screen side margin in the app (spec §5.3). */
-    val screenMargin = s16
+    val screenMargin = 20.dp
 }
 
-/** Corner radii (spec §6.1): nearly square; pills and sheet tops are the only round shapes. */
+/** Rounded corners for controls, cards and sheets. */
 object AtomicShape {
     val radiusXs = 3.dp
-    val radiusSm = 4.dp
-    val radiusMd = 6.dp
-    val radiusLg = 8.dp
-    val sheetTopRadius = 28.dp
+    val radiusSm = 10.dp
+    val radiusMd = 16.dp
+    val radiusLg = 20.dp
+    val sheetTopRadius = 24.dp
 
     val xs = RoundedCornerShape(radiusXs)
     val sm = RoundedCornerShape(radiusSm)
@@ -45,12 +45,12 @@ object AtomicShape {
     val pill = RoundedCornerShape(percent = 50)
     val sheetTop = RoundedCornerShape(topStart = sheetTopRadius, topEnd = sheetTopRadius)
 
-    /** Material shapes for widgets not yet rebuilt: everything 4 dp, sheets 28 dp. */
+    /** Material shapes follow the same control, card and sheet roles. */
     val material =
         Shapes(
             extraSmall = sm,
             small = sm,
-            medium = sm,
+            medium = md,
             large = md,
             extraLarge = RoundedCornerShape(sheetTopRadius),
         )
@@ -82,10 +82,10 @@ object AtomicSize {
     val touchTarget = 48.dp
     val iconSmall = 20.dp
     val icon = 24.dp
-    val iconTile = 40.dp
+    val iconTile = 46.dp
     val backButton = 36.dp
     val chipHeight = 32.dp
-    val buttonPrimary = 52.dp
+    val buttonPrimary = 48.dp
     val buttonSecondary = 44.dp
     val headerContent = 56.dp
     val meterHeight = 8.dp
@@ -123,9 +123,9 @@ object AtomicBreakpoints {
 object AtomicMotion {
     const val PRESS_MS = 120
     const val HOVER_MS = 150
-    const val TOGGLE_MS = 200
-    const val ENTER_MS = 350
-    const val REVEAL_MS = 500
+    const val TOGGLE_MS = 180
+    const val ENTER_MS = 220
+    const val REVEAL_MS = 220
 
     /** CSS `ease`. */
     val Ease = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)

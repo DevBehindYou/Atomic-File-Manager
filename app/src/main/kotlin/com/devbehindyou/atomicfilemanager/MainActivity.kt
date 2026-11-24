@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,13 +68,13 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicHomeHeader
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicBottomBar
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicDestination
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicInfoSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuSheet
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicNavRail
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSnackbarHost
 import com.devbehindyou.atomicfilemanager.core.navigation.AtomicRoute
 import com.devbehindyou.atomicfilemanager.core.navigation.RouteStack
+import com.devbehindyou.atomicfilemanager.core.navigation.StorageToolPage
 import com.devbehindyou.atomicfilemanager.data.operations.PendingConflict
 import com.devbehindyou.atomicfilemanager.data.volume.SharedStorageAccess
 import com.devbehindyou.atomicfilemanager.data.volume.StorageVolumes
@@ -96,7 +97,9 @@ import com.devbehindyou.atomicfilemanager.domain.usecase.FolderComparer
 import com.devbehindyou.atomicfilemanager.ui.components.ConflictSheet
 import com.devbehindyou.atomicfilemanager.ui.components.RecoverySheet
 import com.devbehindyou.atomicfilemanager.ui.components.TasksButton
+import com.devbehindyou.atomicfilemanager.ui.screens.AboutAtomicScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.AppManagerScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.BrowseEntryRequest
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseStorageAccess
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseTabStrip
@@ -105,13 +108,18 @@ import com.devbehindyou.atomicfilemanager.ui.screens.CategoryScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.CommandPaletteSheet
 import com.devbehindyou.atomicfilemanager.ui.screens.HiddenFilesScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.HomeScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.InAppPluginsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.OperationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PaletteCommand
+import com.devbehindyou.atomicfilemanager.ui.screens.PinnedLocationsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.PrimaryBrowseStoreRegistry
+import com.devbehindyou.atomicfilemanager.ui.screens.RecentlyOpenedScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.SearchScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.SettingsDestinations
 import com.devbehindyou.atomicfilemanager.ui.screens.SettingsScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageIntelligenceScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StorageScreen
+import com.devbehindyou.atomicfilemanager.ui.screens.StorageToolScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.StoredFolderCompareScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashScreen
 import com.devbehindyou.atomicfilemanager.ui.screens.TrashText
@@ -248,9 +256,12 @@ fun AtomicAppContent(
     // Screens pushed over the tabs (private files, categories, analysis), saved as strings.
     var routeEntries by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val routes = RouteStack.decode(routeEntries)
+    // Only a pending UI action. File creation always requires confirmation in Browse.
+    var newFolderTabKey by remember { mutableStateOf<String?>(null) }
 
     // Read the saved entries, not [routes], so two changes in one callback both apply.
     fun push(route: AtomicRoute) {
+        newFolderTabKey = null
         routeEntries = RouteStack.decode(routeEntries).push(route).encode()
     }
 
@@ -271,7 +282,11 @@ fun AtomicAppContent(
     // This remains composed on Home and above pushed-route early returns; hiding is not closure.
     SideEffect { browseModels.reconcile(browseTabs) }
     val updateBrowseTabs: ((BrowseTabsState) -> BrowseTabsState) -> Unit = { change ->
-        val next = change(BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw))
+        val current = BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw)
+        val next = change(current)
+        if (next.active.stateKey != current.active.stateKey || next.active.openRequest != current.active.openRequest) {
+            newFolderTabKey = null
+        }
         // Observe every replacement, even an A-to-B-to-A sequence before the next composition.
         browseModels.reconcile(next)
         browseTabsSaved = next.encode()
@@ -280,6 +295,7 @@ fun AtomicAppContent(
 
     fun navigateTab(tab: NavigationTab) {
         if (tab != currentTab) {
+            if (tab != NavigationTab.BROWSE) newFolderTabKey = null
             // Keep one entry per tab so repeated tab switching cannot grow the Back stack without bound.
             tabHistory = tabHistory.filterNot { it == tab.name || it == currentTab.name } + currentTab.name
             currentTab = tab
@@ -292,6 +308,7 @@ fun AtomicAppContent(
     }
 
     fun navigateBack() {
+        newFolderTabKey = null
         currentTab = tabHistory.lastOrNull()?.let(NavigationTab::valueOf) ?: NavigationTab.HOME
         tabHistory = tabHistory.dropLast(1)
     }
@@ -308,7 +325,6 @@ fun AtomicAppContent(
     val storageReadiness by storageLoader.state.collectAsState()
     val volumes = storageReadiness.snapshot?.volumes.orEmpty()
     val hasStorageAccess = storageReadiness.snapshot?.hasAccess ?: false
-    var showAboutDialog by remember { mutableStateOf(false) }
     var showPalette by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -517,11 +533,16 @@ fun AtomicAppContent(
 
     fun runCommand(command: PaletteCommand) {
         showPalette = false
+        newFolderTabKey = null
         // A command starts from the tabs, so Back from what it opens returns there.
         routeEntries = emptyList()
         when (command) {
             PaletteCommand.SEARCH -> push(AtomicRoute.Search)
             PaletteCommand.FILES -> navigateTab(NavigationTab.BROWSE)
+            PaletteCommand.NEW_FOLDER -> {
+                newFolderTabKey = BrowseTabsState.decode(browseTabsSaved, defaultFolderRaw).active.stateKey
+                navigateTab(NavigationTab.BROWSE)
+            }
             PaletteCommand.DOWNLOADS -> openCategory(FileCategory.DOWNLOAD)
             PaletteCommand.IMAGES -> openCategory(FileCategory.IMAGE)
             PaletteCommand.VIDEOS -> openCategory(FileCategory.VIDEO)
@@ -535,9 +556,12 @@ fun AtomicAppContent(
             PaletteCommand.OPERATIONS -> push(AtomicRoute.Operations)
             PaletteCommand.APPS -> push(AtomicRoute.Apps)
             PaletteCommand.PRIVATE -> push(AtomicRoute.PrivateFiles)
+            PaletteCommand.FOLDER_COMPARE -> push(AtomicRoute.StorageTool(StorageToolPage.FOLDER_COMPARE))
             PaletteCommand.WIFI_SHARE -> push(AtomicRoute.WifiShare)
+            PaletteCommand.PLUGINS -> push(AtomicRoute.InAppPlugins)
+            PaletteCommand.CONNECTIONS -> push(AtomicRoute.StorageTool(StorageToolPage.CONNECTIONS))
             PaletteCommand.SETTINGS, PaletteCommand.THEME -> navigateTab(NavigationTab.SETTINGS)
-            PaletteCommand.ABOUT -> showAboutDialog = true
+            PaletteCommand.ABOUT -> push(AtomicRoute.About)
         }
     }
 
@@ -567,16 +591,22 @@ fun AtomicAppContent(
                 required = settings.requireAuthForHidden,
                 title = "Unlock private files",
                 onDenied = ::pop,
-            ) {
+                manualUnlock = true,
+            ) { lock ->
                 HiddenFilesScreen(
                     repository = app.container.hiddenFilesRepository,
                     onNavigateBack = ::pop,
                     initialMode = HideMode.PRIVATE_STORAGE,
                     privateOnly = true,
+                    onLockPrivateFiles = lock,
                 )
             }
             return
         }
+        AtomicRoute.About ->
+            return AboutRoute(onBack = ::pop, onOpenBundledTools = { push(AtomicRoute.InAppPlugins) })
+        AtomicRoute.InAppPlugins -> return InAppPluginsScreen(onBack = ::pop)
+        AtomicRoute.RecentlyOpened -> return RecentlyOpenedScreen(onBack = ::pop)
         AtomicRoute.Search -> {
             SearchScreen(
                 index = app.container.searchIndex,
@@ -590,8 +620,51 @@ fun AtomicAppContent(
             )
             return
         }
-        AtomicRoute.Apps -> {
-            AppManagerScreen(onBack = ::pop, onNotify = ::notify)
+        AtomicRoute.PinnedLocations ->
+            return PinnedLocationsRoute(::pop, ::openInBrowse) { navigateTab(NavigationTab.BROWSE) }
+        AtomicRoute.Apps -> return AppManagerScreen(onBack = ::pop, onNotify = ::notify)
+        is AtomicRoute.StorageTool -> {
+            val openFiles = {
+                pop()
+                navigateTab(NavigationTab.BROWSE)
+            }
+            Scaffold(
+                containerColor = Atomic.colors.background,
+                snackbarHost = { AtomicSnackbarHost(snackbarHostState) },
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            ) { padding ->
+                StorageToolScreen(
+                    page = route.page,
+                    onBack = ::pop,
+                    volumes = volumes,
+                    hasStorageAccess = hasStorageAccess,
+                    accessStatus = storageAccessStatus(storageReadiness),
+                    onRequestStorageAccess = {
+                        if (storageReadiness is StorageReadinessState.Ready) {
+                            requestStorageAccess()
+                        } else {
+                            refreshVolumes()
+                        }
+                    },
+                    onBrowseVolume = { volume ->
+                        val canRequest = storageReadiness is StorageReadinessState.Ready && !hasStorageAccess
+                        if (volume.isMounted && (volume.rootNodeId != null || canRequest)) {
+                            pop()
+                        }
+                        openVolume(volume)
+                    },
+                    onBrowseFolder = { folder ->
+                        pop()
+                        openInBrowse(folder)
+                    },
+                    onCompareFolders = { left, right -> push(AtomicRoute.FolderCompare(left.raw, right.raw)) },
+                    onOpenFolderCompare = openFiles,
+                    onOpenFiles = openFiles,
+                    onOpenTool = { push(AtomicRoute.StorageTool(it)) },
+                    onNotify = ::notify,
+                    modifier = Modifier.padding(padding),
+                )
+            }
             return
         }
         is AtomicRoute.FolderCompare -> {
@@ -621,6 +694,10 @@ fun AtomicAppContent(
                 retentionDays = settings.trashRetentionDays,
                 onBack = ::pop,
                 onNotify = ::notify,
+                onBrowseFiles = {
+                    pop()
+                    navigateTab(NavigationTab.BROWSE)
+                },
             )
             return
         }
@@ -728,12 +805,14 @@ fun AtomicAppContent(
             storageReadiness = storageReadiness,
             onRetryStorage = ::refreshVolumes,
             browseTabs = browseTabs,
+            newFolderTabKey = newFolderTabKey,
             onBrowseTabsChange = updateBrowseTabs,
             settingsRepository = settingsRepository,
             privateLocked = settings.requireAuthForHidden,
             callbacks =
                 ShellCallbacks(
                     onFolderSelected = ::openInBrowse,
+                    onNewFolderRequestHandled = { newFolderTabKey = null },
                     onNavigateBack = ::navigateBack,
                     onRequestStorageAccess = {
                         pendingVolumeId = null
@@ -746,6 +825,7 @@ fun AtomicAppContent(
                     onClearScanCache = phoneIndex::invalidate,
                     onNotify = ::notify,
                     onOpenStorageDetails = { navigateTab(NavigationTab.STORAGE) },
+                    onOpenFiles = { navigateTab(NavigationTab.BROWSE) },
                     onOpenRoute = ::push,
                     onCompareFolders = { left, right -> push(AtomicRoute.FolderCompare(left.raw, right.raw)) },
                 ),
@@ -759,29 +839,20 @@ fun AtomicAppContent(
             if (currentTab != NavigationTab.BROWSE) {
                 val home = currentTab == NavigationTab.HOME
                 AtomicHomeHeader(
-                    eyebrow = if (home) "Atomic" else "Atomic File Manager",
-                    title = if (home) "File manager" else currentTab.title,
+                    eyebrow = if (home) "Everything, in reach" else "",
+                    title = if (home) "Your space" else currentTab.title,
                     modifier = Modifier.background(Atomic.colors.background).statusBarsPadding(),
                     actions = {
-                        if (home) {
-                            AtomicIconButton(
-                                icon = AtomicIcons.MoreHorizontal,
-                                contentDescription = "Commands",
-                                onClick = { showPalette = true },
-                                modifier = Modifier.testTag("home_palette_button"),
-                            )
-                            AtomicIconButton(
-                                icon = AtomicIcons.Search,
-                                contentDescription = "Search all storage",
-                                onClick = { push(AtomicRoute.Search) },
-                                modifier = Modifier.testTag("home_search_button"),
+                        MainToolbarActions(
+                            onSearch = { push(AtomicRoute.Search) },
+                            onCommands = { showPalette = true },
+                        ) {
+                            TasksButton(
+                                queue = operationQueue,
+                                transfers = app.container.wifiShare.transfers,
+                                onOpenOperations = { push(AtomicRoute.Operations) },
                             )
                         }
-                        TasksButton(
-                            queue = operationQueue,
-                            transfers = app.container.wifiShare.transfers,
-                            onOpenOperations = { push(AtomicRoute.Operations) },
-                        )
                     },
                 )
             }
@@ -827,22 +898,65 @@ fun AtomicAppContent(
             ) { screen() }
         }
     }
+}
 
-    if (showAboutDialog) {
-        AtomicInfoSheet(
-            label = "About",
-            headline = "Atomic File Manager",
-            body =
-                "An offline-first, private file manager in the DevBehindYou Atomic family. No account, no ads, " +
-                    "no tracking. Nothing leaves your phone unless you connect a server yourself.",
-            onDismiss = { showAboutDialog = false },
-        )
-    }
+@Composable
+private fun AboutRoute(
+    onBack: () -> Unit,
+    onOpenBundledTools: () -> Unit,
+) {
+    val context = LocalContext.current
+    val version =
+        remember(context) {
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+        }
+    AboutAtomicScreen(version = version, onBack = onBack, onOpenBundledTools = onOpenBundledTools)
+}
+
+@Composable
+private fun PinnedLocationsRoute(
+    onBack: () -> Unit,
+    onOpenFolder: (FileNodeId) -> Unit,
+    onBrowseFiles: () -> Unit,
+) {
+    PinnedLocationsScreen(
+        onBack = onBack,
+        onOpenFolder = { folder ->
+            onBack()
+            onOpenFolder(folder)
+        },
+        onBrowseFiles = {
+            onBack()
+            onBrowseFiles()
+        },
+    )
+}
+
+@Composable
+private fun MainToolbarActions(
+    onSearch: () -> Unit,
+    onCommands: () -> Unit,
+    tasks: @Composable () -> Unit,
+) {
+    AtomicIconButton(
+        icon = AtomicIcons.Search,
+        contentDescription = "Search all storage",
+        onClick = onSearch,
+        modifier = Modifier.testTag("home_search_button"),
+    )
+    tasks()
+    AtomicIconButton(
+        icon = AtomicIcons.MoreHorizontal,
+        contentDescription = "Commands",
+        onClick = onCommands,
+        modifier = Modifier.testTag("home_palette_button"),
+    )
 }
 
 /** Navigation and feedback callbacks the tab screens share. */
 private class ShellCallbacks(
     val onFolderSelected: (FileNodeId) -> Unit,
+    val onNewFolderRequestHandled: () -> Unit,
     val onNavigateBack: () -> Unit,
     val onRequestStorageAccess: () -> Unit,
     val onBrowseVolume: (StorageVolumeInfo) -> Unit,
@@ -852,6 +966,7 @@ private class ShellCallbacks(
     val onClearScanCache: () -> Unit,
     val onNotify: (String) -> Unit,
     val onOpenStorageDetails: () -> Unit,
+    val onOpenFiles: () -> Unit,
     /** Opens a pushed screen: Operations, Trash, Apps, Wi-Fi share. */
     val onOpenRoute: (AtomicRoute) -> Unit,
     val onCompareFolders: (FileNodeId, FileNodeId) -> Unit,
@@ -865,6 +980,7 @@ private fun MainScreenContent(
     storageReadiness: StorageReadinessState,
     onRetryStorage: () -> Unit,
     browseTabs: BrowseTabsState,
+    newFolderTabKey: String?,
     onBrowseTabsChange: ((BrowseTabsState) -> BrowseTabsState) -> Unit,
     settingsRepository: SettingsRepository,
     privateLocked: Boolean,
@@ -891,6 +1007,8 @@ private fun MainScreenContent(
                 onNavigateToFolder = callbacks.onFolderSelected,
                 onRequestStorageAccess = callbacks.onRequestStorageAccess,
                 onOpenStorageDetails = callbacks.onOpenStorageDetails,
+                onViewOpenedHistory = { callbacks.onOpenRoute(AtomicRoute.RecentlyOpened) },
+                onManagePinnedLocations = { callbacks.onOpenRoute(AtomicRoute.PinnedLocations) },
                 privateLocked = privateLocked,
             )
         }
@@ -911,7 +1029,12 @@ private fun MainScreenContent(
                             },
                         ),
                     onNavigateBack = callbacks.onNavigateBack,
-                    openRequest = tab.openRequest,
+                    entryRequest =
+                        BrowseEntryRequest(
+                            folderRevision = tab.openRequest,
+                            onNewFolderHandled =
+                                callbacks.onNewFolderRequestHandled.takeIf { newFolderTabKey == tab.stateKey },
+                        ),
                     onNotify = callbacks.onNotify,
                     onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
                     tabKey = tab.stateKey,
@@ -937,26 +1060,22 @@ private fun MainScreenContent(
             StorageScreen(
                 volumes = volumes,
                 onBrowseVolume = callbacks.onBrowseVolume,
-                onBrowseFolder = callbacks.onFolderSelected,
-                onCompareFolders = callbacks.onCompareFolders,
                 onOpenStorageIntelligence = callbacks.onOpenStorageIntelligence,
-                onOpenOperations = { callbacks.onOpenRoute(AtomicRoute.Operations) },
-                onOpenTrash = { callbacks.onOpenRoute(AtomicRoute.Trash) },
-                onOpenApps = { callbacks.onOpenRoute(AtomicRoute.Apps) },
-                onOpenWifiShare = { callbacks.onOpenRoute(AtomicRoute.WifiShare) },
-                onNotify = callbacks.onNotify,
+                onOpenTool = { callbacks.onOpenRoute(AtomicRoute.StorageTool(it)) },
             )
         }
         NavigationTab.SETTINGS -> {
             SettingsScreen(
                 settingsRepository = settingsRepository,
                 hasStorageAccess = hasStorageAccess,
-                storageAccessStatus =
-                    when (storageReadiness) {
-                        is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
-                        is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
-                        is StorageReadinessState.Ready -> null
-                    },
+                storageAccessStatus = storageAccessStatus(storageReadiness),
+                destinations =
+                    SettingsDestinations(
+                        onOpenAbout = { callbacks.onOpenRoute(AtomicRoute.About) },
+                        onOpenPlugins = { callbacks.onOpenRoute(AtomicRoute.InAppPlugins) },
+                        onOpenPrivateFiles = callbacks.onOpenPrivateFiles,
+                        onOpenFiles = callbacks.onOpenFiles,
+                    ),
                 onRequestStorageAccess =
                     if (storageReadiness is StorageReadinessState.Ready) {
                         callbacks.onRequestStorageAccess
@@ -969,6 +1088,14 @@ private fun MainScreenContent(
         }
     }
 }
+
+@Composable
+private fun storageAccessStatus(state: StorageReadinessState): String? =
+    when (state) {
+        is StorageReadinessState.Loading -> stringResource(R.string.storage_readiness_access_loading)
+        is StorageReadinessState.Failed -> stringResource(R.string.storage_readiness_access_failed)
+        is StorageReadinessState.Ready -> null
+    }
 
 /** Mounted volumes, or a single internal entry built from the app's own folder when none are listed. */
 private fun loadVolumes(

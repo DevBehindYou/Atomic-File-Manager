@@ -1,23 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.screens
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.input.ImeAction
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
-import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicCommandGrid
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicMenuAction
-import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicSheet
 
 /** Everything the palette can do (ALL_IN_ONE_PLAN.md 4.4). [keywords] are other words people type. */
 enum class PaletteCommand(
@@ -25,8 +9,9 @@ enum class PaletteCommand(
     val group: String,
     val keywords: List<String> = emptyList(),
 ) {
-    SEARCH("Search all storage", "Go to", listOf("find", "lookup")),
+    SEARCH("Search", "Go to", listOf("all storage", "find", "lookup")),
     FILES("Files", "Go to", listOf("browse", "folders", "explorer")),
+    NEW_FOLDER("New folder", "Tools", listOf("create directory", "mkdir")),
     DOWNLOADS("Downloads", "Go to", listOf("download")),
     IMAGES("Images", "Go to", listOf("photos", "pictures", "gallery")),
     VIDEOS("Videos", "Go to", listOf("movies", "clips")),
@@ -35,12 +20,15 @@ enum class PaletteCommand(
     ARCHIVES("Archives", "Go to", listOf("zip", "compress", "extract", "rar", "7z")),
     APKS("APK files", "Go to", listOf("installers", "packages")),
     STORAGE("Storage", "Go to", listOf("space", "volumes", "sd card", "usb")),
-    ANALYSIS("Storage analysis", "Tools", listOf("large files", "duplicates", "cleanup", "free space")),
+    ANALYSIS("Analysis", "Tools", listOf("storage analysis", "large files", "duplicates", "cleanup", "free space")),
     TRASH("Trash", "Tools", listOf("bin", "recycle", "deleted", "restore")),
-    OPERATIONS("Operations", "Tools", listOf("copy", "move", "progress", "transfers", "queue")),
-    APPS("Apps", "Tools", listOf("app manager", "uninstall", "backup apk")),
+    OPERATIONS("Tasks", "Tools", listOf("operations", "copy", "move", "progress", "transfers", "queue")),
+    APPS("App manager", "Tools", listOf("apps", "uninstall", "backup apk")),
     PRIVATE("Private files", "Tools", listOf("hidden", "vault", "secure", "encrypt")),
-    WIFI_SHARE("Wi-Fi share", "Tools", listOf("send to computer", "pc", "browser", "transfer", "wifi")),
+    FOLDER_COMPARE("Folder compare", "Tools", listOf("sync", "differences")),
+    WIFI_SHARE("Wi-Fi Share", "Tools", listOf("send to computer", "pc", "browser", "transfer", "wifi")),
+    PLUGINS("In-app plugins", "Tools", listOf("built-in viewers", "bundled tools")),
+    CONNECTIONS("Connections", "Tools", listOf("linked folders", "network locations")),
     SETTINGS("Settings", "Settings", listOf("preferences", "options")),
     THEME("Theme", "Settings", listOf("dark mode", "light mode", "colours", "colors", "appearance")),
     ABOUT("About Atomic File Manager", "Settings", listOf("version", "privacy")),
@@ -84,49 +72,39 @@ object CommandPalette {
         text.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }
 }
 
-/**
- * The command palette: type to filter, tap or press Enter to run the first match. Opened from the
- * header on Home and with Ctrl+K on a keyboard.
- */
+/** Opens the searchable command sheet from a tab header or Ctrl+K. */
 @Composable
 fun CommandPaletteSheet(
     onRun: (PaletteCommand) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val matches = CommandPalette.match(query)
-    AtomicSheet(label = "Commands", onDismiss = onDismiss) {
-        AtomicTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = "Type a command",
-            placeholder = "Trash, theme, downloads…",
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-            keyboardActions = KeyboardActions(onGo = { matches.firstOrNull()?.let(onRun) }),
-            modifier = Modifier.fillMaxWidth().testTag("palette_query"),
-        )
-        if (matches.isEmpty()) {
-            AtomicText("No command matches “$query”.", AtomicTextRole.BodySecondary)
-        }
-        AtomicCommandGrid(
-            matches.map { command ->
-                AtomicMenuAction(
-                    label = command.title,
-                    icon = command.icon,
-                    description = command.group,
-                    onClick = { onRun(command) },
-                    testTag = "palette_${command.name.lowercase()}",
-                )
-            },
-        )
-    }
+    CommandPaletteDialog(onRun = onRun, onDismiss = onDismiss)
 }
 
-private val PaletteCommand.icon
+private val palettePrimaryCommands =
+    listOf(
+        PaletteCommand.FILES,
+        PaletteCommand.NEW_FOLDER,
+        PaletteCommand.SEARCH,
+        PaletteCommand.OPERATIONS,
+        PaletteCommand.ANALYSIS,
+        PaletteCommand.TRASH,
+        PaletteCommand.PRIVATE,
+        PaletteCommand.FOLDER_COMPARE,
+        PaletteCommand.APPS,
+        PaletteCommand.WIFI_SHARE,
+        PaletteCommand.PLUGINS,
+        PaletteCommand.CONNECTIONS,
+    )
+
+internal val paletteBrowseOrder = palettePrimaryCommands + (PaletteCommand.entries - palettePrimaryCommands.toSet())
+
+internal val PaletteCommand.icon
     get() =
         when (this) {
             PaletteCommand.SEARCH -> AtomicIcons.Search
             PaletteCommand.FILES -> AtomicIcons.Files
+            PaletteCommand.NEW_FOLDER -> AtomicIcons.NewFolder
             PaletteCommand.DOWNLOADS -> AtomicIcons.Download
             PaletteCommand.IMAGES -> AtomicIcons.Image
             PaletteCommand.VIDEOS -> AtomicIcons.Video
@@ -135,11 +113,14 @@ private val PaletteCommand.icon
             PaletteCommand.ARCHIVES -> AtomicIcons.Archive
             PaletteCommand.APKS, PaletteCommand.APPS -> AtomicIcons.Apk
             PaletteCommand.STORAGE -> AtomicIcons.Storage
-            PaletteCommand.ANALYSIS -> AtomicIcons.Cleanup
+            PaletteCommand.ANALYSIS -> AtomicIcons.Storage
             PaletteCommand.TRASH -> AtomicIcons.Trash
             PaletteCommand.OPERATIONS -> AtomicIcons.Tasks
             PaletteCommand.PRIVATE -> AtomicIcons.Lock
+            PaletteCommand.FOLDER_COMPARE -> AtomicIcons.DualPane
             PaletteCommand.WIFI_SHARE -> AtomicIcons.Network
+            PaletteCommand.PLUGINS -> AtomicIcons.Plug
+            PaletteCommand.CONNECTIONS -> AtomicIcons.Cloud
             PaletteCommand.SETTINGS -> AtomicIcons.Settings
             PaletteCommand.THEME -> AtomicIcons.Theme
             PaletteCommand.ABOUT -> AtomicIcons.Info

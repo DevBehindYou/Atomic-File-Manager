@@ -15,7 +15,7 @@ Recorded 24 October 2026. These records preserve tasks, supported features, limi
 
 ## Version meaning and ownership
 
-`v0.2` is the user-requested starting **Atomic plugin version**, displayed in each selected plugin's About/details page under Settings → In-app plugins. Each entry has its own value in [InAppPluginsSheet.kt](../../app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/screens/InAppPluginsSheet.kt), so a later increment can change that plugin alone. The localized label lives in [plugins.xml](../../app/src/main/res/values/plugins.xml). These versions are distinct from app/dependency/codec versions and release acceptance. They do not retrospectively label old binaries v0.2 or imply the future modernization is complete.
+`v0.2` is the user-requested starting **Atomic plugin version**, displayed in each selected plugin's About/details page from Settings → In-app plugins, Commands → In-app plugins, or About → Bundled tools. Each entry has its own value in [BuiltInPluginAbout.kt](../../app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/BuiltInPluginAbout.kt), so a later increment can change that plugin alone. The localized label lives in [plugins.xml](../../app/src/main/res/values/plugins.xml). These versions are distinct from app/dependency/codec versions and release acceptance. They do not retrospectively label old binaries v0.2 or imply the future modernization is complete.
 
 All eight plugins remain native Kotlin/Compose features bundled with Atomic and updated through the app. No installer, executable download, independent update feed, extra permission or settings migration is introduced. About/details must describe real capabilities and limits rather than planned functions.
 

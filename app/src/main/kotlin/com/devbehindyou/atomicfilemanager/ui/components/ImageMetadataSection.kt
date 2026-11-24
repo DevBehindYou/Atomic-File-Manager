@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -47,13 +48,26 @@ internal fun localImageFile(node: FileNode): File? =
 fun ImageMetadataSection(
     node: FileNode,
     file: File,
+    reader: ExifMetadataReader = remember { ExifMetadataReader() },
+) {
+    // Each source revision owns its metadata and share state from its first frame. Restarting only
+    // produceState's producer would show the previous image's camera and location under this name.
+    key(node.id, node.modifiedAt, node.size, file) {
+        ImageMetadataRevision(node, file, reader)
+    }
+}
+
+@Composable
+private fun ImageMetadataRevision(
+    node: FileNode,
+    file: File,
+    reader: ExifMetadataReader,
 ) {
     val context = LocalContext.current
-    val reader = remember { ExifMetadataReader() }
     val scope = rememberCoroutineScope()
-    val meta by produceState<ImageMetadata?>(null, file) { value = reader.read(file) }
-    var status by remember(node.id) { mutableStateOf<String?>(null) }
-    var busy by remember(node.id) { mutableStateOf(false) }
+    val meta by produceState<ImageMetadata?>(null) { value = reader.read(file) }
+    var status by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
 
     val shown = meta ?: return
     if (!shown.isEmpty) {
