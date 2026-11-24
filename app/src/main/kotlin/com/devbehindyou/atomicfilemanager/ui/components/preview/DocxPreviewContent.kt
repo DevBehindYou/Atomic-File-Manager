@@ -1,13 +1,16 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
@@ -40,6 +44,7 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicTypography
 import com.devbehindyou.atomicfilemanager.data.preview.DOCX_LEGACY_OR_PROTECTED
@@ -108,7 +113,6 @@ internal fun DocxDocumentContent(
         modifier.fillMaxSize().padding(AtomicSpacing.s12),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
     ) {
-        AtomicText(stringResource(R.string.docx_text_layout_note), AtomicTextRole.BodySecondary)
         AtomicTextField(
             value = query,
             onValueChange = {
@@ -157,18 +161,40 @@ internal fun DocxDocumentContent(
                 modifier = Modifier.weight(1f),
             )
         }
-        if (document.paragraphs.none { it.text.isNotBlank() }) {
-            AtomicText(stringResource(R.string.docx_empty), AtomicTextRole.Body)
-        }
-        SelectionContainer(Modifier.weight(1f)) {
-            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12)) {
-                itemsIndexed(document.paragraphs) { index, paragraph ->
-                    DocxParagraphContent(
-                        paragraph,
-                        matchesByParagraph[index].orEmpty(),
-                        selected,
-                        1f + fontStep * .2f,
-                    )
+        val hasText = remember(document) { document.paragraphs.any { it.text.isNotBlank() } }
+        Column(
+            modifier =
+                Modifier.align(Alignment.CenterHorizontally)
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(Atomic.colors.surfaceCard, AtomicShape.lg)
+                    .testTag("docx_reading_surface"),
+        ) {
+            AtomicText(
+                stringResource(R.string.docx_text_layout_note),
+                AtomicTextRole.BodySecondary,
+                modifier = Modifier.padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s12),
+            )
+            SelectionContainer(Modifier.weight(1f)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
+                    verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
+                ) {
+                    if (hasText) {
+                        itemsIndexed(document.paragraphs) { index, paragraph ->
+                            DocxParagraphContent(
+                                paragraph,
+                                matchesByParagraph[index].orEmpty(),
+                                selected,
+                                1f + fontStep * .2f,
+                            )
+                        }
+                    } else {
+                        item { AtomicText(stringResource(R.string.docx_empty), AtomicTextRole.Body) }
+                    }
                 }
             }
         }
@@ -202,7 +228,7 @@ private fun DocxParagraphContent(
             matches.forEach { match ->
                 addStyle(
                     SpanStyle(
-                        background = if (match == selected) colors.accent else colors.surfaceCard,
+                        background = if (match == selected) colors.accent else colors.surfaceInset,
                         color = if (match == selected) colors.onAccent else colors.content,
                         fontWeight = FontWeight.Bold,
                     ),
