@@ -4,13 +4,12 @@ import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -200,10 +199,9 @@ private fun VideoStage(
     player: Player,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val width = minOf(maxWidth, maxHeight * VIDEO_STAGE_RATIO, 960.dp)
+    Box(modifier, contentAlignment = Alignment.Center) {
         Box(
-            Modifier.width(width)
+            Modifier.widthIn(max = 960.dp)
                 .aspectRatio(VIDEO_STAGE_RATIO)
                 .clip(AtomicShape.lg)
                 .background(Color.Black)
