@@ -4,9 +4,11 @@ import android.app.Application
 import android.os.Looper
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -87,6 +89,10 @@ class DocxSourceSessionComposeTest {
         }
         awaitText("Second helper text")
         compose.onNodeWithText("First helper text").assertDoesNotExist()
+        val find = compose.onNodeWithTag("docx_find").getUnclippedBoundsInRoot()
+        val reading = compose.onNodeWithTag("docx_reading_surface").getUnclippedBoundsInRoot()
+        assertTrue(reading.top >= find.bottom)
+        assertTrue(reading.right > reading.left)
         assertEquals(1, first.get())
         assertEquals(1, second.get())
         assertEquals(2, closed.get())
