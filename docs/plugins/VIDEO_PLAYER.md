@@ -51,3 +51,7 @@ The Video preview now restores the intentional position, play/pause request and 
 State lives in a bounded, private SharedPreferences store (`VideoResumePreferences`, 200 entries, SHA-256 keys, versioned codec). Writes happen on pause/speed/end/STOP/close and at most every 15 s while playing, and seeking alone never writes. The shared player, staging helper and STOP pause policy are unchanged.
 
 The [C012 record](../testing/VIDEO_RESUME_C012.md) has the 2/2 failing base control, 79 passing host cases and the new API 28/34 `video-resume-native.yml` decoded-PCM journey (pending). Rotation still closes the preview dialog in host screens, and AppContainer wiring waits on C003. These are open items, not accepted behavior. Plugin version stays v0.2.
+
+## Native video stage candidate
+
+The real Media3 surface sits in a bounded 16:9 frame with available dimensions and duration below it. Media3 continues to provide playback, seeking and speed. The source-recreation test checks stage geometry alongside retention of the exact revision. Prototype-specific transport and the expanded-player interaction remain open. Host and Android validation are pending.

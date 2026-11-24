@@ -8,10 +8,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.Player
@@ -95,6 +97,8 @@ class VideoResumeComposeTest {
             }
         }
         val first = awaitPlayer()
+        val stage = compose.onNodeWithTag("video_stage").getUnclippedBoundsInRoot()
+        assertEquals(16f / 9f, stage.width.value / stage.height.value, 0.05f)
         compose.runOnIdle {
             first.seekTo(42_000)
             first.pause()
