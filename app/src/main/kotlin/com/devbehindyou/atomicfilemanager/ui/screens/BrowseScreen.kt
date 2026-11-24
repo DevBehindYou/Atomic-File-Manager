@@ -138,14 +138,21 @@ fun BrowseScreen(
 
     var useSecondary by rememberSaveable(tabKey, initialFolderId.raw) { mutableStateOf(false) }
     var previewFromSecondary by remember { mutableStateOf(false) }
-    val configuration = LocalConfiguration.current
-    val isDualPane = configuration.screenWidthDp >= 720
+    val supportsDualPane = LocalConfiguration.current.screenWidthDp >= 1120
+    var dualPaneEnabled by rememberSaveable(tabKey, initialFolderId.raw) { mutableStateOf(false) }
+    // Keep this pane's model while hiding it with the wide layout toggle.
+    var secondaryOpened by remember(tabKey, initialFolderId.raw) { mutableStateOf(dualPaneEnabled) }
+    val isDualPane = supportsDualPane && dualPaneEnabled
     var dualPaneMode by remember { mutableStateOf(DualPaneMode.DUAL_BROWSE) }
     val dragController = remember { FileDragController() }
     val quickPeekController = remember { QuickPeekController() }
 
-    val secondaryViewModel =
-        rememberSecondaryBrowseViewModel(isDualPane, tabKey, initialFolderId) {
+    val secondaryPane =
+        rememberSecondaryBrowseViewModel(
+            supportsDualPane && (dualPaneEnabled || secondaryOpened),
+            tabKey,
+            initialFolderId,
+        ) {
             BrowseViewModel.provideFactory(
                 initialFolderId = initialFolderId,
                 getDirectoryListingUseCase = app.container.getDirectoryListingUseCase,
@@ -158,7 +165,8 @@ fun BrowseScreen(
                 folderSorts = app.container.folderSortMemory,
                 startVisible = false,
             )
-        } ?: viewModel
+        }
+    val secondaryViewModel = secondaryPane ?: viewModel
     val secondaryUiState = if (isDualPane) secondaryViewModel.uiState.collectAsState().value else uiState
     val actionViewModel = if (isDualPane && useSecondary) secondaryViewModel else viewModel
     val actionState = if (isDualPane && useSecondary) secondaryUiState else uiState
@@ -170,8 +178,9 @@ fun BrowseScreen(
             actionState.currentFolderName
         }
     val isSelectionMode = actionState.selectedIds.isNotEmpty()
-    LaunchedEffect(isDualPane) {
-        if (!isDualPane) {
+    LaunchedEffect(supportsDualPane) {
+        if (!supportsDualPane) {
+            secondaryOpened = false
             useSecondary = false
             previewFromSecondary = false
         }
@@ -184,12 +193,11 @@ fun BrowseScreen(
 
     var nodeToHide by remember { mutableStateOf<FileNode?>(null) }
     var showHiddenScreen by remember { mutableStateOf(false) }
-    val onNewFolderRequestHandled = entryRequest.onNewFolderHandled
-    LaunchedEffect(onNewFolderRequestHandled != null) {
-        if (onNewFolderRequestHandled != null) {
+    LaunchedEffect(entryRequest.onNewFolderHandled != null) {
+        entryRequest.onNewFolderHandled?.let { onHandled ->
             showHiddenScreen = false
             showNewFolderDialog = true
-            onNewFolderRequestHandled()
+            onHandled()
         }
     }
     val coroutineScope = rememberCoroutineScope()
@@ -233,16 +241,16 @@ fun BrowseScreen(
         if (node != null && mode != null) hideNode(node, mode)
     }
 
-    LaunchedEffect(viewModel, secondaryViewModel, settings.showHiddenFiles) {
+    LaunchedEffect(viewModel, secondaryPane, settings.showHiddenFiles) {
         viewModel.setShowHiddenFiles(settings.showHiddenFiles)
-        if (isDualPane) secondaryViewModel.setShowHiddenFiles(settings.showHiddenFiles)
+        secondaryPane?.setShowHiddenFiles(settings.showHiddenFiles)
     }
 
     PrimaryBrowseVisibility(viewModel, entryRequest.folderRevision, contentVisible = !showHiddenScreen)
-    if (isDualPane) {
+    if (secondaryPane != null) {
         SecondaryBrowseVisibility(
-            secondaryViewModel,
-            listingVisible = !showHiddenScreen && dualPaneMode == DualPaneMode.DUAL_BROWSE,
+            secondaryPane,
+            listingVisible = isDualPane && !showHiddenScreen && dualPaneMode == DualPaneMode.DUAL_BROWSE,
         )
     }
 
@@ -379,6 +387,18 @@ fun BrowseScreen(
                         },
                         onNewFolder = { showNewFolderDialog = true },
                         onShowHiddenFilesScreen = { showHiddenScreen = true },
+                        dualPaneEnabled = dualPaneEnabled.takeIf { supportsDualPane },
+                        onDualPaneChange = { enabled ->
+                            if (enabled) {
+                                secondaryOpened = true
+                            } else {
+                                // Switching off an embedded preview must not launch a standalone viewer.
+                                nodeForPreview = null
+                                previewFromSecondary = false
+                                dualPaneMode = DualPaneMode.DUAL_BROWSE
+                            }
+                            dualPaneEnabled = enabled
+                        },
                     )
                 },
                 storageSelector = {
