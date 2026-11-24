@@ -56,6 +56,7 @@ class GifPlaybackDeviceTest {
             val source = File(directory, "animation.gif")
             val shown = mutableStateOf(true)
             val active = mutableStateOf(true)
+            var zoomed = false
             var composed = false
             try {
                 val bytes =
@@ -75,7 +76,12 @@ class GifPlaybackDeviceTest {
                     AtomicTheme(darkTheme = true, wallpaperAccent = false) {
                         if (shown.value) {
                             Box(Modifier.size(240.dp).testTag("gif_viewport")) {
-                                ZoomableImage(node, container, isActive = active.value)
+                                ZoomableImage(
+                                    node,
+                                    container,
+                                    onZoomChange = { zoomed = it },
+                                    isActive = active.value,
+                                )
                             }
                         }
                     }
@@ -119,10 +125,17 @@ class GifPlaybackDeviceTest {
                             .drawable as AnimatedImageDrawable
                 }
                 val animation = checkNotNull(owned)
-                compose.runOnIdle { active.value = false }
+                compose.onNodeWithTag("image_zoom_in").performClick()
+                compose.runOnIdle {
+                    assertTrue("The GIF should report the zoomed state", zoomed)
+                    active.value = false
+                    zoomed = false
+                }
                 compose.waitForIdle()
                 InstrumentationRegistry.getInstrumentation().runOnMainSync { assertFalse(animation.isRunning) }
                 compose.runOnIdle { active.value = true }
+                compose.runOnIdle { assertTrue("Reactivated GIF should report its retained zoom", zoomed) }
+                compose.onNodeWithTag("image_zoom_out").performClick()
                 awaitBothFrames()
                 compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
                 InstrumentationRegistry.getInstrumentation().runOnMainSync { assertFalse(animation.isRunning) }
