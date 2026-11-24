@@ -102,7 +102,7 @@ internal fun ImageGallery(
     onPageChange: (FileNode) -> Unit,
 ) {
     val pager = rememberPagerState(initialPage = startIndex) { images.size }
-    var zoomed by remember { mutableStateOf(false) }
+    var zoomedPage by remember { mutableIntStateOf(-1) }
     LaunchedEffect(pager, images) {
         snapshotFlow { pager.currentPage }.collect { page -> images.getOrNull(page)?.let(onPageChange) }
     }
@@ -117,7 +117,7 @@ internal fun ImageGallery(
             ImageStage(Modifier.fillMaxWidth().heightIn(max = stageHeight)) {
                 HorizontalPager(
                     state = pager,
-                    userScrollEnabled = !zoomed,
+                    userScrollEnabled = zoomedPage != pager.currentPage,
                     beyondViewportPageCount = 1,
                     key = { images[it].id.raw },
                     modifier = Modifier.fillMaxSize().testTag("image_gallery"),
@@ -125,7 +125,9 @@ internal fun ImageGallery(
                     ZoomableImage(
                         node = images[page],
                         container = container,
-                        onZoomChange = { if (page == pager.currentPage) zoomed = it },
+                        onZoomChange = { zoomed ->
+                            if (page == pager.currentPage) zoomedPage = if (zoomed) page else -1
+                        },
                         isActive = page == pager.currentPage,
                     )
                 }
@@ -280,10 +282,15 @@ internal fun ZoomableImageSurface(
     node: FileNode,
     imageSize: Size,
     onZoomChange: (Boolean) -> Unit,
+    isActive: Boolean = true,
     content: @Composable (Modifier) -> Unit,
 ) {
     var transform by remember { mutableStateOf(ImageTransform()) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
+
+    LaunchedEffect(isActive, transform.scale) {
+        if (isActive) onZoomChange(transform.scale > 1f)
+    }
 
     fun updateTransform(
         value: Float,
