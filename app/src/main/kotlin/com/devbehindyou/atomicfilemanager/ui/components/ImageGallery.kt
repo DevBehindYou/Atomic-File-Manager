@@ -302,7 +302,13 @@ internal fun ZoomableImageSurface(
                 viewport = size
                 transform =
                     transform.copy(
-                        offset = ImageTransformGeometry.clamp(transform.offset, transform.scale, imageSize, size.toSize()),
+                        offset =
+                            ImageTransformGeometry.clamp(
+                                transform.offset,
+                                transform.scale,
+                                imageSize,
+                                size.toSize(),
+                            ),
                     )
             },
             onTransform = ::updateTransform,
