@@ -49,3 +49,7 @@ The [dedicated validation record](../testing/AUDIO_PREPARATION_RECOVERY_VALIDATI
 ## WAV playback acceptance candidate
 
 AUD-T02 now has an Android fixture for an owned PCM WAV through the built-in preview. It exercises real playback progress, Pause, rewind, natural completion, Close and source integrity. API 28 and API 34 execution is pending. Other formats, audible output, provider loss and focus or lifecycle interruption tests remain open. [WAV validation record](../testing/AUDIO_WAV_NATIVE_CANDIDATE.md)
+
+## Native audio layout candidate
+
+The v0.2 audio preview uses a centered artwork stage, track information and a larger Play/Pause control. The seek slider announces playback position and shows elapsed time and total time when available. The WAV instrumentation suite now finds the slider by its accessible name and reads its actual playback progress. The layout uses existing Media3 playback, skip, speed, metadata and focus behavior. Current Android and visual results are pending.
