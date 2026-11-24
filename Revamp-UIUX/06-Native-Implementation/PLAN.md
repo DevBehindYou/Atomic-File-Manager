@@ -175,3 +175,6 @@ Current R06 evidence
 
 - File Options passed on the compact phone on integrated APK `1C5B4917C79AA5817C36466D4AD287AE6441B1DB6E8EF4522B763D2A4A6622FD`. Home showed Recently opened and Pinned locations and opened Storage from Explore storage. The combined Home/Dual pane APK `BA74014C7E47421D754528DE75B5C2516AC176956BC873F40117EE23C698684D` passed 22 focused host tests, formatting, Detekt and packaging. USB verified its File Options submenu and Back actions and the absence of Dual pane at compact width.
 - A cold-launch capture showed the saved-settings loading text before Home. This startup feedback candidate uses the shared indeterminate indicator during both the settings and storage reads. Existing Close and Retry actions remain available at their original states. Native and host validation are pending for this candidate.
+
+- [Dual pane #134](https://github.com/DevBehindYou/Atomic-File-Manager/pull/134) merged into feature integration as `ed19f00c`. Standard CI and the full emulator workflow passed, and the merge trial reproduced the tested tree. Physical wide-layout comparison remains open.
+- The compact Files header candidate keeps folder name, count and sort order in dedicated rows at large text sizes. List and Grid stay together below the summary when the available width is limited. Its Compose regression uses the real controls at 200 percent text.
