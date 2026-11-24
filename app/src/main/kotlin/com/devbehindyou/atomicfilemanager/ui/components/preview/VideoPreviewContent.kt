@@ -284,7 +284,7 @@ private fun VideoMetadataLabel(
 ) {
     val parts =
         listOfNotNull(
-            if (width > 0 && height > 0) "${width}×$height" else null,
+            if (width > 0 && height > 0) "$width×$height" else null,
             if (durationMs > 0) FileUtils.formatDuration(durationMs) else null,
         )
     if (parts.isNotEmpty()) {

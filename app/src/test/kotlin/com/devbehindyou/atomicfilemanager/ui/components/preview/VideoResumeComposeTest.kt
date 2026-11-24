@@ -98,7 +98,9 @@ class VideoResumeComposeTest {
         }
         val first = awaitPlayer()
         val stage = compose.onNodeWithTag("video_stage").getUnclippedBoundsInRoot()
-        assertEquals(16f / 9f, stage.width.value / stage.height.value, 0.05f)
+        val stageWidth = stage.right - stage.left
+        val stageHeight = stage.bottom - stage.top
+        assertEquals(16f / 9f, stageWidth.value / stageHeight.value, 0.05f)
         compose.runOnIdle {
             first.seekTo(42_000)
             first.pause()
