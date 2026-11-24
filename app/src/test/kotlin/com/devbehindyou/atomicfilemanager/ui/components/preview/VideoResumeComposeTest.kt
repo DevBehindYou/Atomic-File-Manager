@@ -5,9 +5,8 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -63,7 +62,6 @@ class VideoResumeComposeTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
     private val render = mutableStateOf(true)
     private val shown = mutableStateOf<FileNode?>(null)
-    private val previewInstance = mutableIntStateOf(0)
     private val bytes = ByteArray(64) { it.toByte() }
     private lateinit var clip: File
     private lateinit var memory: CountingMemory
@@ -266,12 +264,7 @@ class VideoResumeComposeTest {
             player.seekTo(40_000)
             player.pause()
         }
-        compose.runOnIdle { render.value = false }
-        compose.waitUntil(10_000) {
-            shadowOf(Looper.getMainLooper()).idle()
-            attachedPlayerViews(compose.activity.window.decorView).none { it.player === player }
-        }
-        compose.runOnIdle { render.value = true }
+        reopen()
         val second = awaitPlayer { it !== player }
         compose.runOnIdle {
             assertEquals(0L, second.currentPosition)
@@ -286,17 +279,25 @@ class VideoResumeComposeTest {
             AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                 val current = shown.value
                 if (render.value && current != null) {
-                    key(previewInstance.intValue) {
-                        VideoPreviewContent(current, container, resumeMemory = memory)
-                    }
+                    VideoPreviewContent(current, container, resumeMemory = memory)
                 }
             }
         }
     }
 
     private fun reopen() {
-        // Replace the preview composition in one change, so two visibility writes cannot collapse.
-        compose.runOnIdle { previewInstance.intValue++ }
+        setPreviewVisible(false)
+        assertNull(compose.runOnIdle { playerView(compose.activity.window.decorView)?.player })
+        setPreviewVisible(true)
+    }
+
+    private fun setPreviewVisible(visible: Boolean) {
+        compose.runOnIdle {
+            render.value = visible
+            Snapshot.sendApplyNotifications()
+        }
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
     }
 
     private fun node() =
