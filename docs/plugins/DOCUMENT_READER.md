@@ -47,3 +47,7 @@ DOCX session ownership passed host checks. FILE routing and Find passed on each 
 ## 7 November C036 slice — precise fallbacks
 
 DOC-B02 and DOC-B03 (Claude Code C036, host-verified only). A `.docx` that is really a legacy `.doc`, a password-protected Office file, a non-package or an over-limit document now says which of these it is, without the misleading "may be damaged" wording and without a Retry that cannot succeed. RTF always routes to file details with Open with instead of showing raw control words when a provider reports `text/rtf`. There are 39 focused host tests and the RTF control fails on base. The [fidelity matrix and evidence](../testing/DOCUMENT_FIDELITY_PRECISION_C036.md) records each input type. Version stays v0.2; no DOC group credit is claimed.
+
+## Native reading layout candidate
+
+The extracted document is shown on a separate reading surface with a bounded line width. Find highlights, previous and next match, text sizing and selection remain available. The format disclosure stays with the content. The source-session regression checks that a replacement document reaches a visible reading surface below Find. Native and host validation are pending.
