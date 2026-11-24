@@ -2,15 +2,19 @@ package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,21 +28,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
+import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextField
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
+import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicShape
 import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpacing
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.data.preview.PDF_PASSWORD_PROTECTED
@@ -49,6 +58,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.ui.components.ViewerState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.roundToInt
 
 @Composable
 fun PdfPreviewContent(
@@ -89,6 +99,8 @@ private fun PdfReader(
     val requests = remember { MutableStateFlow(PdfPageRequest(page)) }
     val pages = remember(reopen) { PdfPageController<Bitmap>() }
     val state by pages.state.collectAsState()
+    val rendered = state.rendered
+    val transform = remember(rendered?.index, reopen) { PdfPageTransform() }
 
     LaunchedEffect(node.id, reopen) {
         opening = true
@@ -113,8 +125,19 @@ private fun PdfReader(
         requests.value = PdfPageRequest(page, requests.value.retry + 1)
     }
 
-    Column(modifier.fillMaxSize().testTag("pdf_reader")) {
-        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds(), contentAlignment = Alignment.Center) {
+    Column(
+        modifier.fillMaxSize().padding(horizontal = AtomicSpacing.s16).testTag("pdf_reader"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.weight(1f).widthIn(max = 720.dp).fillMaxWidth()
+                .clip(AtomicShape.lg)
+                .background(Atomic.colors.surfaceInset)
+                .padding(AtomicSpacing.s12)
+                .clipToBounds()
+                .testTag("pdf_reading_stage"),
+            contentAlignment = Alignment.Center,
+        ) {
             when {
                 opening -> ViewerState(loading = true, error = null)
                 openError != null ->
@@ -132,8 +155,8 @@ private fun PdfReader(
                         AtomicButton(stringResource(R.string.pdf_retry), onClick = { request(page) })
                     }
                 else ->
-                    state.rendered?.let { rendered ->
-                        key(rendered.index, reopen) { PdfZoomablePage(rendered.image, rendered.index) }
+                    rendered?.let { page ->
+                        key(page.index, reopen) { PdfZoomablePage(page.image, page.index, transform) }
                     }
             }
         }
@@ -141,7 +164,7 @@ private fun PdfReader(
             // The label belongs to the displayed bitmap, never to an uncompleted request.
             val displayedIndex = state.rendered?.index ?: state.requested
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16),
+                Modifier.widthIn(max = 520.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -160,7 +183,7 @@ private fun PdfReader(
                 }, enabled = page < pageCount - 1)
             }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s4),
+                Modifier.widthIn(max = 520.dp).fillMaxWidth().padding(vertical = AtomicSpacing.s4),
                 horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -175,7 +198,51 @@ private fun PdfReader(
                     variant = AtomicButtonVariant.Text,
                 )
             }
+            PdfZoomToolbar(transform, enabled = rendered != null)
         }
+    }
+}
+
+private const val PDF_MIN_ZOOM = 1f
+private const val PDF_MAX_ZOOM = 6f
+private const val PDF_ZOOM_STEP = 0.25f
+
+private class PdfPageTransform {
+    var zoom by mutableFloatStateOf(PDF_MIN_ZOOM)
+    var offset by mutableStateOf(Offset.Zero)
+
+    fun zoomTo(value: Float) {
+        zoom = value.coerceIn(PDF_MIN_ZOOM, PDF_MAX_ZOOM)
+        offset = Offset.Zero
+    }
+}
+
+@Composable
+private fun PdfZoomToolbar(
+    transform: PdfPageTransform,
+    enabled: Boolean,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(bottom = AtomicSpacing.s4).testTag("pdf_zoom_controls"),
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8, Alignment.CenterHorizontally),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        AtomicButton(
+            stringResource(R.string.pdf_zoom_out),
+            onClick = { transform.zoomTo(transform.zoom - PDF_ZOOM_STEP) },
+            variant = AtomicButtonVariant.Ghost,
+            enabled = enabled && transform.zoom > PDF_MIN_ZOOM,
+        )
+        AtomicText(
+            stringResource(R.string.pdf_zoom_percent, (transform.zoom * 100).roundToInt()),
+            AtomicTextRole.MonoMeta,
+        )
+        AtomicButton(
+            stringResource(R.string.pdf_zoom_in),
+            onClick = { transform.zoomTo(transform.zoom + PDF_ZOOM_STEP) },
+            variant = AtomicButtonVariant.Ghost,
+            enabled = enabled && transform.zoom < PDF_MAX_ZOOM,
+        )
     }
 }
 
@@ -183,33 +250,40 @@ private fun PdfReader(
 private fun PdfZoomablePage(
     bitmap: Bitmap,
     index: Int,
+    transform: PdfPageTransform,
 ) {
-    var zoom by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
     val description = stringResource(R.string.pdf_page_description, index + 1)
     Image(
         bitmap.asImageBitmap(),
         contentDescription = description,
         modifier =
-            Modifier.fillMaxSize().testTag("pdf_page")
+            Modifier.widthIn(max = 520.dp)
+                .aspectRatio(bitmap.width.toFloat() / bitmap.height)
+                .testTag("pdf_page")
                 .pointerInput(index) {
                     detectTapGestures(onDoubleTap = {
-                        zoom = if (zoom > 1f) 1f else 2.5f
-                        offset = Offset.Zero
+                        transform.zoomTo(if (transform.zoom > PDF_MIN_ZOOM) PDF_MIN_ZOOM else 2.5f)
                     })
                 }
                 .pointerInput(index) {
                     detectTransformGestures { _, pan, scale, _ ->
-                        zoom = (zoom * scale).coerceIn(1f, 6f)
-                        val maxX = (zoom - 1f) * size.width / 2
-                        val maxY = (zoom - 1f) * size.height / 2
-                        offset =
+                        transform.zoom = (transform.zoom * scale).coerceIn(PDF_MIN_ZOOM, PDF_MAX_ZOOM)
+                        val maxX = (transform.zoom - PDF_MIN_ZOOM) * size.width / 2
+                        val maxY = (transform.zoom - PDF_MIN_ZOOM) * size.height / 2
+                        transform.offset =
                             Offset(
-                                (offset.x + pan.x).coerceIn(-maxX, maxX),
-                                (offset.y + pan.y).coerceIn(-maxY, maxY),
+                                (transform.offset.x + pan.x).coerceIn(-maxX, maxX),
+                                (transform.offset.y + pan.y).coerceIn(-maxY, maxY),
                             )
                     }
                 }
-                .graphicsLayer(scaleX = zoom, scaleY = zoom, translationX = offset.x, translationY = offset.y),
+                .graphicsLayer {
+                    scaleX = transform.zoom
+                    scaleY = transform.zoom
+                    translationX = transform.offset.x
+                    translationY = transform.offset.y
+                    shape = AtomicShape.xs
+                    clip = true
+                }.background(Color.White),
     )
 }
