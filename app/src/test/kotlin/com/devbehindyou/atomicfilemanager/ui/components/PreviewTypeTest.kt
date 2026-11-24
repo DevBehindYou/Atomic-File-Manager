@@ -31,6 +31,22 @@ class PreviewTypeTest {
     }
 
     @Test
+    fun `rtf never becomes a raw text preview whatever MIME the provider reports`() {
+        for (mime in listOf(
+            "text/rtf",
+            "application/rtf",
+            "text/richtext",
+            "application/x-rtf",
+            "application/octet-stream",
+        )) {
+            assertEquals(PreviewType.GENERIC, resolvePreviewType(node("letter.rtf", mime)))
+        }
+        assertEquals(PreviewType.GENERIC, resolvePreviewType(node("letter", "text/rtf")))
+        assertEquals(PreviewType.TEXT, resolvePreviewType(node("table.csv", "text/csv")))
+        assertEquals(PreviewType.TEXT, resolvePreviewType(node("notes.txt", "text/plain")))
+    }
+
+    @Test
     fun `structured text and source code remain readable`() {
         for ((name, mime) in listOf(
             "data" to "application/problem+json",
