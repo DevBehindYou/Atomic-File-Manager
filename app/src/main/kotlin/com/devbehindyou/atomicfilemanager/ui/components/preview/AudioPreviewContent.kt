@@ -246,7 +246,7 @@ private fun AudioArtworkCard(artwork: Bitmap?) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 220.dp)
+                .heightIn(min = 260.dp)
                 .background(colors.surfaceInset, AtomicShape.lg)
                 .padding(AtomicSpacing.s24)
                 .testTag("audio_artwork_stage"),
@@ -254,7 +254,7 @@ private fun AudioArtworkCard(artwork: Bitmap?) {
     ) {
         Box(
             Modifier
-                .widthIn(max = 160.dp)
+                .widthIn(max = 140.dp)
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(AtomicShape.lg)
