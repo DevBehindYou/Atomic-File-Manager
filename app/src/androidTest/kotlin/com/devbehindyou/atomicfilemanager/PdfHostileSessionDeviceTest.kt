@@ -10,6 +10,7 @@ import android.graphics.pdf.PdfDocument
 import android.system.Os
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -56,6 +57,8 @@ import kotlin.math.abs
 class PdfHostileSessionDeviceTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    private var activeReader: Reader? = null
+
     private val context: Context get() = compose.activity.applicationContext
     private val directory by lazy {
         Files.createTempDirectory(context.cacheDir.toPath(), "pdf-hostile-device-").toFile()
@@ -73,6 +76,7 @@ class PdfHostileSessionDeviceTest {
 
     @After
     fun removeOnlyOwnedFixtures() {
+        activeReader?.close()
         assertTrue("Every staged copy must be removed", cache.listFiles().orEmpty().isEmpty())
         assertEquals("Every staged descriptor must be closed", 0, stagedDescriptors())
         assertEquals("No descriptor may remain on an owned fixture", emptyList<String>(), ownedTargets())
@@ -283,7 +287,7 @@ class PdfHostileSessionDeviceTest {
         // Total process descriptors are not ours to bound: API 34 HWUI keeps a pool of
         // anon_inode:sync_file frame fences that grows to a plateau (C021 evidence). Assert by target.
         repeat(12) { lifetime ->
-            compose.runOnIdle { reader.visible.value = true }
+            reader.show()
             reader.awaitPage(1, 3)
             assertEquals(1, cache.listFiles().orEmpty().size)
             assertTrue("Lifetime $lifetime holds its staged copy", stagedDescriptors() >= 1)
@@ -295,13 +299,14 @@ class PdfHostileSessionDeviceTest {
     private inner class Reader {
         val original: FileNode = runBlocking { (backend.getNode(id()) as FileResult.Success).value }
         val shown = mutableStateOf(original)
-        val visible = mutableStateOf(true)
+        private val visible = mutableStateOf(true)
         private val container =
             object : AppContainer by DefaultAppContainer(compose.activity.application) {
                 override val pdfPreviewHelper = helper
             }
 
         init {
+            activeReader = this
             compose.setContent {
                 AtomicTheme(darkTheme = false, wallpaperAccent = false) {
                     if (visible.value) PdfPreviewContent(shown.value, container)
@@ -335,9 +340,20 @@ class PdfHostileSessionDeviceTest {
             compose.runOnIdle { shown.value = shown.value.copy(modifiedAt = shown.value.modifiedAt + 1) }
         }
 
+        fun show() = setVisible(true)
+
         fun close() {
-            compose.runOnIdle { visible.value = false }
+            setVisible(false)
             compose.waitUntil(10_000) { cache.listFiles().orEmpty().isEmpty() && stagedDescriptors() == 0 }
+        }
+
+        private fun setVisible(show: Boolean) {
+            compose.runOnIdle {
+                visible.value = show
+                Snapshot.sendApplyNotifications()
+            }
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
         }
     }
 
