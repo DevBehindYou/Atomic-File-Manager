@@ -1,5 +1,6 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -26,10 +28,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
@@ -43,42 +51,64 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.foundation.AtomicSpa
 import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.data.preview.MediaPreviewHelper
 import com.devbehindyou.atomicfilemanager.data.preview.PreparedMedia
+import com.devbehindyou.atomicfilemanager.data.repository.VideoResumePreferences
 import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
+import com.devbehindyou.atomicfilemanager.domain.repository.VideoResumeMemory
+import com.devbehindyou.atomicfilemanager.domain.repository.VideoResumeState
+import com.devbehindyou.atomicfilemanager.domain.repository.VideoRevision
 import com.devbehindyou.atomicfilemanager.ui.util.FileUtils
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 
 @Composable
 fun VideoPreviewContent(
     node: FileNode,
     container: AppContainer,
     modifier: Modifier = Modifier,
+    resumeMemory: VideoResumeMemory = rememberVideoResumeMemory(),
 ) {
     val helper = container.mediaPreviewHelper
-    // A known source revision owns its prepared URI, player, failure and explicit retry attempts.
-    key(node.id, node.modifiedAt, node.size, helper) {
+    // A known source revision owns its prepared URI, player, failure, retry attempts and resume point.
+    key(node.id, node.modifiedAt, node.size, helper, resumeMemory) {
+        val revision = remember { VideoRevision.of(node) }
         var attempt by remember { mutableIntStateOf(0) }
         key(attempt) {
-            VideoPreparationAttempt(node, helper, modifier, onRetry = { attempt++ })
+            VideoPreparationAttempt(node, revision, helper, resumeMemory, modifier, onRetry = { attempt++ })
         }
     }
 }
 
 @Composable
+private fun rememberVideoResumeMemory(): VideoResumeMemory {
+    val application = LocalContext.current.applicationContext
+    return remember(application) { VideoResumePreferences.shared(application) }
+}
+
+/** A prepared source and the resume point read for its exact revision before the player exists. */
+private class PreparedVideo(
+    val media: PreparedMedia,
+    val saved: VideoResumeState?,
+)
+
+@Composable
 private fun VideoPreparationAttempt(
     node: FileNode,
+    revision: VideoRevision?,
     helper: MediaPreviewHelper,
+    resumeMemory: VideoResumeMemory,
     modifier: Modifier,
     onRetry: () -> Unit,
 ) {
-    var preparedMedia by remember { mutableStateOf<PreparedMedia?>(null) }
+    var prepared by remember { mutableStateOf<PreparedVideo?>(null) }
     var failure by remember { mutableStateOf<FileError?>(null) }
     LaunchedEffect(Unit) {
+        val saved = revision?.let { resumeMemory.read(it) }
         when (
             val result =
                 helper.withMedia<Unit>(node.id, node.name) { media ->
-                    preparedMedia = media
+                    prepared = PreparedVideo(media, saved)
                     awaitCancellation()
                 }
         ) {
@@ -93,7 +123,7 @@ private fun VideoPreparationAttempt(
     ) {
         when {
             failure != null -> VideoPreparationFailure(failure!!, onRetry)
-            preparedMedia != null -> VideoPlayerView(media = preparedMedia!!)
+            prepared != null -> VideoPlayerView(prepared!!, revision?.let { it to resumeMemory })
             else ->
                 AtomicLoading(
                     stringResource(R.string.video_preview_preparing),
@@ -127,10 +157,34 @@ private fun VideoPreparationFailure(
 @Composable
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private fun VideoPlayerView(
-    media: PreparedMedia,
+    prepared: PreparedVideo,
+    resume: Pair<VideoRevision, VideoResumeMemory>?,
     modifier: Modifier = Modifier,
 ) {
-    val player = rememberPreviewPlayer(media.playbackUri, playWhenReady = true, onRelease = {})
+    val media = prepared.media
+    val session =
+        remember(media.playbackUri) {
+            resume?.let { (revision, memory) ->
+                VideoResumeSession(
+                    revision,
+                    memory,
+                    prepared.saved,
+                    media.metadata.durationMs,
+                    SystemClock::elapsedRealtime,
+                )
+            }
+        }
+    val start = session?.start
+    val player = rememberPreviewPlayer(media.playbackUri, playWhenReady = start?.playWhenReady ?: true, onRelease = {})
+    // Restore once for each player before the recorder below starts listening.
+    DisposableEffect(player) {
+        start?.let {
+            player.seekTo(it.positionMs)
+            player.setPlaybackSpeed(it.speed)
+        }
+        onDispose {}
+    }
+    if (session != null) RecordVideoResume(player, session)
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         // Media3's own controls: play, pause, seek, and playback speed in its settings menu.
@@ -162,6 +216,55 @@ private fun VideoPlayerView(
         }
     }
 }
+
+/** Feeds pause/speed/end changes, STOP, coarse progress and disposal into [session]. */
+@Composable
+private fun RecordVideoResume(
+    player: Player,
+    session: VideoResumeSession,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(player, session, lifecycleOwner) {
+        val listener =
+            object : Player.Listener {
+                override fun onPlayWhenReadyChanged(
+                    playWhenReady: Boolean,
+                    reason: Int,
+                ) = session.checkpoint(player.resumeSnapshot())
+
+                override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) =
+                    session.checkpoint(player.resumeSnapshot())
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) session.checkpoint(player.resumeSnapshot())
+                }
+            }
+        // STOP precedes any process death, so a background kill still restores the last position.
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) session.checkpoint(player.resumeSnapshot())
+            }
+        player.addListener(listener)
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            player.removeListener(listener)
+        }
+    }
+    // Registered after the player, so it is disposed before the player is released.
+    DisposableEffect(player, session) {
+        onDispose { session.close(player.resumeSnapshot()) }
+    }
+    LaunchedEffect(player, session) {
+        while (true) {
+            delay(VideoResumeSession.PROGRESS_INTERVAL_MS)
+            if (player.isPlaying) session.progress(player.resumeSnapshot())
+        }
+    }
+}
+
+private fun Player.resumeSnapshot() =
+    VideoPlaybackSnapshot(currentPosition, playWhenReady, playbackParameters.speed, playbackState == Player.STATE_ENDED)
 
 @Composable
 private fun VideoMetadataBadge(
