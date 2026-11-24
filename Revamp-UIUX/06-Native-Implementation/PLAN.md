@@ -34,7 +34,7 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 
 | ID | Page | Native entry/area to inspect | Required layout and behavior | Current state |
 | --- | --- | --- | --- | --- |
-| P01 | Home | HomeScreen / MainActivity | Greeting; primary storage; six category tiles; Recently opened; Pinned locations; secondary volumes in responsive layout | Partial |
+| P01 | Home | HomeScreen / MainActivity | Greeting; primary storage; six category tiles; Recently opened; Pinned locations; secondary volumes in responsive layout | Internal and removable cards grouped above categories. Current CI and emulator passed. Other Home parity and visual verification remain open. |
 | P02 | Files | BrowseScreen / BrowseHeaders / BrowsePanes / FileListItem | Source strip; location context; title; view/select/count row; list/grid; selection bar; dual pane | Partial |
 | P03 | Storage | StorageScreen / StorageUsageDashboard | All connected storage ring + totals/legend; Your storage; analysis CTA card; four tools rows | Pending |
 | P04 | Analysis | StorageIntelligenceScreen / StorageUsageDashboard | Readable-file card; explicit scan/cancel; breakdown; cleanup card; inclusion disclosure | Pending |
@@ -57,15 +57,15 @@ The 32 surfaces below include 31 product surfaces plus one test-only component c
 | P21 | File details | Details sheet/screen | Type/name; metadata definition list; real supported actions; unavailable values | Seven focused tests passed. USB verified folder details and Close. Open, Share and Rename remain open. |
 | P22 | About | AboutAtomicScreen / Settings and Commands | Version; licenses; help; runtime version and bundled notices | Fourteen focused host tests passed. USB verified Settings and Commands entry, help, credits, bundled tools and Back. Visual matrix open. |
 | P23 | Plugins | InAppPluginsScreen / plugin inventory | Eight plugin cards; v0.2 About information; status/formats/limits; no downloader | Sixteen focused host tests passed across the inventory, About and navigation. USB verified the three entry points and v0.2 details. Visual matrix open. |
-| P24 | Image viewer | ui/components/ImageGallery.kt + AnimatedGifImage.kt | Universal viewer chrome; image stage; fit/zoom; navigation; GIF Stop/Replay; details | Pending |
+| P24 | Image viewer | ui/components/ImageGallery.kt + AnimatedGifImage.kt | Universal viewer chrome; image stage; fit/zoom; navigation; GIF Stop/Replay; details | Native stage, filmstrip and zoom integrated. Full emulator and API 28/34 GIF checks passed. Visual matrix open. |
 | P25 | Video player | ui/components/preview/VideoPreviewContent.kt + PreviewPlayer.kt | Media stage; play/seek/time; speed; metadata; lifecycle/error | Pending |
-| P26 | Audio player | ui/components/preview/AudioPreviewContent.kt + PreviewPlayer.kt | Artwork/track stage; seek; transport; ±10s; metadata; focus states | Pending |
+| P26 | Audio player | ui/components/preview/AudioPreviewContent.kt + PreviewPlayer.kt | Artwork/track stage; seek; transport; ±10s; metadata; focus states | Artwork, metadata and transport integrated. Full emulator and API 28/34 WAV checks passed. Visual matrix open. |
 | P27 | PDF reader | ui/components/preview/PdfPreviewContent.kt + PdfPageController.kt | Page stage; jump/zoom; page count; restored position; errors; unsupported actions honest | Pending |
 | P28 | Document reader | ui/components/preview/DocxPreviewContent.kt | Reading surface; Find/matches; text size; structured content; format limits | Pending |
 | P29 | Text/code editor | ui/components/TextEditorDialog.kt + TextEditorSession.kt | Editor toolbar; text/source stage; Find; wrap; undo/redo; guarded Save and dirty exit | Pending |
 | P30 | Markdown viewer | ui/components/preview/MarkdownPreviewContent.kt + MarkdownBlocks.kt | Rendered/Raw segments; reading surface; bounded native subset; link safety | Pending |
 | P31 | Archive manager | ui/components/FilePreviewDialog.kt::ArchivePreviewContent | Summary; entry list/path; supported creation/extraction; encrypted/unsupported errors | Pending |
-| P32 | Component catalogue | Debug/test-only Compose catalogue | All production component variants, tokens and states for visual comparison; not a fake production destination | Debug catalogue candidate covers shared controls, colors, file rows and feedback. Visual verification pending. |
+| P32 | Component catalogue | Debug/test-only Compose catalogue | All production component variants, tokens and states for visual comparison; not a fake production destination | Debug catalogue integrated. Light and dark Compose smoke tests and full emulator CI passed. Visual verification pending. |
 
 ## 4. Secondary surfaces and state coverage
 
@@ -164,3 +164,7 @@ Current R06 evidence
 
 - [Connections #153](https://github.com/DevBehindYou/Atomic-File-Manager/pull/153) and [Cloud Connect status #154](https://github.com/DevBehindYou/Atomic-File-Manager/pull/154) merged into feature integration as `3cca8362` and `6e17f05e`. The PR checks and full emulator suites passed and both merge trials matched the tested trees. [Connections emulator](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/44359584762) · [Cloud Connect emulator](https://github.com/DevBehindYou/Atomic-File-Manager/actions/runs/44360270124)
 - The implementation estimate is now 21 of 32 substantial surfaces, with about 34% remaining by surface count. Full visual acceptance stays at 0 of 32. Shared viewer controls, image and audio UI, and the debug component catalogue are in validation.
+
+- [Shared viewer #155](https://github.com/DevBehindYou/Atomic-File-Manager/pull/155), [Image #156](https://github.com/DevBehindYou/Atomic-File-Manager/pull/156), [Audio #157](https://github.com/DevBehindYou/Atomic-File-Manager/pull/157), [Debug catalogue #158](https://github.com/DevBehindYou/Atomic-File-Manager/pull/158) and [Home storage #159](https://github.com/DevBehindYou/Atomic-File-Manager/pull/159) merged into feature integration. The required PR checks and full emulator suites passed on their submitted commits. The clean merge trials reproduced each tested tree.
+- The combined Home commit `1f4026a4` passed formatting, debug APK packaging and 30 focused tests covering Home storage navigation, image zoom, audio recovery, the catalogue and remote cancellation. APK SHA-256 `1C5B4917C79AA5817C36466D4AD287AE6441B1DB6E8EF4522B763D2A4A6622FD`. The USB phone was unavailable for the additional physical smoke test.
+- Implementation estimate is 24 of 32 substantial surfaces, with about 25% remaining by surface count. Home storage is one part of P01. Full visual acceptance remains 0 of 32.
