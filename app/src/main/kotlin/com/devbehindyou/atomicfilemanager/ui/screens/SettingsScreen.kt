@@ -276,10 +276,15 @@ fun SettingsScreen(
             }
         SettingsSheet.CLOUD ->
             SettingsPreferencesDialog("Cloud Connect", { sheet = null }) {
-                AtomicText("Planned · no live sign-in available", AtomicTextRole.Name)
+                AtomicText("Direct cloud access is planned", AtomicTextRole.DisplayCard)
                 AtomicText(
-                    "Cloud Connect is a separate bundled-plugin track. Provider accounts and live transfers " +
-                        "are not available here yet. Linked folders and network storage remain in Connections.",
+                    "Direct cloud accounts, sign-in, uploads and downloads are unavailable in this version.",
+                    AtomicTextRole.BodySecondary,
+                )
+                AtomicText("Storage → Connections", AtomicTextRole.Name)
+                AtomicText(
+                    "Open Connections from the Storage tab to link a folder with Android’s folder picker " +
+                        "or use a saved network location.",
                     AtomicTextRole.BodySecondary,
                 )
             }
