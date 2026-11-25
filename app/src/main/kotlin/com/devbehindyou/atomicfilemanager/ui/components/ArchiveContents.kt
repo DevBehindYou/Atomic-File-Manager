@@ -68,9 +68,8 @@ internal suspend fun archiveFolderRows(
     for (entry in entries) {
         context.ensureActive()
         val displayPath = archiveSeparators.replace(entry.path.trim('/'), "/")
-        if (!displayPath.startsWith(prefix)) continue
-        val remaining = displayPath.removePrefix(prefix)
-        if (remaining.isEmpty()) continue
+        if (!displayPath.startsWith(prefix) || displayPath.length == prefix.length) continue
+        val remaining = displayPath.substring(prefix.length)
         val first = remaining.substringBefore('/')
         if (first != remaining || entry.isDirectory) {
             val child = prefix + first
