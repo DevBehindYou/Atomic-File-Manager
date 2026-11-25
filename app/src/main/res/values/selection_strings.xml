@@ -10,4 +10,5 @@
     <string name="selection_favourite_error">Could not update favourites. Try again.</string>
     <string name="file_details_open">Open</string>
     <string name="file_details_share">Share</string>
+    <string name="file_details_share_failed">Could not prepare this file to share. Try again.</string>
 </resources>

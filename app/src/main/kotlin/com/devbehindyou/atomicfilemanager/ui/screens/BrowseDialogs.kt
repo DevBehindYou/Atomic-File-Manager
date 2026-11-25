@@ -137,8 +137,11 @@ internal fun BrowseDialogs(
         FileDetailsDialog(
             node = node,
             commands = FileDetailsCommands(
-                onOpen = { callbacks.onOpenDetails(node) },
+                onOpen = {
+                    if (node.isDirectory) viewModel.navigateTo(node) else callbacks.onOpenDetails(node)
+                },
                 onRename = { callbacks.onRenameDetails(node) },
+                offerShare = true,
             ),
             onDismiss = callbacks.onDismissDetails,
         )

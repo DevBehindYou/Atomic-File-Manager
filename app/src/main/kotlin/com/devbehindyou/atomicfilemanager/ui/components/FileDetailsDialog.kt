@@ -86,6 +86,7 @@ internal data class FileDetailsCommands(
     val onOpen: (() -> Unit)? = null,
     val onShare: (() -> Unit)? = null,
     val onRename: (() -> Unit)? = null,
+    val offerShare: Boolean = false,
     @StringRes val openLabel: Int = R.string.file_details_open,
 )
 
@@ -129,7 +130,8 @@ private fun FileDetailsPrimaryActions(
     val open = commands.onOpen.takeIf { node.access.readable }
     val share = commands.onShare.takeIf { node.access.readable && !node.isDirectory }
     val rename = commands.onRename.takeIf { node.access.renamable }
-    if (open == null && share == null && rename == null) return
+    val offerShare = commands.offerShare && share == null && node.access.readable && !node.isDirectory
+    if (open == null && share == null && rename == null && !offerShare) return
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
@@ -158,6 +160,7 @@ private fun FileDetailsPrimaryActions(
                 modifier = Modifier.testTag("file_details_share"),
             )
         }
+        if (offerShare) FileDetailsShareButton(node, onShared = onDismiss)
         rename?.let {
             AtomicButton(
                 stringResource(R.string.selection_rename),

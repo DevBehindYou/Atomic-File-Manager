@@ -113,6 +113,7 @@ internal fun ViewerChrome(
                 commands = FileDetailsCommands(
                     onOpen = actions.onOpenExternal.takeUnless { openingExternal },
                     onShare = actions.onShare,
+                    offerShare = true,
                     openLabel = R.string.file_open_title,
                 ),
                 onDismiss = { panel = null },
