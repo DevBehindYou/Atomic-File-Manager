@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="destination_title">Choose destination</string>
+    <string name="destination_copy">Copy here</string>
+    <string name="destination_move">Move here</string>
+    <plurals name="destination_copy_count">
+        <item quantity="one">Copy %d item</item>
+        <item quantity="other">Copy %d items</item>
+    </plurals>
+    <plurals name="destination_move_count">
+        <item quantity="one">Move %d item</item>
+        <item quantity="other">Move %d items</item>
+    </plurals>
+    <string name="destination_from">From %1$s</string>
+    <string name="destination_available">%1$s available</string>
+    <string name="destination_parent">Up one folder</string>
+    <string name="destination_unavailable">This destination is unavailable or cannot receive these items.</string>
+    <string name="destination_loading">Reading folders…</string>
+    <string name="destination_no_folders">No folders here</string>
+    <string name="destination_folder">Folder</string>
+</resources>

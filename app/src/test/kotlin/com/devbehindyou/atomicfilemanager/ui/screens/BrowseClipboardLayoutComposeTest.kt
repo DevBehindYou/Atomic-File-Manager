@@ -69,7 +69,7 @@ class BrowseClipboardLayoutComposeTest {
                             onDeleteSelected = {},
                             onShowDetails = {},
                             onClearClipboard = { actions += "cancel" },
-                            onPaste = { actions += "paste" },
+                            clipboardActions = BrowseClipboardActions(paste = { actions += "paste" }),
                             onCompareFolders = { from, to ->
                                 assertEquals(source, from)
                                 assertEquals(destination, to)
