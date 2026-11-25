@@ -32,11 +32,15 @@ class SettingsStartupLoaderTest {
         val caller = Thread.currentThread()
         val settings = SavedSettings()
         var factoryThread: Thread? = null
+        val enteredFactory = CountDownLatch(1)
+        val releaseFactory = CountDownLatch(1)
         Executors.newSingleThreadExecutor().use { worker ->
             worker.asCoroutineDispatcher().use { io ->
                 val loader =
                     SettingsStartupLoader(owner, io) {
                         factoryThread = Thread.currentThread()
+                        enteredFactory.countDown()
+                        check(releaseFactory.await(5, TimeUnit.SECONDS))
                         settings
                     }
                 try {
@@ -44,9 +48,11 @@ class SettingsStartupLoaderTest {
                     assertSame(SettingsStartupState.Loading, loader.state.value)
                     assertEquals(null, factoryThread)
                     scheduler.runCurrent()
-                    worker.submit {}.get(5, TimeUnit.SECONDS)
+                    assertTrue(enteredFactory.await(5, TimeUnit.SECONDS))
                     assertTrue(factoryThread !== caller)
                     assertSame(SettingsStartupState.Loading, loader.state.value)
+                    releaseFactory.countDown()
+                    worker.submit {}.get(5, TimeUnit.SECONDS)
                     scheduler.runCurrent()
                     assertSame(
                         settings,
@@ -54,6 +60,7 @@ class SettingsStartupLoaderTest {
                     )
                     assertEquals(0, settings.writes)
                 } finally {
+                    releaseFactory.countDown()
                     owner.cancel()
                 }
             }
