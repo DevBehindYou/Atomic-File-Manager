@@ -34,6 +34,8 @@ class ArchiveContentsTest {
             assertEquals(entries.take(2), rows.map { it.file })
         }
 
-    private fun entry(path: String, directory: Boolean = false): ArchiveEntryInfo =
-        ArchiveEntryInfo(path.trimEnd('/').substringAfterLast('/'), path, directory, 20, 10, 0)
+    private fun entry(
+        path: String,
+        directory: Boolean = false,
+    ): ArchiveEntryInfo = ArchiveEntryInfo(path.trimEnd('/').substringAfterLast('/'), path, directory, 20, 10, 0)
 }
