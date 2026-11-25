@@ -189,7 +189,7 @@ private fun AudioPlayerView(
         PlaybackFailure(player)
         AudioArtworkCard(artwork = media.metadata.artwork)
         AudioTrackInfo(node = node, media = media)
-        AudioProgressBar(
+        PreviewTransportProgress(
             currentMs = if (isUserSeeking) seekPositionMs.toLong() else currentPositionMs,
             totalMs = durationMs,
             sliderValue = if (isUserSeeking) seekPositionMs else currentPositionMs.toFloat(),
@@ -203,7 +203,7 @@ private fun AudioPlayerView(
                 currentPositionMs = seekPositionMs.toLong()
             },
         )
-        AudioPlaybackControls(
+        PreviewTransportButtons(
             isPlaying = isPlaying,
             onTogglePlayPause = { if (player.isPlaying) player.pause() else player.play() },
             onRewind = {
@@ -305,12 +305,14 @@ private fun AudioTrackInfo(
 }
 
 @Composable
-private fun AudioProgressBar(
+internal fun PreviewTransportProgress(
     currentMs: Long,
     totalMs: Long,
     sliderValue: Float,
     onSeekChange: (Float) -> Unit,
     onSeekFinished: () -> Unit,
+    seekTag: String = "audio_seek",
+    seekEnabled: Boolean = true,
 ) {
     val elapsed = FileUtils.formatDuration(currentMs)
     val total = totalMs.takeIf { it > 0 }?.let(FileUtils::formatDuration)
@@ -320,11 +322,12 @@ private fun AudioProgressBar(
             value = sliderValue.coerceIn(0f, totalMs.toFloat().coerceAtLeast(1f)),
             onValueChange = onSeekChange,
             onValueChangeFinished = onSeekFinished,
+            enabled = seekEnabled,
             valueRange = 0f..totalMs.toFloat().coerceAtLeast(1f),
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .testTag("audio_seek")
+                    .testTag(seekTag)
                     .semantics {
                         contentDescription = "Playback position"
                         stateDescription = if (total == null) elapsed else "$elapsed of $total"
@@ -338,11 +341,12 @@ private fun AudioProgressBar(
 }
 
 @Composable
-private fun AudioPlaybackControls(
+internal fun PreviewTransportButtons(
     isPlaying: Boolean,
     onTogglePlayPause: () -> Unit,
     onRewind: () -> Unit,
     onForward: () -> Unit,
+    seekEnabled: Boolean = true,
 ) {
     val colors = Atomic.colors
     Row(
@@ -350,7 +354,7 @@ private fun AudioPlaybackControls(
         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s16, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AtomicIconButton(AtomicIcons.Rewind10, "Back 10 seconds", onClick = onRewind)
+        AtomicIconButton(AtomicIcons.Rewind10, "Back 10 seconds", onClick = onRewind, enabled = seekEnabled)
         IconButton(
             onClick = onTogglePlayPause,
             modifier =
@@ -367,7 +371,7 @@ private fun AudioPlaybackControls(
                 modifier = Modifier.size(28.dp),
             )
         }
-        AtomicIconButton(AtomicIcons.Forward10, "Forward 10 seconds", onClick = onForward)
+        AtomicIconButton(AtomicIcons.Forward10, "Forward 10 seconds", onClick = onForward, enabled = seekEnabled)
     }
 }
 

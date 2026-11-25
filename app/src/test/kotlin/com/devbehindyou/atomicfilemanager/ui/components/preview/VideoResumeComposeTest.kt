@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -99,6 +100,12 @@ class VideoResumeComposeTest {
         val stageWidth = stage.right - stage.left
         val stageHeight = stage.bottom - stage.top
         assertEquals(16f / 9f, stageWidth.value / stageHeight.value, 0.05f)
+        compose.onNodeWithTag("video_transport").assertIsDisplayed()
+        compose.onNodeWithTag("video_expand").performClick()
+        compose.onNodeWithTag("video_transport").assertDoesNotExist()
+        compose.onNodeWithTag("video_collapse").performClick()
+        compose.onNodeWithTag("video_transport").assertIsDisplayed()
+        compose.runOnIdle { assertSame(first, playerView(compose.activity.window.decorView)?.player) }
         compose.runOnIdle {
             first.seekTo(42_000)
             first.pause()

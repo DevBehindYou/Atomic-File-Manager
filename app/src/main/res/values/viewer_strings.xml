@@ -5,4 +5,8 @@
     <string name="viewer_open_external">Open with another app</string>
     <string name="viewer_external_failed">Could not open this file. Check access and that a compatible app is installed. Remote exports are limited to 64 MiB.</string>
     <string name="viewer_external_loading">Preparing file…</string>
+    <string name="video_expand">Expand player</string>
+    <string name="video_collapse">Collapse player</string>
+    <string name="video_speed">Speed %1$.1f×</string>
+    <string name="video_speed_value">%1$.1f×</string>
 </resources>

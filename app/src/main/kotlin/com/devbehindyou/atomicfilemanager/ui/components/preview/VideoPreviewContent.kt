@@ -1,6 +1,7 @@
 package com.devbehindyou.atomicfilemanager.ui.components.preview
 
 import android.os.SystemClock
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +41,7 @@ import com.devbehindyou.atomicfilemanager.AppContainer
 import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
+import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicLoading
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicText
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicTextRole
@@ -181,13 +184,25 @@ private fun VideoPlayerView(
     }
     if (session != null) RecordVideoResume(player, session)
 
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = expanded) { expanded = false }
     Column(
         modifier.fillMaxSize().padding(AtomicSpacing.s16),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s12),
     ) {
-        VideoStage(player, Modifier.fillMaxWidth().weight(1f))
-        VideoMetadataLabel(media.metadata.width, media.metadata.height, media.metadata.durationMs)
+        VideoStage(player, Modifier.fillMaxWidth().weight(1f), nativeControls = expanded)
+        if (expanded) {
+            AtomicButton(
+                stringResource(R.string.video_collapse),
+                onClick = { expanded = false },
+                variant = AtomicButtonVariant.Ghost,
+                modifier = Modifier.testTag("video_collapse"),
+            )
+        } else {
+            VideoMetadataLabel(media.metadata.width, media.metadata.height, media.metadata.durationMs)
+            VideoTransport(player, onExpand = { expanded = true })
+        }
     }
 }
 
@@ -197,7 +212,8 @@ private const val VIDEO_STAGE_RATIO = 16f / 9f
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private fun VideoStage(
     player: Player,
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
+    nativeControls: Boolean,
 ) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Box(
@@ -212,11 +228,14 @@ private fun VideoStage(
                 factory = { context ->
                     PlayerView(context).apply {
                         this.player = player
-                        useController = true
+                        useController = nativeControls
                         setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     }
                 },
-                update = { it.player = player },
+                update = { view ->
+                    view.player = player
+                    view.useController = nativeControls
+                },
                 onRelease = { it.player = null },
                 modifier = Modifier.fillMaxSize(),
             )
