@@ -208,6 +208,15 @@ fun BrowseScreen(
     }
     val focusRequester = remember { FocusRequester() }
 
+    fun showPreview(
+        node: FileNode,
+        fromSecondary: Boolean = useSecondary,
+    ) {
+        nodeForPreview = node
+        previewFromSecondary = fromSecondary
+        if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+    }
+
     fun hideNode(
         node: FileNode,
         mode: HideMode,
@@ -316,11 +325,7 @@ fun BrowseScreen(
                         uiState = actionState,
                         onOpenFile = onOpenFile,
                         onRequestRename = { nodeToRename = it },
-                        onRequestPreview = {
-                            nodeForPreview = it
-                            previewFromSecondary = useSecondary
-                            if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
-                        },
+                        onRequestPreview = { showPreview(it) },
                         onRequestMultiDelete = { confirmMultiDelete = true },
                     )
                 },
@@ -452,18 +457,8 @@ fun BrowseScreen(
                                     viewModel.clearSelection()
                                 },
                                 onOpenFile = onOpenFile,
-                                onPreviewNode = { node ->
-                                    previewFromSecondary = false
-                                    nodeForPreview = node
-                                    if (dualPaneMode != DualPaneMode.PREVIEW) {
-                                        dualPaneMode = DualPaneMode.PREVIEW
-                                    }
-                                },
-                                onSecondaryPreviewNode = { node ->
-                                    previewFromSecondary = true
-                                    nodeForPreview = node
-                                    dualPaneMode = DualPaneMode.PREVIEW
-                                },
+                                onPreviewNode = { showPreview(it, fromSecondary = false) },
+                                onSecondaryPreviewNode = { showPreview(it, fromSecondary = true) },
                                 onClosePreview = { nodeForPreview = null },
                                 onShowDetails = { nodeForDetails = it },
                                 onRename = { nodeToRename = it },
@@ -517,9 +512,7 @@ fun BrowseScreen(
                             if (thumbnailKind(selected) != null) {
                                 add(
                                     AtomicStripAction(stringResource(R.string.selection_preview), AtomicIcons.Preview, {
-                                        nodeForPreview = selected
-                                        previewFromSecondary = useSecondary
-                                        if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                                        showPreview(selected)
                                         actionViewModel.clearSelection()
                                     }),
                                 )
@@ -654,6 +647,8 @@ fun BrowseScreen(
                 BrowseDialogCallbacks(
                     onDismissRename = { nodeToRename = null },
                     onDismissDetails = { nodeForDetails = null },
+                    onOpenDetails = onOpenFile ?: { showPreview(it) },
+                    onRenameDetails = { nodeToRename = it },
                     onDismissDelete = { nodeToDelete = null },
                     onDismissMultiDelete = { confirmMultiDelete = false },
                     onDismissNewFolder = { showNewFolderDialog = false },

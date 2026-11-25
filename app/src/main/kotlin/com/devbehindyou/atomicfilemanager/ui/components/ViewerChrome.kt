@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicDivider
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicIconButtonVariant
@@ -106,7 +107,18 @@ internal fun ViewerChrome(
             plugin?.let {
                 BuiltInPluginAboutDialog(it, "Close plugin information", onDismiss = { panel = null })
             }
-        ViewerPanel.DETAILS -> FileDetailsDialog(shown, onDismiss = { panel = null })
+        ViewerPanel.DETAILS ->
+            FileDetailsDialog(
+                node = shown,
+                commands =
+                    FileDetailsCommands(
+                        onOpen = actions.onOpenExternal.takeUnless { openingExternal },
+                        onShare = actions.onShare,
+                        offerShare = true,
+                        openLabel = R.string.file_open_title,
+                    ),
+                onDismiss = { panel = null },
+            )
         null -> Unit
     }
 }
