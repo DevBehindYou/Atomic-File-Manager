@@ -15,10 +15,12 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.net.URLDecoder
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
+import java.security.MessageDigest
 import java.util.UUID
 
 enum class TextEncoding(val charset: Charset, val bom: ByteArray) {
@@ -122,6 +124,50 @@ object TextCodec {
 
     private fun ByteArray.startsWith(prefix: ByteArray): Boolean =
         prefix.isNotEmpty() && size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
+}
+
+/** Rules for crash-recovery drafts of unsaved editor text (C026); pure so they are unit-tested. */
+object TextDrafts {
+    /** Vault/private storage folder (HiddenFilesRepositoryImpl.moveToPrivateStorage). */
+    private const val PRIVATE_STORAGE = "private_storage"
+
+    /** Per-folder "hide from gallery" folder (HiddenFilesRepositoryImpl.hideFromGallery). */
+    private const val HIDDEN_FOLDER = ".AtomicHidden"
+
+    /**
+     * Revision of the source the edits started from: a digest of the loaded text and its format,
+     * so a draft is offered as matching only while the file still reads back the same. Size and
+     * modification time are not used: several backends report 0 or a coarse time.
+     */
+    fun sourceRevision(
+        text: String,
+        format: TextFormat,
+    ): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(format.encoding.name.toByteArray(Charsets.UTF_8))
+        digest.update(0)
+        digest.update(format.lineEnding.name.toByteArray(Charsets.UTF_8))
+        digest.update(0)
+        digest.update(text.toByteArray(Charsets.UTF_8))
+        return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+    }
+
+    /**
+     * Whether unsaved text of [node] may be kept on disk. Hidden files, the hide-from-gallery
+     * folders (per-folder and the configured [hiddenFolder]) and the private/vault storage are
+     * never drafted, so a plaintext copy cannot outlive the user's choice to hide them.
+     */
+    fun allows(
+        node: FileNode,
+        hiddenFolder: String?,
+    ): Boolean {
+        if (node.isHidden || node.isDirectory) return false
+        val raw = node.id.raw
+        val decoded = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+        val markers =
+            listOfNotNull(HIDDEN_FOLDER, "/$PRIVATE_STORAGE/", hiddenFolder?.trim('/')?.takeIf { it.isNotBlank() })
+        return markers.none { marker -> raw.contains(marker) || decoded.contains(marker) }
+    }
 }
 
 /**

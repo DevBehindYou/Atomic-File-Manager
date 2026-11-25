@@ -17,4 +17,8 @@
     <string name="editor_replace_with">Replace with</string>
     <string name="editor_next">Next</string>
     <string name="editor_replace_all">Replace all</string>
+    <string name="editor_draft_found">Unsaved edits from an earlier session were kept. The file itself is unchanged.</string>
+    <string name="editor_draft_source_changed">Unsaved edits were kept, but the file has changed since. Recovering puts them in the editor; saving would replace the current file.</string>
+    <string name="editor_draft_recover">Recover edits</string>
+    <string name="editor_draft_discard">Discard draft</string>
 </resources>

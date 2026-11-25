@@ -74,6 +74,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileError
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.usecase.LineEnding
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextCodec
+import com.devbehindyou.atomicfilemanager.domain.usecase.TextDrafts
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextEncoding
 import com.devbehindyou.atomicfilemanager.domain.usecase.TextFormat
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +101,16 @@ fun TextEditorDialog(
                     io = Dispatchers.IO,
                     open = { app.container.textFileEditor.open(it) },
                     save = { current, text, format -> app.container.textFileEditor.save(current, text, format) },
+                    drafts =
+                        TextEditorDrafts(
+                            store = app.container.editorDraftStore,
+                            allows = {
+                                TextDrafts.allows(
+                                    it,
+                                    app.container.settingsRepository.settings.value.hiddenFolder,
+                                )
+                            },
+                        ),
                 ),
             )["atomic:text-editor-sessions", TextEditorSessionsViewModel::class.java]
         }
@@ -174,7 +185,9 @@ internal fun TextEditorSessionDialog(
                         when {
                             state.saveUnconfirmed -> stringResource(R.string.editor_save_unconfirmed)
                             state.saveError != null -> EditorText.saveFailed(checkNotNull(state.saveError))
-                            else -> EditorText.meta(state.format, state.dirty)
+                            else ->
+                                EditorText.meta(state.format, state.dirty) +
+                                    EditorText.draftSuffix(state.recoveredOverChangedSource, state.draftNotice)
                         }
                     AtomicText(status, AtomicTextRole.MonoMeta, maxLines = 1)
                 }
@@ -200,22 +213,31 @@ internal fun TextEditorSessionDialog(
                         )
                     }
                 state.format != null -> {
+                    state.draftOffer?.let { offer ->
+                        DraftOfferBar(
+                            offer,
+                            enabled = !state.saving,
+                            onRecover = session::recoverDraft,
+                            onDiscard = session::discardDraft,
+                        )
+                    }
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s4),
                         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val editable = !state.loading && !state.saving && state.draftOffer == null
                         AtomicIconButton(
                             AtomicIcons.Undo,
                             stringResource(R.string.editor_undo),
                             onClick = session::undo,
-                            enabled = state.canUndo && !state.loading && !state.saving,
+                            enabled = state.canUndo && editable,
                         )
                         AtomicIconButton(
                             AtomicIcons.Redo,
                             stringResource(R.string.editor_redo),
                             onClick = session::redo,
-                            enabled = state.canRedo && !state.loading && !state.saving,
+                            enabled = state.canRedo && editable,
                         )
                         AtomicChip(
                             stringResource(R.string.editor_find),
@@ -228,12 +250,13 @@ internal fun TextEditorSessionDialog(
                             onSelectedChange = { wrap = it },
                         )
                     }
-                    if (findOpen) FindBar(state.value, enabled = !state.saving, onChange = session::edit)
+                    val locked = state.saving || state.draftOffer != null
+                    if (findOpen) FindBar(state.value, enabled = !locked, onChange = session::edit)
                     AtomicDivider()
                     EditorBody(
                         state.value,
                         wrap,
-                        readOnly = state.saving,
+                        readOnly = locked,
                         onChange = session::edit,
                         onUndo = session::undo,
                         onRedo = session::redo,
@@ -262,6 +285,45 @@ internal fun TextEditorSessionDialog(
                 onClick = { confirmClose = false },
                 variant = AtomicButtonVariant.Ghost,
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/** Shown when an earlier session kept unsaved text; nothing is applied until the user chooses. */
+@Composable
+private fun DraftOfferBar(
+    offer: EditorDraftOffer,
+    enabled: Boolean,
+    onRecover: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxWidth().background(
+            Atomic.colors.surfaceInset,
+        ).padding(AtomicSpacing.s12).testTag("text_editor_draft_offer"),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s6),
+    ) {
+        AtomicText(
+            stringResource(
+                if (offer.sourceChanged) R.string.editor_draft_source_changed else R.string.editor_draft_found,
+            ),
+            AtomicTextRole.Body,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8)) {
+            AtomicButton(
+                stringResource(R.string.editor_draft_recover),
+                onClick = onRecover,
+                enabled = enabled,
+                variant = AtomicButtonVariant.Solid,
+                modifier = Modifier.testTag("text_editor_draft_recover"),
+            )
+            AtomicButton(
+                stringResource(R.string.editor_draft_discard),
+                onClick = onDiscard,
+                enabled = enabled,
+                variant = AtomicButtonVariant.Ghost,
+                modifier = Modifier.testTag("text_editor_draft_discard"),
             )
         }
     }
@@ -422,6 +484,19 @@ internal object EditorText {
             }
         return "$encoding · $ending" + if (dirty) " · unsaved" else ""
     }
+
+    /** Appended to [meta]: why the editor's draft state needs attention, if it does. */
+    fun draftSuffix(
+        recoveredOverChangedSource: Boolean,
+        notice: EditorDraftNotice?,
+    ): String =
+        when {
+            recoveredOverChangedSource -> " · recovered draft; the file changed since"
+            notice == EditorDraftNotice.DAMAGED_REMOVED -> " · a damaged draft was removed"
+            notice == EditorDraftNotice.TOO_LARGE -> " · too large to keep a draft"
+            notice == EditorDraftNotice.WRITE_FAILED -> " · draft not kept"
+            else -> ""
+        }
 
     fun matches(
         selected: Int,
