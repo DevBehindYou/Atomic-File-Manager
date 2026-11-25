@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -63,7 +61,6 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.icons.AtomicIcons
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicErrorState
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFact
 import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFactSheet
-import com.devbehindyou.atomicfilemanager.core.designsystem.molecules.AtomicFileRow
 import com.devbehindyou.atomicfilemanager.data.preview.ApkInfo
 import com.devbehindyou.atomicfilemanager.data.preview.ApkInfoReader
 import com.devbehindyou.atomicfilemanager.data.preview.DocxPreviewHelper
@@ -238,7 +235,8 @@ internal fun BuiltInFilePreviewPane(
                     PreviewType.DOCX -> DocxPreviewContent(node, docxHelper::read)
                     PreviewType.TEXT -> TextPreviewContent(node, container, onSourceChanged = ::showSource)
                     PreviewType.MARKDOWN -> MarkdownPreviewContent(node, container)
-                    PreviewType.ARCHIVE -> ArchivePreviewContent(node, container)
+                    PreviewType.ARCHIVE ->
+                        key(node.previewSourceKey()) { ArchivePreviewContent(node, container) }
                     PreviewType.AUDIO -> AudioPreviewContent(node, container)
                     PreviewType.VIDEO -> VideoPreviewContent(node, container)
                     PreviewType.GENERIC -> GenericFileContent(node, container, shownOpenExternal, openingExternal)
@@ -511,31 +509,7 @@ private fun ArchivePreviewContent(
             modifier = Modifier.fillMaxWidth().padding(horizontal = AtomicSpacing.s16).testTag("archive_extract"),
         )
     }
-    Column(modifier = Modifier.fillMaxSize()) {
-        AtomicText(
-            "${entries.size} items in archive",
-            AtomicTextRole.MonoMeta,
-            modifier = Modifier.padding(horizontal = AtomicSpacing.s16, vertical = AtomicSpacing.s8),
-        )
-        AtomicDivider()
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(entries, key = { it.path }) { entry ->
-                AtomicFileRow(
-                    name = entry.path,
-                    meta =
-                        if (entry.isDirectory) {
-                            "Folder"
-                        } else {
-                            "${FileUtils.formatBytes(entry.uncompressedSize)} · " +
-                                "${FileUtils.formatBytes(entry.compressedSize)} packed"
-                        },
-                    icon = if (entry.isDirectory) AtomicIcons.Files else AtomicIcons.Document,
-                    onClick = {},
-                    modifier = Modifier.padding(horizontal = AtomicSpacing.s16),
-                )
-            }
-        }
-    }
+    ArchiveContents(entries)
 }
 
 @Composable
