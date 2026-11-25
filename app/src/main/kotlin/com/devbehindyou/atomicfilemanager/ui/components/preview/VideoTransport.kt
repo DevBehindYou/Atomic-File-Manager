@@ -95,7 +95,11 @@ internal fun VideoTransport(
 
     val maxHeight = (LocalConfiguration.current.screenHeightDp / 2).dp
     Column(
-        Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState()).testTag("video_transport"),
+        modifier =
+            Modifier.fillMaxWidth()
+                .heightIn(max = maxHeight)
+                .verticalScroll(rememberScrollState())
+                .testTag("video_transport"),
         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
     ) {
         PreviewTransportProgress(
