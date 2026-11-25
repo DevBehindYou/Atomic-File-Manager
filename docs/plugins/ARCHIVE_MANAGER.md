@@ -47,3 +47,9 @@ See [the candidate validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md
 ## Scoped acceptance, 6 November 2026
 
 Duplicate-path rejection and inspection cancellation passed host checks. The FILE inspection case passed on each API 28 and 34 emulator. PR #92 merged into feature integration as `ac668e5`. ARC1–ARC5 and wider archive workflows remain open. [Validation record](../testing/ARCHIVE_INSPECTION_CANDIDATE.md)
+
+### Native revamp archive browser
+
+The contents card shows the real inspected entry count. Browse explicit and implicit folders one level at a time, move up with the button or Back, and open individual entry details. The detail sheet retains the original archive path and reports the inspected size metadata. Folder grouping only affects display. It does not feed paths to the extraction engine.
+
+The separate destination picker, extraction review and complete visual acceptance remain open. Existing extraction and password behavior stay in their current paths.
