@@ -98,6 +98,7 @@ internal fun BrowseDestinationPicker(
                         onSelectedChange = {
                             changePath(listOf(BreadcrumbItem(volume.label, checkNotNull(volume.rootNodeId).raw)))
                         },
+                        modifier = Modifier.testTag("destination_volume_"),
                         enabled = !checking,
                     )
                 }

@@ -80,7 +80,10 @@ class BrowseDestinationPickerDeviceTest {
                     }
                 }
             }
-            compose.onNodeWithText("Fixture storage").performScrollTo().performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodes(hasTestTag("destination_volume_fixture")).fetchSemanticsNodes().size == 1
+            }
+            compose.onNodeWithTag("destination_volume_fixture").performScrollTo().performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithText("Backups").fetchSemanticsNodes().isNotEmpty()
             }
