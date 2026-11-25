@@ -55,3 +55,9 @@ The [C012 record](../testing/VIDEO_RESUME_C012.md) has the 2/2 failing base cont
 ## Native video stage candidate
 
 The real Media3 surface sits in a bounded 16:9 frame with available dimensions and duration below it. Media3 continues to provide playback, seeking and speed. The source-recreation test checks stage geometry alongside retention of the exact revision. Prototype-specific transport and the expanded-player interaction remain open. Host and Android validation are pending.
+
+### Revamp video transport
+
+The regular player uses the same labeled seek and playback controls as the audio viewer. The speed menu targets the existing Media3 player. Expanded mode gives the stage more space and uses Media3’s on-screen controls. Expanding and collapsing keeps the same playback session. The Compose recreation test checks that identity and resume behavior.
+
+The codec matrix, expanded screen visual matrix and physical focus acceptance remain open.
