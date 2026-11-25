@@ -49,7 +49,7 @@ private data class VideoControlState(
 private fun Player.controlState() =
     VideoControlState(
         duration.coerceAtLeast(0),
-        isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA) && isCurrentMediaItemSeekable && duration > 0,
+        isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) && isCurrentMediaItemSeekable && duration > 0,
         playWhenReady && playbackState != Player.STATE_ENDED,
         playbackParameters.speed,
         isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH),
