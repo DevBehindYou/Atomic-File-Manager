@@ -1,0 +1,75 @@
+name: File Options visual evidence
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/file-options-visual.yml'
+      - 'scripts/diagnostics/capture_file_options.sh'
+      - 'app/src/androidTest/kotlin/com/devbehindyou/atomicfilemanager/FileOptionsVisualCaptureTest.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/AtomicTopDialog.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/components/BalancedPopupHeader.kt'
+      - 'app/src/main/kotlin/com/devbehindyou/atomicfilemanager/ui/screens/BrowseOptionsButton.kt'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: file-options-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  file-options-visual:
+    strategy:
+      fail-fast: false
+      matrix:
+        width: [320, 390, 800]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the app and capture test APKs
+        run: |
+          chmod +x gradlew
+          mkdir -p ~/.gradle
+          printf '%s\n' 'org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768m' 'kotlin.daemon.jvmargs=-Xmx2g' >> ~/.gradle/gradle.properties
+          ./gradlew --no-daemon --max-workers=2 :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Record APK and reference identities
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p build/file-options-visual
+          git rev-parse HEAD > build/file-options-visual/source.txt
+          git rev-parse HEAD:app > build/file-options-visual/app-tree.txt
+          printf '%s\n' "$PR_HEAD" > build/file-options-visual/pr-head.txt
+          sha256sum app/build/outputs/apk/debug/app-debug.apk \
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > build/file-options-visual/apk-sha256.txt
+          cp Revamp-UIUX/06-Native-Implementation/REFERENCE_MANIFEST.json build/file-options-visual/
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture native popup states
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash scripts/diagnostics/capture_file_options.sh ${{ matrix.width }}
+      - name: Upload captures and configuration
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: file-options-${{ matrix.width }}dp-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/file-options-visual/
+          if-no-files-found: ignore
+          retention-days: 14
