@@ -136,13 +136,14 @@ internal fun BrowseDialogs(
     state.nodeForDetails?.let { node ->
         FileDetailsDialog(
             node = node,
-            commands = FileDetailsCommands(
-                onOpen = {
-                    if (node.isDirectory) viewModel.navigateTo(node) else callbacks.onOpenDetails(node)
-                },
-                onRename = { callbacks.onRenameDetails(node) },
-                offerShare = true,
-            ),
+            commands =
+                FileDetailsCommands(
+                    onOpen = {
+                        if (node.isDirectory) viewModel.navigateTo(node) else callbacks.onOpenDetails(node)
+                    },
+                    onRename = { callbacks.onRenameDetails(node) },
+                    offerShare = true,
+                ),
             onDismiss = callbacks.onDismissDetails,
         )
     }

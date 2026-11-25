@@ -118,11 +118,12 @@ class PreviewDetailsRevisionComposeTest {
         show {
             FileDetailsDialog(
                 node = shown.value,
-                commands = FileDetailsCommands(
-                    onOpen = { calls += "open:${shown.value.name}" },
-                    onShare = { calls += "share:${shown.value.name}" },
-                    onRename = { calls += "rename:${shown.value.name}" },
-                ),
+                commands =
+                    FileDetailsCommands(
+                        onOpen = { calls += "open:${shown.value.name}" },
+                        onShare = { calls += "share:${shown.value.name}" },
+                        onRename = { calls += "rename:${shown.value.name}" },
+                    ),
                 onDismiss = { calls += "dismiss" },
             )
         }

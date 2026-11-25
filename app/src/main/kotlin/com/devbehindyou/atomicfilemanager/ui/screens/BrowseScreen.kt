@@ -208,7 +208,10 @@ fun BrowseScreen(
     }
     val focusRequester = remember { FocusRequester() }
 
-    fun showPreview(node: FileNode, fromSecondary: Boolean = useSecondary) {
+    fun showPreview(
+        node: FileNode,
+        fromSecondary: Boolean = useSecondary,
+    ) {
         nodeForPreview = node
         previewFromSecondary = fromSecondary
         if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
