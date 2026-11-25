@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="archive_contents_title">Archive contents</string>
+    <plurals name="archive_entry_count">
+        <item quantity="one">%d entry</item>
+        <item quantity="other">%d entries</item>
+    </plurals>
+    <string name="archive_parent_folder">Up one folder</string>
+    <string name="archive_loading_entries">Reading folder entries…</string>
+    <string name="archive_empty_entries">This folder is empty.</string>
+    <string name="archive_folder_entry">Folder</string>
+    <string name="archive_entry_path">Path in archive</string>
+    <string name="archive_entry_size">Size</string>
+    <string name="archive_packed_size">Packed size</string>
+</resources>
