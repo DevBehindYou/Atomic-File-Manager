@@ -105,7 +105,8 @@ class BrowseCreateFolderTargetTest {
                 val model = fixture.model
                 fixture.awaitFolder(fixture.memory.rootId)
                 val source = fixture.destination
-                val target = checkNotNull(fixture.memory.createDirectory(fixture.memory.rootId, "Elsewhere").getOrNull()).id
+                val elsewhere = fixture.memory.createDirectory(fixture.memory.rootId, "Elsewhere")
+                val target = checkNotNull(elsewhere.getOrNull()).id
                 model.toggleSelection(source.id)
                 model.copySelected()
                 val original = checkNotNull(model.uiState.value.clipboard)

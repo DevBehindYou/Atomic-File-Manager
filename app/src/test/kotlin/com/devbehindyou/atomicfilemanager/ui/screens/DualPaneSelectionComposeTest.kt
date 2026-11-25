@@ -120,7 +120,8 @@ class DualPaneSelectionComposeTest {
                             uiState = active, isSelectionMode = active.selectedIds.isNotEmpty(),
                             onCopySelected = owner::copySelected, onCutSelected = owner::cutSelected,
                             onCompressSelected = {}, onDeleteSelected = {}, onShowDetails = {},
-                            onClearClipboard = owner::clearClipboard, clipboardActions = BrowseClipboardActions(paste = {}),
+                            onClearClipboard = owner::clearClipboard,
+                            clipboardActions = BrowseClipboardActions(paste = {}),
                             singleFileActions =
                                 selected?.let { node ->
                                     listOf(
