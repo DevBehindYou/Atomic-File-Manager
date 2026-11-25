@@ -11,4 +11,7 @@
     <string name="pdf_page_description">PDF page %1$d. Pinch or double tap to zoom.</string>
     <string name="pdf_go_to_page">Page number</string>
     <string name="pdf_go">Go</string>
+    <string name="pdf_zoom_out">Zoom out</string>
+    <string name="pdf_zoom_in">Zoom in</string>
+    <string name="pdf_zoom_percent">%1$d%%</string>
 </resources>
