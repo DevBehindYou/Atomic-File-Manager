@@ -50,7 +50,15 @@ enum class SortOption(val label: String) {
 
 enum class ClipboardOp { COPY, MOVE }
 
-data class ClipboardState(val items: List<FileNode>, val operation: ClipboardOp)
+data class ClipboardState(
+    val items: List<FileNode>,
+    val operation: ClipboardOp,
+    val sourceLabel: String? = null,
+)
+
+private fun BrowseUiState.clipboardSourceLabel(): String? =
+    breadcrumbs.takeIf { it.lastOrNull()?.path == currentFolderId.raw }
+        ?.joinToString(" / ") { it.name }
 
 data class BrowseUiState(
     val currentFolderId: FileNodeId,
@@ -522,7 +530,7 @@ class BrowseViewModel(
         if (selectedNodes.isNotEmpty()) {
             _uiState.update {
                 it.copy(
-                    clipboard = ClipboardState(selectedNodes, ClipboardOp.COPY),
+                    clipboard = ClipboardState(selectedNodes, ClipboardOp.COPY, it.clipboardSourceLabel()),
                     selectedIds = emptySet(),
                 )
             }
@@ -534,7 +542,7 @@ class BrowseViewModel(
         if (selectedNodes.isNotEmpty()) {
             _uiState.update {
                 it.copy(
-                    clipboard = ClipboardState(selectedNodes, ClipboardOp.MOVE),
+                    clipboard = ClipboardState(selectedNodes, ClipboardOp.MOVE, it.clipboardSourceLabel()),
                     selectedIds = emptySet(),
                 )
             }
@@ -546,9 +554,18 @@ class BrowseViewModel(
     }
 
     fun paste(collisionPolicy: CollisionPolicy = CollisionPolicy.ASK) {
-        val clip = _uiState.value.clipboard ?: return
-        val currentFolder = _uiState.value.currentFolderId
+        val state = _uiState.value
+        val clip = state.clipboard ?: return
+        pasteAt(clip, state.currentFolderId, collisionPolicy)
+    }
 
+    internal fun pasteAt(
+        expected: ClipboardState,
+        destination: FileNodeId,
+        collisionPolicy: CollisionPolicy = CollisionPolicy.ASK,
+    ): Boolean {
+        val clip = _uiState.value.clipboard ?: return false
+        if (clip !== expected || clip.items.any { it.id == destination }) return false
         val opType =
             when (clip.operation) {
                 ClipboardOp.COPY -> OperationType.COPY
@@ -560,13 +577,14 @@ class BrowseViewModel(
                 id = OperationId.random(),
                 type = opType,
                 sources = clip.items.map { it.id },
-                destination = currentFolder,
+                destination = destination,
                 options = OperationOptions(collisionPolicy = collisionPolicy),
                 createdAt = System.currentTimeMillis(),
             )
 
         runOperation(op)
-        _uiState.update { it.copy(clipboard = null) }
+        _uiState.update { if (it.clipboard === clip) it.copy(clipboard = null) else it }
+        return true
     }
 
     fun compressSelected() {

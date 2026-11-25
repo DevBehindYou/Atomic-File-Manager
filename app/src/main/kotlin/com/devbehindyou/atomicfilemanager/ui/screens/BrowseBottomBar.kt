@@ -10,11 +10,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -27,9 +33,16 @@ import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicActi
 import com.devbehindyou.atomicfilemanager.core.designsystem.organisms.AtomicStripAction
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 
 // Browse's bottom action bar.
 // Split from BrowseScreen.kt (ALL_IN_ONE_PLAN.md §16.2 H9).
+
+internal data class BrowseClipboardActions(
+    val paste: () -> Unit,
+    val volumes: List<StorageVolumeInfo> = emptyList(),
+    val pasteAt: ((ClipboardState, FileNodeId) -> Boolean)? = null,
+)
 
 @Composable
 internal fun BrowseBottomBar(
@@ -43,12 +56,13 @@ internal fun BrowseBottomBar(
     onClearClipboard: () -> Unit,
     onRenameSelected: (List<FileNode>) -> Unit = {},
     onOpenInNewTab: ((FileNode) -> Unit)? = null,
-    onPaste: () -> Unit,
+    clipboardActions: BrowseClipboardActions,
     onCompare: (FileNode, FileNode) -> Unit = { _, _ -> },
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
     singleFileActions: List<AtomicStripAction> = emptyList(),
 ) {
     val clip = uiState.clipboard
+    var chooseDestination by remember(clip, isSelectionMode) { mutableStateOf(false) }
     val selectedFolders =
         uiState.rawItems.filter { it.id in uiState.selectedIds && it.isDirectory }.takeIf {
             it.size == 2 && uiState.selectedIds.size == 2
@@ -131,8 +145,18 @@ internal fun BrowseBottomBar(
             destination = clipboardDestinationName(uiState),
             onCancel = onClearClipboard,
             onCompare = comparison,
-            onPaste = onPaste,
+            onPaste = clipboardActions.paste,
+            onChoose = clipboardActions.pasteAt?.let { { chooseDestination = true } },
         )
+        if (chooseDestination && clipboardActions.pasteAt != null) {
+            BrowseDestinationPicker(
+                clip = clip,
+                initial = uiState,
+                volumes = clipboardActions.volumes,
+                onConfirm = { clipboardActions.pasteAt(clip, it) },
+                onDismiss = { chooseDestination = false },
+            )
+        }
     }
 }
 
@@ -143,6 +167,7 @@ private fun ClipboardActionBar(
     destination: String,
     onCancel: () -> Unit,
     onCompare: (() -> Unit)?,
+    onChoose: (() -> Unit)?,
     onPaste: () -> Unit,
 ) {
     val verb = if (clip.operation == ClipboardOp.COPY) "Copy" else "Move"
@@ -161,7 +186,7 @@ private fun ClipboardActionBar(
                         horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8, Alignment.End),
                         verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s4),
                     ) {
-                        ClipboardButtons(verb, clip.operation, onCancel, onCompare, onPaste)
+                        ClipboardButtons(verb, clip.operation, onCancel, onCompare, onChoose, onPaste)
                     }
                 }
             } else {
@@ -171,7 +196,7 @@ private fun ClipboardActionBar(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ClipboardTransferSummary(verb, source, destination, Modifier.weight(1f))
-                    ClipboardButtons(verb, clip.operation, onCancel, onCompare, onPaste)
+                    ClipboardButtons(verb, clip.operation, onCancel, onCompare, onChoose, onPaste)
                 }
             }
         }
@@ -204,9 +229,18 @@ private fun ClipboardButtons(
     operation: ClipboardOp,
     onCancel: () -> Unit,
     onCompare: (() -> Unit)?,
+    onChoose: (() -> Unit)?,
     onPaste: () -> Unit,
 ) {
     AtomicButton("Cancel", onClick = onCancel, variant = AtomicButtonVariant.Text)
+    if (onChoose != null) {
+        AtomicButton(
+            stringResource(R.string.destination_title),
+            onClick = onChoose,
+            variant = AtomicButtonVariant.Ghost,
+            modifier = Modifier.testTag("choose_destination_button"),
+        )
+    }
     if (onCompare != null) {
         AtomicButton(
             "Compare",

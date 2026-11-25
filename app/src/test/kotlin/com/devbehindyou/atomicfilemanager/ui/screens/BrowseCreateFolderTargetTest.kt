@@ -2,8 +2,10 @@ package com.devbehindyou.atomicfilemanager.ui.screens
 
 import androidx.lifecycle.viewModelScope
 import com.devbehindyou.atomicfilemanager.data.operations.OperationQueue
+import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
+import com.devbehindyou.atomicfilemanager.domain.model.FileOperation
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.OperationSnapshot
 import com.devbehindyou.atomicfilemanager.domain.model.OperationStatus
@@ -35,6 +37,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -93,6 +98,39 @@ class BrowseCreateFolderTargetTest {
             }
         }
 
+    @Test
+    fun `separate destination preserves Browse location and ignores stale clipboard confirmations`() =
+        runTest {
+            withModel { fixture ->
+                val model = fixture.model
+                fixture.awaitFolder(fixture.memory.rootId)
+                val source = fixture.destination
+                val elsewhere = fixture.memory.createDirectory(fixture.memory.rootId, "Elsewhere")
+                val target = checkNotNull(elsewhere.getOrNull()).id
+                model.toggleSelection(source.id)
+                model.copySelected()
+                val original = checkNotNull(model.uiState.value.clipboard)
+                assertFalse(model.pasteAt(original, source.id))
+                assertSame(original, model.uiState.value.clipboard)
+                assertFalse(fixture.queued.isCompleted)
+
+                model.toggleSelection(source.id)
+                model.cutSelected()
+                val current = checkNotNull(model.uiState.value.clipboard)
+                assertFalse(model.pasteAt(original, target))
+                assertSame(current, model.uiState.value.clipboard)
+                assertFalse(fixture.queued.isCompleted)
+
+                assertTrue(model.pasteAt(current, target))
+                assertNull(model.uiState.value.clipboard)
+                val accepted = fixture.queued.await()
+                assertEquals(target, accepted.destination)
+                assertEquals(listOf(source.id), accepted.sources)
+                assertEquals(CollisionPolicy.ASK, accepted.options.collisionPolicy)
+                assertEquals(fixture.memory.rootId, model.uiState.value.currentFolderId)
+            }
+        }
+
     private suspend fun TestScope.withModel(
         beforeCreate: suspend (FileNodeId) -> Unit = {},
         test: suspend (Fixture) -> Unit,
@@ -104,6 +142,7 @@ class BrowseCreateFolderTargetTest {
         val reads = MutableStateFlow<List<FileNodeId>>(emptyList())
         val createParents = mutableListOf<FileNodeId>()
         val created = CompletableDeferred<FileNode>()
+        val queued = CompletableDeferred<FileOperation>()
         val backend =
             object : StorageBackend by memory {
                 override fun listChildren(id: FileNodeId): Flow<FileResult<List<FileNode>>> =
@@ -125,7 +164,10 @@ class BrowseCreateFolderTargetTest {
             }
         val queue =
             OperationQueue(
-                engine = { operation, _ -> flowOf(OperationSnapshot(operation, OperationStatus.Cancelled)) },
+                engine = { operation, _ ->
+                    queued.complete(operation)
+                    flowOf(OperationSnapshot(operation, OperationStatus.Cancelled))
+                },
                 journal = null,
                 scope = backgroundScope,
             )
@@ -141,7 +183,7 @@ class BrowseCreateFolderTargetTest {
                 CreateTargetBubbles(),
             )
         try {
-            test(Fixture(model, memory, destination, reads, createParents, created))
+            test(Fixture(model, memory, destination, reads, createParents, created, queued))
         } finally {
             // Keep test Main installed until Default filtering hands cancellation back to its owner.
             try {
@@ -159,6 +201,7 @@ class BrowseCreateFolderTargetTest {
         val reads: MutableStateFlow<List<FileNodeId>>,
         val createParents: List<FileNodeId>,
         private val created: CompletableDeferred<FileNode>,
+        val queued: CompletableDeferred<FileOperation>,
     ) {
         suspend fun awaitFolder(id: FileNodeId) {
             model.uiState.first { it.currentFolderId == id && !it.isLoading && !it.isRefreshing }
