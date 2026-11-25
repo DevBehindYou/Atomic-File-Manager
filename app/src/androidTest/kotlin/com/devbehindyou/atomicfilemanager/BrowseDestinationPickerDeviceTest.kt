@@ -1,6 +1,8 @@
 package com.devbehindyou.atomicfilemanager
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
@@ -10,6 +12,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.data.backend.FileSystemBackend
@@ -17,7 +21,8 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.FileResult
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
-import com.devbehindyou.atomicfilemanager.ui.screens.BrowseDestinationPicker
+import com.devbehindyou.atomicfilemanager.ui.screens.BrowseBottomBar
+import com.devbehindyou.atomicfilemanager.ui.screens.BrowseClipboardActions
 import com.devbehindyou.atomicfilemanager.ui.screens.BrowseUiState
 import com.devbehindyou.atomicfilemanager.ui.screens.ClipboardOp
 import com.devbehindyou.atomicfilemanager.ui.screens.ClipboardState
@@ -62,24 +67,36 @@ class BrowseDestinationPickerDeviceTest {
                     rootNodeId = FileNodeId.file(other.path),
                     requiresGrant = false,
                 )
-            val visible = mutableStateOf(true)
+            val state = mutableStateOf(initial.copy(clipboard = clip, isLoading = false))
             var accepted: FileNodeId? = null
             compose.setContent {
                 AtomicTheme(darkTheme = true, wallpaperAccent = false) {
-                    if (visible.value) {
-                        BrowseDestinationPicker(
-                            clip = clip,
-                            initial = initial,
-                            volumes = listOf(volume),
-                            onConfirm = {
-                                accepted = it
-                                true
-                            },
-                            onDismiss = { visible.value = false },
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                        BrowseBottomBar(
+                            uiState = state.value,
+                            isSelectionMode = false,
+                            onCopySelected = {},
+                            onCutSelected = {},
+                            onCompressSelected = {},
+                            onDeleteSelected = {},
+                            onShowDetails = {},
+                            onClearClipboard = {},
+                            clipboardActions =
+                                BrowseClipboardActions(
+                                    paste = {},
+                                    volumes = listOf(volume),
+                                    pasteAt = { held, selected ->
+                                        assertEquals(clip, held)
+                                        accepted = selected
+                                        state.value = state.value.copy(clipboard = null)
+                                        true
+                                    },
+                                ),
                         )
                     }
                 }
             }
+            compose.onNodeWithTag("choose_destination_button").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodes(hasTestTag("destination_volume_fixture")).fetchSemanticsNodes().size == 1
             }
@@ -92,7 +109,7 @@ class BrowseDestinationPickerDeviceTest {
                 compose.onAllNodes(hasTestTag("destination_confirm") and isEnabled()).fetchSemanticsNodes().size == 1
             }
             compose.onNodeWithTag("destination_confirm").performScrollTo().performClick()
-            compose.waitUntil(10_000) { !visible.value }
+            compose.waitUntil(10_000) { state.value.clipboard == null }
             compose.runOnIdle { assertEquals(FileNodeId.file(target.path), accepted) }
             assertEquals("owned fixture", item.readText())
             assertTrue(target.list().orEmpty().isEmpty())
