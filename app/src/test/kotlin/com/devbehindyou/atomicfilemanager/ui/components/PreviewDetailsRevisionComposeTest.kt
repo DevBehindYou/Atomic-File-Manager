@@ -1,25 +1,33 @@
 package com.devbehindyou.atomicfilemanager.ui.components
 
 import android.app.Application
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.core.content.IntentCompat
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
 import com.devbehindyou.atomicfilemanager.data.preview.ApkInfoReader
 import com.devbehindyou.atomicfilemanager.data.preview.ExifMetadataReader
+import com.devbehindyou.atomicfilemanager.data.preview.ExternalPreviewFile
 import com.devbehindyou.atomicfilemanager.domain.model.AccessFlags
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import kotlinx.coroutines.CoroutineDispatcher
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -100,6 +108,50 @@ class PreviewDetailsRevisionComposeTest {
         gate.release()
         compose.waitForIdle()
         compose.onNodeWithText(CANT_READ, substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun detailsActionsRespectTheCurrentNodesCapabilities() {
+        val first = folder.newFile("notes.txt")
+        val shown = mutableStateOf(node(first, "text/plain").copy(access = AccessFlags.READ_ONLY))
+        val calls = mutableListOf<String>()
+        show {
+            FileDetailsDialog(
+                node = shown.value,
+                commands =
+                    FileDetailsCommands(
+                        onOpen = { calls += "open:${shown.value.name}" },
+                        onShare = { calls += "share:${shown.value.name}" },
+                        onRename = { calls += "rename:${shown.value.name}" },
+                    ),
+                onDismiss = { calls += "dismiss" },
+            )
+        }
+
+        compose.onNodeWithTag("file_details_rename").assertDoesNotExist()
+        compose.onNodeWithTag("file_details_open").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("dismiss", "open:notes.txt"), calls)
+            shown.value = shown.value.copy(isDirectory = true, access = AccessFlags.FULL)
+        }
+        compose.onNodeWithTag("file_details_share").assertDoesNotExist()
+        compose.onNodeWithTag("file_details_rename").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("dismiss", "open:notes.txt", "dismiss", "rename:notes.txt"), calls)
+        }
+    }
+
+    @Test
+    fun fileShareGrantsReadAccessToThePreparedUriOnly() {
+        val uri = Uri.parse("content://fixture/files/notes.txt")
+        val chooser = fileShareChooser(ExternalPreviewFile(uri, "text/plain"), "notes.txt", "Share")
+        val send = checkNotNull(IntentCompat.getParcelableExtra(chooser, Intent.EXTRA_INTENT, Intent::class.java))
+        assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+        assertEquals(Intent.ACTION_SEND, send.action)
+        assertEquals("text/plain", send.type)
+        assertEquals(uri, IntentCompat.getParcelableExtra(send, Intent.EXTRA_STREAM, Uri::class.java))
+        assertEquals(uri, send.clipData?.getItemAt(0)?.uri)
+        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, send.flags)
     }
 
     private fun show(content: @Composable () -> Unit) {

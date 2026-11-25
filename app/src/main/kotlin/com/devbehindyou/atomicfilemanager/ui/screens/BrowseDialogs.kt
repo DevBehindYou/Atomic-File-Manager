@@ -8,6 +8,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.HideMode
 import com.devbehindyou.atomicfilemanager.domain.model.RemovableNames
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.ui.components.DeleteSheet
+import com.devbehindyou.atomicfilemanager.ui.components.FileDetailsCommands
 import com.devbehindyou.atomicfilemanager.ui.components.FileDetailsDialog
 import com.devbehindyou.atomicfilemanager.ui.components.FilePreviewDialog
 import com.devbehindyou.atomicfilemanager.ui.components.HideFileDialog
@@ -36,6 +37,8 @@ internal data class BrowseDialogState(
 internal data class BrowseDialogCallbacks(
     val onDismissRename: () -> Unit,
     val onDismissDetails: () -> Unit,
+    val onOpenDetails: (FileNode) -> Unit,
+    val onRenameDetails: (FileNode) -> Unit,
     val onDismissDelete: () -> Unit,
     val onDismissMultiDelete: () -> Unit,
     val onDismissNewFolder: () -> Unit,
@@ -131,7 +134,18 @@ internal fun BrowseDialogs(
     }
 
     state.nodeForDetails?.let { node ->
-        FileDetailsDialog(node = node, onDismiss = callbacks.onDismissDetails)
+        FileDetailsDialog(
+            node = node,
+            commands =
+                FileDetailsCommands(
+                    onOpen = {
+                        if (node.isDirectory) viewModel.navigateTo(node) else callbacks.onOpenDetails(node)
+                    },
+                    onRename = { callbacks.onRenameDetails(node) },
+                    offerShare = true,
+                ),
+            onDismiss = callbacks.onDismissDetails,
+        )
     }
 
     state.nodeToDelete?.let { node ->

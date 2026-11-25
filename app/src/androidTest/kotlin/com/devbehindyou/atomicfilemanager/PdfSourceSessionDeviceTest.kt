@@ -8,12 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -44,8 +47,28 @@ class PdfSourceSessionDeviceTest {
         withFixture { fixture ->
             fixture.show()
             fixture.awaitPage(count = 3, page = 1)
+            val stage = compose.onNodeWithTag("pdf_reading_stage").getUnclippedBoundsInRoot()
+            val page = compose.onNodeWithTag("pdf_page").getUnclippedBoundsInRoot()
+            assertTrue(
+                "The raster should sit inside the stage margins: $stage vs $page",
+                stage.left < page.left && stage.right > page.right,
+            )
+            val width = (page.right - page.left).value
+            val height = (page.bottom - page.top).value
+            assertEquals(200f / 280f, width / height, 0.02f)
+
+            val zoomOut = compose.onNodeWithContentDescription(fixture.context.getString(R.string.pdf_zoom_out))
+            val zoomIn = compose.onNodeWithContentDescription(fixture.context.getString(R.string.pdf_zoom_in))
+            zoomOut.assertIsNotEnabled()
+            zoomIn.performClick()
+            compose.onNodeWithText(fixture.context.getString(R.string.pdf_zoom_percent, 125)).assertIsDisplayed()
+            zoomOut.performClick().assertIsNotEnabled()
+            zoomIn.performClick()
+
             compose.onNodeWithContentDescription(fixture.context.getString(R.string.pdf_next)).performClick()
             fixture.awaitPage(count = 3, page = 2)
+            zoomOut.assertIsNotEnabled()
+            compose.onNodeWithText(fixture.context.getString(R.string.pdf_zoom_percent, 100)).assertIsDisplayed()
             fixture.expectedSource = pdf(pages = 1, color = Color.BLUE)
             fixture.source.writeBytes(fixture.expectedSource)
             compose.runOnIdle {

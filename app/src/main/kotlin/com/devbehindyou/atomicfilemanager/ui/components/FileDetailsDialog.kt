@@ -3,6 +3,7 @@ package com.devbehindyou.atomicfilemanager.ui.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.devbehindyou.atomicfilemanager.R
 import com.devbehindyou.atomicfilemanager.core.designsystem.Atomic
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButton
 import com.devbehindyou.atomicfilemanager.core.designsystem.atoms.AtomicButtonVariant
@@ -79,9 +82,18 @@ fun fileFacts(node: FileNode): List<AtomicFact> =
         }
     }
 
+internal data class FileDetailsCommands(
+    val onOpen: (() -> Unit)? = null,
+    val onShare: (() -> Unit)? = null,
+    val onRename: (() -> Unit)? = null,
+    val offerShare: Boolean = false,
+    @StringRes val openLabel: Int = R.string.file_details_open,
+)
+
 @Composable
-fun FileDetailsDialog(
+internal fun FileDetailsDialog(
     node: FileNode,
+    commands: FileDetailsCommands = FileDetailsCommands(),
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -103,7 +115,64 @@ fun FileDetailsDialog(
         }
         AtomicFactSheet(facts, Modifier.testTag("file_details_metadata"))
         localImageFile(node)?.let { ImageMetadataSection(node, it) }
+        FileDetailsPrimaryActions(node, commands, onDismiss)
         FileDetailsActions(node, context, onDismiss)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FileDetailsPrimaryActions(
+    node: FileNode,
+    commands: FileDetailsCommands,
+    onDismiss: () -> Unit,
+) {
+    val open = commands.onOpen.takeIf { node.access.readable }
+    val share = commands.onShare.takeIf { node.access.readable && !node.isDirectory }
+    val rename = commands.onRename.takeIf { node.access.renamable }
+    val offerShare = commands.offerShare && share == null && node.access.readable && !node.isDirectory
+    if (open == null && share == null && rename == null && !offerShare) return
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+        verticalArrangement = Arrangement.spacedBy(AtomicSpacing.s8),
+    ) {
+        open?.let {
+            AtomicButton(
+                stringResource(commands.openLabel),
+                onClick = {
+                    onDismiss()
+                    it()
+                },
+                leadingIcon = if (node.isDirectory) AtomicIcons.FolderOpen else AtomicIcons.OpenExternally,
+                modifier = Modifier.testTag("file_details_open"),
+            )
+        }
+        share?.let {
+            AtomicButton(
+                stringResource(R.string.file_details_share),
+                onClick = {
+                    onDismiss()
+                    it()
+                },
+                variant = AtomicButtonVariant.Ghost,
+                leadingIcon = AtomicIcons.Share,
+                modifier = Modifier.testTag("file_details_share"),
+            )
+        }
+        if (offerShare) FileDetailsShareButton(node, onShared = onDismiss)
+        rename?.let {
+            AtomicButton(
+                stringResource(R.string.selection_rename),
+                onClick = {
+                    onDismiss()
+                    it()
+                },
+                variant = AtomicButtonVariant.Ghost,
+                leadingIcon = AtomicIcons.Rename,
+                modifier = Modifier.testTag("file_details_rename"),
+            )
+        }
     }
 }
 
