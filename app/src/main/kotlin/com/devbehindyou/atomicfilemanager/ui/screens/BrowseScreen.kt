@@ -578,8 +578,7 @@ fun BrowseScreen(
                 },
                 onClearClipboard = { actionViewModel.clearClipboard() },
                 onPaste = { actionViewModel.paste(CollisionPolicy.ASK) },
-                volumes = volumes,
-                onPasteAt = { clip, folder -> actionViewModel.pasteAt(clip, folder) },
+                destinationPicker = DestinationPickerActions(volumes) { clip, folder -> actionViewModel.pasteAt(clip, folder) },
                 onCompare = { a, b -> comparePair = a to b },
                 onCompareFolders =
                     onCompareFolders?.let { compare ->

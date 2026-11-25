@@ -38,6 +38,11 @@ import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 // Browse's bottom action bar.
 // Split from BrowseScreen.kt (ALL_IN_ONE_PLAN.md §16.2 H9).
 
+internal data class DestinationPickerActions(
+    val volumes: List<StorageVolumeInfo>,
+    val pasteAt: (ClipboardState, FileNodeId) -> Boolean,
+)
+
 @Composable
 internal fun BrowseBottomBar(
     uiState: BrowseUiState,
@@ -54,8 +59,7 @@ internal fun BrowseBottomBar(
     onCompare: (FileNode, FileNode) -> Unit = { _, _ -> },
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
     singleFileActions: List<AtomicStripAction> = emptyList(),
-    volumes: List<StorageVolumeInfo> = emptyList(),
-    onPasteAt: ((ClipboardState, FileNodeId) -> Boolean)? = null,
+    destinationPicker: DestinationPickerActions? = null,
 ) {
     val clip = uiState.clipboard
     var chooseDestination by remember(clip, isSelectionMode) { mutableStateOf(false) }
@@ -142,14 +146,14 @@ internal fun BrowseBottomBar(
             onCancel = onClearClipboard,
             onCompare = comparison,
             onPaste = onPaste,
-            onChoose = onPasteAt?.let { { chooseDestination = true } },
+            onChoose = destinationPicker?.let { { chooseDestination = true } },
         )
-        if (chooseDestination && onPasteAt != null) {
+        if (chooseDestination && destinationPicker != null) {
             BrowseDestinationPicker(
                 clip = clip,
                 initial = uiState,
-                volumes = volumes,
-                onConfirm = { onPasteAt(clip, it) },
+                volumes = destinationPicker.volumes,
+                onConfirm = { destinationPicker.pasteAt(clip, it) },
                 onDismiss = { chooseDestination = false },
             )
         }
