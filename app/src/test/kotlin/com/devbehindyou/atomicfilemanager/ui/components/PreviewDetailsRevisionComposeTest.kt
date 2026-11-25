@@ -9,7 +9,10 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
 import com.devbehindyou.atomicfilemanager.core.designsystem.AtomicTheme
@@ -20,6 +23,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.StorageType
 import kotlinx.coroutines.CoroutineDispatcher
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -100,6 +104,36 @@ class PreviewDetailsRevisionComposeTest {
         gate.release()
         compose.waitForIdle()
         compose.onNodeWithText(CANT_READ, substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun detailsActionsRespectTheCurrentNodesCapabilities() {
+        val first = folder.newFile("notes.txt")
+        val shown = mutableStateOf(node(first, "text/plain").copy(access = AccessFlags.READ_ONLY))
+        val calls = mutableListOf<String>()
+        show {
+            FileDetailsDialog(
+                node = shown.value,
+                commands = FileDetailsCommands(
+                    onOpen = { calls += "open:${shown.value.name}" },
+                    onShare = { calls += "share:${shown.value.name}" },
+                    onRename = { calls += "rename:${shown.value.name}" },
+                ),
+                onDismiss = { calls += "dismiss" },
+            )
+        }
+
+        compose.onNodeWithTag("file_details_rename").assertDoesNotExist()
+        compose.onNodeWithTag("file_details_open").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("dismiss", "open:notes.txt"), calls)
+            shown.value = shown.value.copy(isDirectory = true, access = AccessFlags.FULL)
+        }
+        compose.onNodeWithTag("file_details_share").assertDoesNotExist()
+        compose.onNodeWithTag("file_details_rename").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("dismiss", "open:notes.txt", "dismiss", "rename:notes.txt"), calls)
+        }
     }
 
     private fun show(content: @Composable () -> Unit) {

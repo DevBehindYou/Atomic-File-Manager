@@ -654,6 +654,18 @@ fun BrowseScreen(
                 BrowseDialogCallbacks(
                     onDismissRename = { nodeToRename = null },
                     onDismissDetails = { nodeForDetails = null },
+                    onOpenDetails = { node ->
+                        when {
+                            node.isDirectory -> actionViewModel.navigateTo(node)
+                            onOpenFile != null -> onOpenFile(node)
+                            else -> {
+                                previewFromSecondary = useSecondary
+                                nodeForPreview = node
+                                if (isDualPane) dualPaneMode = DualPaneMode.PREVIEW
+                            }
+                        }
+                    },
+                    onRenameDetails = { nodeToRename = it },
                     onDismissDelete = { nodeToDelete = null },
                     onDismissMultiDelete = { confirmMultiDelete = false },
                     onDismissNewFolder = { showNewFolderDialog = false },
