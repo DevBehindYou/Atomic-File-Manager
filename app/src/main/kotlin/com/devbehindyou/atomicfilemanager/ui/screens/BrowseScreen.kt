@@ -48,6 +48,7 @@ import com.devbehindyou.atomicfilemanager.domain.model.CollisionPolicy
 import com.devbehindyou.atomicfilemanager.domain.model.FileNode
 import com.devbehindyou.atomicfilemanager.domain.model.FileNodeId
 import com.devbehindyou.atomicfilemanager.domain.model.HideMode
+import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 import com.devbehindyou.atomicfilemanager.domain.model.TransferBubble
 import com.devbehindyou.atomicfilemanager.domain.usecase.ArchiveFormats
 import com.devbehindyou.atomicfilemanager.ui.components.BatchRenameSheet
@@ -577,8 +578,7 @@ fun BrowseScreen(
                     actionViewModel.clearSelection()
                 },
                 onClearClipboard = { actionViewModel.clearClipboard() },
-                onPaste = { actionViewModel.paste(CollisionPolicy.ASK) },
-                destinationPicker = DestinationPickerActions(volumes) { clip, folder -> actionViewModel.pasteAt(clip, folder) },
+                clipboardActions = actionViewModel.clipboardActions(volumes),
                 onCompare = { a, b -> comparePair = a to b },
                 onCompareFolders =
                     onCompareFolders?.let { compare ->
@@ -666,6 +666,13 @@ fun BrowseScreen(
         )
     }
 }
+
+private fun BrowseViewModel.clipboardActions(volumes: List<StorageVolumeInfo>): BrowseClipboardActions =
+    BrowseClipboardActions(
+        paste = { paste(CollisionPolicy.ASK) },
+        volumes = volumes,
+        pasteAt = { clip, folder -> pasteAt(clip, folder) },
+    )
 
 private fun handleBrowseKeyEvent(
     event: androidx.compose.ui.input.key.KeyEvent,

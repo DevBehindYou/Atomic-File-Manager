@@ -38,9 +38,10 @@ import com.devbehindyou.atomicfilemanager.domain.model.StorageVolumeInfo
 // Browse's bottom action bar.
 // Split from BrowseScreen.kt (ALL_IN_ONE_PLAN.md §16.2 H9).
 
-internal data class DestinationPickerActions(
-    val volumes: List<StorageVolumeInfo>,
-    val pasteAt: (ClipboardState, FileNodeId) -> Boolean,
+internal data class BrowseClipboardActions(
+    val paste: () -> Unit,
+    val volumes: List<StorageVolumeInfo> = emptyList(),
+    val pasteAt: ((ClipboardState, FileNodeId) -> Boolean)? = null,
 )
 
 @Composable
@@ -55,11 +56,10 @@ internal fun BrowseBottomBar(
     onClearClipboard: () -> Unit,
     onRenameSelected: (List<FileNode>) -> Unit = {},
     onOpenInNewTab: ((FileNode) -> Unit)? = null,
-    onPaste: () -> Unit,
+    clipboardActions: BrowseClipboardActions,
     onCompare: (FileNode, FileNode) -> Unit = { _, _ -> },
     onCompareFolders: ((FileNodeId, FileNodeId) -> Unit)? = null,
     singleFileActions: List<AtomicStripAction> = emptyList(),
-    destinationPicker: DestinationPickerActions? = null,
 ) {
     val clip = uiState.clipboard
     var chooseDestination by remember(clip, isSelectionMode) { mutableStateOf(false) }
@@ -145,15 +145,15 @@ internal fun BrowseBottomBar(
             destination = clipboardDestinationName(uiState),
             onCancel = onClearClipboard,
             onCompare = comparison,
-            onPaste = onPaste,
-            onChoose = destinationPicker?.let { { chooseDestination = true } },
+            onPaste = clipboardActions.paste,
+            onChoose = clipboardActions.pasteAt?.let { { chooseDestination = true } },
         )
-        if (chooseDestination && destinationPicker != null) {
+        if (chooseDestination && clipboardActions.pasteAt != null) {
             BrowseDestinationPicker(
                 clip = clip,
                 initial = uiState,
-                volumes = destinationPicker.volumes,
-                onConfirm = { destinationPicker.pasteAt(clip, it) },
+                volumes = clipboardActions.volumes,
+                onConfirm = { clipboardActions.pasteAt(clip, it) },
                 onDismiss = { chooseDestination = false },
             )
         }
